@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor3
+spec:
+  selector:
+    app: worker3
+  ports:
+    - name: http
+      port: 80
+      targetPort: 9500
+  type: NodePort
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker3
+spec:
+  selector:
+    app: worker3
+  ports:
+    - name: synerex
+      port: 700
+      targetPort: 10000
+    - name: nodeid
+      port: 600
+      targetPort: 9000
+
+---
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: worker3
+  labels:
+    app: worker3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker3
+  template:
+    metadata:
+      labels:
+        app: worker3
+    spec:
+      containers:
+      - name: nodeid-server
+        image: synerex-simulation/nodeid-server:latest 
+        imagePullPolicy: Never
+        env: 
+        - name: NODEID_SERVER
+          value: :9000
+        ports:
+        - containerPort: 9000
+      - name: synerex-server
+        image: synerex-simulation/synerex-server:latest 
+        imagePullPolicy: Never
+        env: 
+        - name: NODEID_SERVER
+          value: :9000
+        - name: SYNEREX_SERVER
+          value: :10000
+        ports:
+        - containerPort: 10000
+      - name: worker-provider
+        image: synerex-simulation/worker-provider:latest 
+        imagePullPolicy: Never
+        env: 
+        - name: NODEID_SERVER
+          value: :9000
+        - name: SYNEREX_SERVER
+          value: :10000
+        - name: MASTER_SYNEREX_SERVER
+          value: master:700
+        - name: MASTER_NODEID_SERVER
+          value: master:600
+        - name: PORT
+          value: '9980'
+        ports:
+        - containerPort: 9980
+      - name: agent-provider
+        image: synerex-simulation/agent-provider:latest 
+        imagePullPolicy: Never
+        env: 
+        - name: NODEID_SERVER
+          value: :9000
+        - name: SYNEREX_SERVER
+          value: :10000
+      - name: visualization-provider
+        image: synerex-simulation/visualization-provider:latest 
+        imagePullPolicy: Never
+        env: 
+        - name: NODEID_SERVER
+          value: :9000
+        - name: SYNEREX_SERVER
+          value: :10000
+        - name: VIS_ADDRESS
+          value: ':9500'
+      

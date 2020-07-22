@@ -1,0 +1,5504 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: simulator
+spec:
+  selector:
+    app: simulator
+  ports:
+  - name: http
+    port: 8000
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simulator
+  labels:
+    app: simulator
+spec:
+  containers:
+  - name: simulator
+    image: synerex-simulation/simulator:latest
+    imagePullPolicy: Never
+    stdin: true
+    tty: true
+    env:
+    - name: MASTER_ADDRESS
+      value: http://master:800
+    ports:
+    - containerPort: 8000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: master
+spec:
+  selector:
+    app: master
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+  - name: master-provider
+    port: 800
+    targetPort: 9990
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: master
+  labels:
+    app: master
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    ports:
+    - containerPort: 10000
+  - name: master-provider
+    image: synerex-simulation/master-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: PORT
+      value: "9990"
+    ports:
+    - containerPort: 9990
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor11
+spec:
+  selector:
+    app: worker11
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker11
+spec:
+  selector:
+    app: worker11
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker11
+  labels:
+    app: worker11
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer11
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider11
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":11, "name":"Unknown", "duplicate_area": [{"latitude":35.15391298333333,
+        "longitude":136.97133011666665},{"latitude":35.15205518333333, "longitude":136.97133011666665},{"latitude":35.15205518333333,
+        "longitude":136.97488071666666},{"latitude":35.15391298333333, "longitude":136.97488071666666}],
+        "control_area": [{"latitude":35.15375816666666, "longitude":136.971626},{"latitude":35.15221,
+        "longitude":136.971626},{"latitude":35.15221, "longitude":136.97458483333332},{"latitude":35.15375816666666,
+        "longitude":136.97458483333332}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider11
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider11
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor12
+spec:
+  selector:
+    app: worker12
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker12
+spec:
+  selector:
+    app: worker12
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker12
+  labels:
+    app: worker12
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer12
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider12
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":12, "name":"Unknown", "duplicate_area": [{"latitude":35.155461149999994,
+        "longitude":136.97133011666665},{"latitude":35.15360335, "longitude":136.97133011666665},{"latitude":35.15360335,
+        "longitude":136.97488071666666},{"latitude":35.155461149999994, "longitude":136.97488071666666}],
+        "control_area": [{"latitude":35.15530633333333, "longitude":136.971626},{"latitude":35.15375816666666,
+        "longitude":136.971626},{"latitude":35.15375816666666, "longitude":136.97458483333332},{"latitude":35.15530633333333,
+        "longitude":136.97458483333332}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider12
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider12
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor13
+spec:
+  selector:
+    app: worker13
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker13
+spec:
+  selector:
+    app: worker13
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker13
+  labels:
+    app: worker13
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer13
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider13
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":13, "name":"Unknown", "duplicate_area": [{"latitude":35.15700931666666,
+        "longitude":136.97133011666665},{"latitude":35.15515151666666, "longitude":136.97133011666665},{"latitude":35.15515151666666,
+        "longitude":136.97488071666666},{"latitude":35.15700931666666, "longitude":136.97488071666666}],
+        "control_area": [{"latitude":35.156854499999994, "longitude":136.971626},{"latitude":35.15530633333333,
+        "longitude":136.971626},{"latitude":35.15530633333333, "longitude":136.97458483333332},{"latitude":35.156854499999994,
+        "longitude":136.97458483333332}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider13
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider13
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor14
+spec:
+  selector:
+    app: worker14
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker14
+spec:
+  selector:
+    app: worker14
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker14
+  labels:
+    app: worker14
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer14
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider14
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":14, "name":"Unknown", "duplicate_area": [{"latitude":35.15855748333333,
+        "longitude":136.97133011666665},{"latitude":35.15669968333333, "longitude":136.97133011666665},{"latitude":35.15669968333333,
+        "longitude":136.97488071666666},{"latitude":35.15855748333333, "longitude":136.97488071666666}],
+        "control_area": [{"latitude":35.15840266666667, "longitude":136.971626},{"latitude":35.156854499999994,
+        "longitude":136.971626},{"latitude":35.156854499999994, "longitude":136.97458483333332},{"latitude":35.15840266666667,
+        "longitude":136.97458483333332}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider14
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider14
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor15
+spec:
+  selector:
+    app: worker15
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker15
+spec:
+  selector:
+    app: worker15
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker15
+  labels:
+    app: worker15
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer15
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider15
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":15, "name":"Unknown", "duplicate_area": [{"latitude":35.16010565,
+        "longitude":136.97133011666665},{"latitude":35.15824785, "longitude":136.97133011666665},{"latitude":35.15824785,
+        "longitude":136.97488071666666},{"latitude":35.16010565, "longitude":136.97488071666666}],
+        "control_area": [{"latitude":35.15995083333333, "longitude":136.971626},{"latitude":35.15840266666667,
+        "longitude":136.971626},{"latitude":35.15840266666667, "longitude":136.97458483333332},{"latitude":35.15995083333333,
+        "longitude":136.97458483333332}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider15
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider15
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor16
+spec:
+  selector:
+    app: worker16
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker16
+spec:
+  selector:
+    app: worker16
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker16
+  labels:
+    app: worker16
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer16
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider16
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":16, "name":"Unknown", "duplicate_area": [{"latitude":35.161653816666664,
+        "longitude":136.97133011666665},{"latitude":35.15979601666667, "longitude":136.97133011666665},{"latitude":35.15979601666667,
+        "longitude":136.97488071666666},{"latitude":35.161653816666664, "longitude":136.97488071666666}],
+        "control_area": [{"latitude":35.161499, "longitude":136.971626},{"latitude":35.15995083333333,
+        "longitude":136.971626},{"latitude":35.15995083333333, "longitude":136.97458483333332},{"latitude":35.161499,
+        "longitude":136.97458483333332}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider16
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider16
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor21
+spec:
+  selector:
+    app: worker21
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker21
+spec:
+  selector:
+    app: worker21
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker21
+  labels:
+    app: worker21
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer21
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider21
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":21, "name":"Unknown", "duplicate_area": [{"latitude":35.15391298333333,
+        "longitude":136.97428895},{"latitude":35.15205518333333, "longitude":136.97428895},{"latitude":35.15205518333333,
+        "longitude":136.97783955},{"latitude":35.15391298333333, "longitude":136.97783955}],
+        "control_area": [{"latitude":35.15375816666666, "longitude":136.97458483333332},{"latitude":35.15221,
+        "longitude":136.97458483333332},{"latitude":35.15221, "longitude":136.97754366666666},{"latitude":35.15375816666666,
+        "longitude":136.97754366666666}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider21
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider21
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor22
+spec:
+  selector:
+    app: worker22
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker22
+spec:
+  selector:
+    app: worker22
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker22
+  labels:
+    app: worker22
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer22
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider22
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":22, "name":"Unknown", "duplicate_area": [{"latitude":35.155461149999994,
+        "longitude":136.97428895},{"latitude":35.15360335, "longitude":136.97428895},{"latitude":35.15360335,
+        "longitude":136.97783955},{"latitude":35.155461149999994, "longitude":136.97783955}],
+        "control_area": [{"latitude":35.15530633333333, "longitude":136.97458483333332},{"latitude":35.15375816666666,
+        "longitude":136.97458483333332},{"latitude":35.15375816666666, "longitude":136.97754366666666},{"latitude":35.15530633333333,
+        "longitude":136.97754366666666}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider22
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider22
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor23
+spec:
+  selector:
+    app: worker23
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker23
+spec:
+  selector:
+    app: worker23
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker23
+  labels:
+    app: worker23
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer23
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider23
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":23, "name":"Unknown", "duplicate_area": [{"latitude":35.15700931666666,
+        "longitude":136.97428895},{"latitude":35.15515151666666, "longitude":136.97428895},{"latitude":35.15515151666666,
+        "longitude":136.97783955},{"latitude":35.15700931666666, "longitude":136.97783955}],
+        "control_area": [{"latitude":35.156854499999994, "longitude":136.97458483333332},{"latitude":35.15530633333333,
+        "longitude":136.97458483333332},{"latitude":35.15530633333333, "longitude":136.97754366666666},{"latitude":35.156854499999994,
+        "longitude":136.97754366666666}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider23
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider23
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor24
+spec:
+  selector:
+    app: worker24
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker24
+spec:
+  selector:
+    app: worker24
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker24
+  labels:
+    app: worker24
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer24
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider24
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":24, "name":"Unknown", "duplicate_area": [{"latitude":35.15855748333333,
+        "longitude":136.97428895},{"latitude":35.15669968333333, "longitude":136.97428895},{"latitude":35.15669968333333,
+        "longitude":136.97783955},{"latitude":35.15855748333333, "longitude":136.97783955}],
+        "control_area": [{"latitude":35.15840266666667, "longitude":136.97458483333332},{"latitude":35.156854499999994,
+        "longitude":136.97458483333332},{"latitude":35.156854499999994, "longitude":136.97754366666666},{"latitude":35.15840266666667,
+        "longitude":136.97754366666666}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider24
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider24
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor25
+spec:
+  selector:
+    app: worker25
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker25
+spec:
+  selector:
+    app: worker25
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker25
+  labels:
+    app: worker25
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer25
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider25
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":25, "name":"Unknown", "duplicate_area": [{"latitude":35.16010565,
+        "longitude":136.97428895},{"latitude":35.15824785, "longitude":136.97428895},{"latitude":35.15824785,
+        "longitude":136.97783955},{"latitude":35.16010565, "longitude":136.97783955}],
+        "control_area": [{"latitude":35.15995083333333, "longitude":136.97458483333332},{"latitude":35.15840266666667,
+        "longitude":136.97458483333332},{"latitude":35.15840266666667, "longitude":136.97754366666666},{"latitude":35.15995083333333,
+        "longitude":136.97754366666666}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider25
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider25
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor26
+spec:
+  selector:
+    app: worker26
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker26
+spec:
+  selector:
+    app: worker26
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker26
+  labels:
+    app: worker26
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer26
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider26
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":26, "name":"Unknown", "duplicate_area": [{"latitude":35.161653816666664,
+        "longitude":136.97428895},{"latitude":35.15979601666667, "longitude":136.97428895},{"latitude":35.15979601666667,
+        "longitude":136.97783955},{"latitude":35.161653816666664, "longitude":136.97783955}],
+        "control_area": [{"latitude":35.161499, "longitude":136.97458483333332},{"latitude":35.15995083333333,
+        "longitude":136.97458483333332},{"latitude":35.15995083333333, "longitude":136.97754366666666},{"latitude":35.161499,
+        "longitude":136.97754366666666}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider26
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider26
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor31
+spec:
+  selector:
+    app: worker31
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker31
+spec:
+  selector:
+    app: worker31
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker31
+  labels:
+    app: worker31
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer31
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider31
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":31, "name":"Unknown", "duplicate_area": [{"latitude":35.15391298333333,
+        "longitude":136.97724778333333},{"latitude":35.15205518333333, "longitude":136.97724778333333},{"latitude":35.15205518333333,
+        "longitude":136.98079838333334},{"latitude":35.15391298333333, "longitude":136.98079838333334}],
+        "control_area": [{"latitude":35.15375816666666, "longitude":136.97754366666666},{"latitude":35.15221,
+        "longitude":136.97754366666666},{"latitude":35.15221, "longitude":136.9805025},{"latitude":35.15375816666666,
+        "longitude":136.9805025}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider31
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider31
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor32
+spec:
+  selector:
+    app: worker32
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker32
+spec:
+  selector:
+    app: worker32
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker32
+  labels:
+    app: worker32
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer32
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider32
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":32, "name":"Unknown", "duplicate_area": [{"latitude":35.155461149999994,
+        "longitude":136.97724778333333},{"latitude":35.15360335, "longitude":136.97724778333333},{"latitude":35.15360335,
+        "longitude":136.98079838333334},{"latitude":35.155461149999994, "longitude":136.98079838333334}],
+        "control_area": [{"latitude":35.15530633333333, "longitude":136.97754366666666},{"latitude":35.15375816666666,
+        "longitude":136.97754366666666},{"latitude":35.15375816666666, "longitude":136.9805025},{"latitude":35.15530633333333,
+        "longitude":136.9805025}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider32
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider32
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor33
+spec:
+  selector:
+    app: worker33
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker33
+spec:
+  selector:
+    app: worker33
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker33
+  labels:
+    app: worker33
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer33
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider33
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":33, "name":"Unknown", "duplicate_area": [{"latitude":35.15700931666666,
+        "longitude":136.97724778333333},{"latitude":35.15515151666666, "longitude":136.97724778333333},{"latitude":35.15515151666666,
+        "longitude":136.98079838333334},{"latitude":35.15700931666666, "longitude":136.98079838333334}],
+        "control_area": [{"latitude":35.156854499999994, "longitude":136.97754366666666},{"latitude":35.15530633333333,
+        "longitude":136.97754366666666},{"latitude":35.15530633333333, "longitude":136.9805025},{"latitude":35.156854499999994,
+        "longitude":136.9805025}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider33
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider33
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor34
+spec:
+  selector:
+    app: worker34
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker34
+spec:
+  selector:
+    app: worker34
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker34
+  labels:
+    app: worker34
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer34
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider34
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":34, "name":"Unknown", "duplicate_area": [{"latitude":35.15855748333333,
+        "longitude":136.97724778333333},{"latitude":35.15669968333333, "longitude":136.97724778333333},{"latitude":35.15669968333333,
+        "longitude":136.98079838333334},{"latitude":35.15855748333333, "longitude":136.98079838333334}],
+        "control_area": [{"latitude":35.15840266666667, "longitude":136.97754366666666},{"latitude":35.156854499999994,
+        "longitude":136.97754366666666},{"latitude":35.156854499999994, "longitude":136.9805025},{"latitude":35.15840266666667,
+        "longitude":136.9805025}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider34
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider34
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor35
+spec:
+  selector:
+    app: worker35
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker35
+spec:
+  selector:
+    app: worker35
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker35
+  labels:
+    app: worker35
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer35
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider35
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":35, "name":"Unknown", "duplicate_area": [{"latitude":35.16010565,
+        "longitude":136.97724778333333},{"latitude":35.15824785, "longitude":136.97724778333333},{"latitude":35.15824785,
+        "longitude":136.98079838333334},{"latitude":35.16010565, "longitude":136.98079838333334}],
+        "control_area": [{"latitude":35.15995083333333, "longitude":136.97754366666666},{"latitude":35.15840266666667,
+        "longitude":136.97754366666666},{"latitude":35.15840266666667, "longitude":136.9805025},{"latitude":35.15995083333333,
+        "longitude":136.9805025}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider35
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider35
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor36
+spec:
+  selector:
+    app: worker36
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker36
+spec:
+  selector:
+    app: worker36
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker36
+  labels:
+    app: worker36
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer36
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider36
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":36, "name":"Unknown", "duplicate_area": [{"latitude":35.161653816666664,
+        "longitude":136.97724778333333},{"latitude":35.15979601666667, "longitude":136.97724778333333},{"latitude":35.15979601666667,
+        "longitude":136.98079838333334},{"latitude":35.161653816666664, "longitude":136.98079838333334}],
+        "control_area": [{"latitude":35.161499, "longitude":136.97754366666666},{"latitude":35.15995083333333,
+        "longitude":136.97754366666666},{"latitude":35.15995083333333, "longitude":136.9805025},{"latitude":35.161499,
+        "longitude":136.9805025}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider36
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider36
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor41
+spec:
+  selector:
+    app: worker41
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker41
+spec:
+  selector:
+    app: worker41
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker41
+  labels:
+    app: worker41
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer41
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider41
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":41, "name":"Unknown", "duplicate_area": [{"latitude":35.15391298333333,
+        "longitude":136.98020661666666},{"latitude":35.15205518333333, "longitude":136.98020661666666},{"latitude":35.15205518333333,
+        "longitude":136.98375721666667},{"latitude":35.15391298333333, "longitude":136.98375721666667}],
+        "control_area": [{"latitude":35.15375816666666, "longitude":136.9805025},{"latitude":35.15221,
+        "longitude":136.9805025},{"latitude":35.15221, "longitude":136.98346133333334},{"latitude":35.15375816666666,
+        "longitude":136.98346133333334}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider41
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider41
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor42
+spec:
+  selector:
+    app: worker42
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker42
+spec:
+  selector:
+    app: worker42
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker42
+  labels:
+    app: worker42
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer42
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider42
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":42, "name":"Unknown", "duplicate_area": [{"latitude":35.155461149999994,
+        "longitude":136.98020661666666},{"latitude":35.15360335, "longitude":136.98020661666666},{"latitude":35.15360335,
+        "longitude":136.98375721666667},{"latitude":35.155461149999994, "longitude":136.98375721666667}],
+        "control_area": [{"latitude":35.15530633333333, "longitude":136.9805025},{"latitude":35.15375816666666,
+        "longitude":136.9805025},{"latitude":35.15375816666666, "longitude":136.98346133333334},{"latitude":35.15530633333333,
+        "longitude":136.98346133333334}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider42
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider42
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor43
+spec:
+  selector:
+    app: worker43
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker43
+spec:
+  selector:
+    app: worker43
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker43
+  labels:
+    app: worker43
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer43
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider43
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":43, "name":"Unknown", "duplicate_area": [{"latitude":35.15700931666666,
+        "longitude":136.98020661666666},{"latitude":35.15515151666666, "longitude":136.98020661666666},{"latitude":35.15515151666666,
+        "longitude":136.98375721666667},{"latitude":35.15700931666666, "longitude":136.98375721666667}],
+        "control_area": [{"latitude":35.156854499999994, "longitude":136.9805025},{"latitude":35.15530633333333,
+        "longitude":136.9805025},{"latitude":35.15530633333333, "longitude":136.98346133333334},{"latitude":35.156854499999994,
+        "longitude":136.98346133333334}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider43
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider43
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor44
+spec:
+  selector:
+    app: worker44
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker44
+spec:
+  selector:
+    app: worker44
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker44
+  labels:
+    app: worker44
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer44
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider44
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":44, "name":"Unknown", "duplicate_area": [{"latitude":35.15855748333333,
+        "longitude":136.98020661666666},{"latitude":35.15669968333333, "longitude":136.98020661666666},{"latitude":35.15669968333333,
+        "longitude":136.98375721666667},{"latitude":35.15855748333333, "longitude":136.98375721666667}],
+        "control_area": [{"latitude":35.15840266666667, "longitude":136.9805025},{"latitude":35.156854499999994,
+        "longitude":136.9805025},{"latitude":35.156854499999994, "longitude":136.98346133333334},{"latitude":35.15840266666667,
+        "longitude":136.98346133333334}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider44
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider44
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor45
+spec:
+  selector:
+    app: worker45
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker45
+spec:
+  selector:
+    app: worker45
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker45
+  labels:
+    app: worker45
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer45
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider45
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":45, "name":"Unknown", "duplicate_area": [{"latitude":35.16010565,
+        "longitude":136.98020661666666},{"latitude":35.15824785, "longitude":136.98020661666666},{"latitude":35.15824785,
+        "longitude":136.98375721666667},{"latitude":35.16010565, "longitude":136.98375721666667}],
+        "control_area": [{"latitude":35.15995083333333, "longitude":136.9805025},{"latitude":35.15840266666667,
+        "longitude":136.9805025},{"latitude":35.15840266666667, "longitude":136.98346133333334},{"latitude":35.15995083333333,
+        "longitude":136.98346133333334}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider45
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider45
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor46
+spec:
+  selector:
+    app: worker46
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker46
+spec:
+  selector:
+    app: worker46
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker46
+  labels:
+    app: worker46
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer46
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider46
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":46, "name":"Unknown", "duplicate_area": [{"latitude":35.161653816666664,
+        "longitude":136.98020661666666},{"latitude":35.15979601666667, "longitude":136.98020661666666},{"latitude":35.15979601666667,
+        "longitude":136.98375721666667},{"latitude":35.161653816666664, "longitude":136.98375721666667}],
+        "control_area": [{"latitude":35.161499, "longitude":136.9805025},{"latitude":35.15995083333333,
+        "longitude":136.9805025},{"latitude":35.15995083333333, "longitude":136.98346133333334},{"latitude":35.161499,
+        "longitude":136.98346133333334}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider46
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider46
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor51
+spec:
+  selector:
+    app: worker51
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker51
+spec:
+  selector:
+    app: worker51
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker51
+  labels:
+    app: worker51
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer51
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider51
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":51, "name":"Unknown", "duplicate_area": [{"latitude":35.15391298333333,
+        "longitude":136.98316545},{"latitude":35.15205518333333, "longitude":136.98316545},{"latitude":35.15205518333333,
+        "longitude":136.98671605},{"latitude":35.15391298333333, "longitude":136.98671605}],
+        "control_area": [{"latitude":35.15375816666666, "longitude":136.98346133333334},{"latitude":35.15221,
+        "longitude":136.98346133333334},{"latitude":35.15221, "longitude":136.98642016666668},{"latitude":35.15375816666666,
+        "longitude":136.98642016666668}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider51
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider51
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor52
+spec:
+  selector:
+    app: worker52
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker52
+spec:
+  selector:
+    app: worker52
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker52
+  labels:
+    app: worker52
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer52
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider52
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":52, "name":"Unknown", "duplicate_area": [{"latitude":35.155461149999994,
+        "longitude":136.98316545},{"latitude":35.15360335, "longitude":136.98316545},{"latitude":35.15360335,
+        "longitude":136.98671605},{"latitude":35.155461149999994, "longitude":136.98671605}],
+        "control_area": [{"latitude":35.15530633333333, "longitude":136.98346133333334},{"latitude":35.15375816666666,
+        "longitude":136.98346133333334},{"latitude":35.15375816666666, "longitude":136.98642016666668},{"latitude":35.15530633333333,
+        "longitude":136.98642016666668}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider52
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider52
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor53
+spec:
+  selector:
+    app: worker53
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker53
+spec:
+  selector:
+    app: worker53
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker53
+  labels:
+    app: worker53
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer53
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider53
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":53, "name":"Unknown", "duplicate_area": [{"latitude":35.15700931666666,
+        "longitude":136.98316545},{"latitude":35.15515151666666, "longitude":136.98316545},{"latitude":35.15515151666666,
+        "longitude":136.98671605},{"latitude":35.15700931666666, "longitude":136.98671605}],
+        "control_area": [{"latitude":35.156854499999994, "longitude":136.98346133333334},{"latitude":35.15530633333333,
+        "longitude":136.98346133333334},{"latitude":35.15530633333333, "longitude":136.98642016666668},{"latitude":35.156854499999994,
+        "longitude":136.98642016666668}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider53
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider53
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor54
+spec:
+  selector:
+    app: worker54
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker54
+spec:
+  selector:
+    app: worker54
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker54
+  labels:
+    app: worker54
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer54
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider54
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":54, "name":"Unknown", "duplicate_area": [{"latitude":35.15855748333333,
+        "longitude":136.98316545},{"latitude":35.15669968333333, "longitude":136.98316545},{"latitude":35.15669968333333,
+        "longitude":136.98671605},{"latitude":35.15855748333333, "longitude":136.98671605}],
+        "control_area": [{"latitude":35.15840266666667, "longitude":136.98346133333334},{"latitude":35.156854499999994,
+        "longitude":136.98346133333334},{"latitude":35.156854499999994, "longitude":136.98642016666668},{"latitude":35.15840266666667,
+        "longitude":136.98642016666668}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider54
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider54
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor55
+spec:
+  selector:
+    app: worker55
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker55
+spec:
+  selector:
+    app: worker55
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker55
+  labels:
+    app: worker55
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer55
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider55
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":55, "name":"Unknown", "duplicate_area": [{"latitude":35.16010565,
+        "longitude":136.98316545},{"latitude":35.15824785, "longitude":136.98316545},{"latitude":35.15824785,
+        "longitude":136.98671605},{"latitude":35.16010565, "longitude":136.98671605}],
+        "control_area": [{"latitude":35.15995083333333, "longitude":136.98346133333334},{"latitude":35.15840266666667,
+        "longitude":136.98346133333334},{"latitude":35.15840266666667, "longitude":136.98642016666668},{"latitude":35.15995083333333,
+        "longitude":136.98642016666668}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider55
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider55
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor56
+spec:
+  selector:
+    app: worker56
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker56
+spec:
+  selector:
+    app: worker56
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker56
+  labels:
+    app: worker56
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer56
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider56
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":56, "name":"Unknown", "duplicate_area": [{"latitude":35.161653816666664,
+        "longitude":136.98316545},{"latitude":35.15979601666667, "longitude":136.98316545},{"latitude":35.15979601666667,
+        "longitude":136.98671605},{"latitude":35.161653816666664, "longitude":136.98671605}],
+        "control_area": [{"latitude":35.161499, "longitude":136.98346133333334},{"latitude":35.15995083333333,
+        "longitude":136.98346133333334},{"latitude":35.15995083333333, "longitude":136.98642016666668},{"latitude":35.161499,
+        "longitude":136.98642016666668}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider56
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider56
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor61
+spec:
+  selector:
+    app: worker61
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker61
+spec:
+  selector:
+    app: worker61
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker61
+  labels:
+    app: worker61
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer61
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider61
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":61, "name":"Unknown", "duplicate_area": [{"latitude":35.15391298333333,
+        "longitude":136.98612428333334},{"latitude":35.15205518333333, "longitude":136.98612428333334},{"latitude":35.15205518333333,
+        "longitude":136.98967488333335},{"latitude":35.15391298333333, "longitude":136.98967488333335}],
+        "control_area": [{"latitude":35.15375816666666, "longitude":136.98642016666668},{"latitude":35.15221,
+        "longitude":136.98642016666668},{"latitude":35.15221, "longitude":136.989379},{"latitude":35.15375816666666,
+        "longitude":136.989379}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider61
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider61
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor62
+spec:
+  selector:
+    app: worker62
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker62
+spec:
+  selector:
+    app: worker62
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker62
+  labels:
+    app: worker62
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer62
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider62
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":62, "name":"Unknown", "duplicate_area": [{"latitude":35.155461149999994,
+        "longitude":136.98612428333334},{"latitude":35.15360335, "longitude":136.98612428333334},{"latitude":35.15360335,
+        "longitude":136.98967488333335},{"latitude":35.155461149999994, "longitude":136.98967488333335}],
+        "control_area": [{"latitude":35.15530633333333, "longitude":136.98642016666668},{"latitude":35.15375816666666,
+        "longitude":136.98642016666668},{"latitude":35.15375816666666, "longitude":136.989379},{"latitude":35.15530633333333,
+        "longitude":136.989379}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider62
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider62
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor63
+spec:
+  selector:
+    app: worker63
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker63
+spec:
+  selector:
+    app: worker63
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker63
+  labels:
+    app: worker63
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer63
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider63
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":63, "name":"Unknown", "duplicate_area": [{"latitude":35.15700931666666,
+        "longitude":136.98612428333334},{"latitude":35.15515151666666, "longitude":136.98612428333334},{"latitude":35.15515151666666,
+        "longitude":136.98967488333335},{"latitude":35.15700931666666, "longitude":136.98967488333335}],
+        "control_area": [{"latitude":35.156854499999994, "longitude":136.98642016666668},{"latitude":35.15530633333333,
+        "longitude":136.98642016666668},{"latitude":35.15530633333333, "longitude":136.989379},{"latitude":35.156854499999994,
+        "longitude":136.989379}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider63
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider63
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor64
+spec:
+  selector:
+    app: worker64
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker64
+spec:
+  selector:
+    app: worker64
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker64
+  labels:
+    app: worker64
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer64
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider64
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":64, "name":"Unknown", "duplicate_area": [{"latitude":35.15855748333333,
+        "longitude":136.98612428333334},{"latitude":35.15669968333333, "longitude":136.98612428333334},{"latitude":35.15669968333333,
+        "longitude":136.98967488333335},{"latitude":35.15855748333333, "longitude":136.98967488333335}],
+        "control_area": [{"latitude":35.15840266666667, "longitude":136.98642016666668},{"latitude":35.156854499999994,
+        "longitude":136.98642016666668},{"latitude":35.156854499999994, "longitude":136.989379},{"latitude":35.15840266666667,
+        "longitude":136.989379}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider64
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider64
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor65
+spec:
+  selector:
+    app: worker65
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker65
+spec:
+  selector:
+    app: worker65
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker65
+  labels:
+    app: worker65
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer65
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider65
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":65, "name":"Unknown", "duplicate_area": [{"latitude":35.16010565,
+        "longitude":136.98612428333334},{"latitude":35.15824785, "longitude":136.98612428333334},{"latitude":35.15824785,
+        "longitude":136.98967488333335},{"latitude":35.16010565, "longitude":136.98967488333335}],
+        "control_area": [{"latitude":35.15995083333333, "longitude":136.98642016666668},{"latitude":35.15840266666667,
+        "longitude":136.98642016666668},{"latitude":35.15840266666667, "longitude":136.989379},{"latitude":35.15995083333333,
+        "longitude":136.989379}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider65
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider65
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor66
+spec:
+  selector:
+    app: worker66
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker66
+spec:
+  selector:
+    app: worker66
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker66
+  labels:
+    app: worker66
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: SERVER_NAME
+      value: SynerexServer66
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: synerex-simulation/worker-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: PORT
+      value: "9980"
+    - name: PROVIDER_NAME
+      value: WorkerProvider66
+    ports:
+    - containerPort: 9980
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: AREA
+      value: '{"id":66, "name":"Unknown", "duplicate_area": [{"latitude":35.161653816666664,
+        "longitude":136.98612428333334},{"latitude":35.15979601666667, "longitude":136.98612428333334},{"latitude":35.15979601666667,
+        "longitude":136.98967488333335},{"latitude":35.161653816666664, "longitude":136.98967488333335}],
+        "control_area": [{"latitude":35.161499, "longitude":136.98642016666668},{"latitude":35.15995083333333,
+        "longitude":136.98642016666668},{"latitude":35.15995083333333, "longitude":136.989379},{"latitude":35.161499,
+        "longitude":136.989379}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider66
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider66
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway1121
+  labels:
+    app: gateway1121
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker11:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker11:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker21:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker21:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider1121
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway1112
+  labels:
+    app: gateway1112
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker11:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker11:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker12:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker12:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider1112
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway1222
+  labels:
+    app: gateway1222
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker12:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker12:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker22:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker22:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider1222
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway1213
+  labels:
+    app: gateway1213
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker12:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker12:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker13:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker13:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider1213
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway1323
+  labels:
+    app: gateway1323
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker13:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker13:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker23:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker23:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider1323
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway1314
+  labels:
+    app: gateway1314
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker13:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker13:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker14:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker14:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider1314
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway1424
+  labels:
+    app: gateway1424
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker14:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker14:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker24:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker24:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider1424
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway1415
+  labels:
+    app: gateway1415
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker14:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker14:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker15:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker15:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider1415
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway1525
+  labels:
+    app: gateway1525
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker15:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker15:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker25:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker25:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider1525
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway1516
+  labels:
+    app: gateway1516
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker15:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker15:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker16:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker16:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider1516
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway1626
+  labels:
+    app: gateway1626
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker16:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker16:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker26:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker26:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider1626
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway2131
+  labels:
+    app: gateway2131
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker21:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker21:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker31:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker31:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider2131
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway2122
+  labels:
+    app: gateway2122
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker21:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker21:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker22:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker22:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider2122
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway2232
+  labels:
+    app: gateway2232
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker22:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker22:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker32:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker32:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider2232
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway2223
+  labels:
+    app: gateway2223
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker22:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker22:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker23:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker23:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider2223
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway2333
+  labels:
+    app: gateway2333
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker23:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker23:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker33:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker33:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider2333
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway2324
+  labels:
+    app: gateway2324
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker23:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker23:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker24:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker24:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider2324
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway2434
+  labels:
+    app: gateway2434
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker24:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker24:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker34:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker34:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider2434
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway2425
+  labels:
+    app: gateway2425
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker24:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker24:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker25:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker25:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider2425
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway2535
+  labels:
+    app: gateway2535
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker25:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker25:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker35:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker35:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider2535
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway2526
+  labels:
+    app: gateway2526
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker25:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker25:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker26:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker26:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider2526
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway2636
+  labels:
+    app: gateway2636
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker26:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker26:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker36:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker36:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider2636
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway3141
+  labels:
+    app: gateway3141
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker31:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker31:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker41:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker41:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider3141
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway3132
+  labels:
+    app: gateway3132
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker31:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker31:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker32:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker32:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider3132
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway3242
+  labels:
+    app: gateway3242
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker32:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker32:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker42:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker42:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider3242
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway3233
+  labels:
+    app: gateway3233
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker32:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker32:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker33:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker33:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider3233
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway3343
+  labels:
+    app: gateway3343
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker33:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker33:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker43:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker43:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider3343
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway3334
+  labels:
+    app: gateway3334
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker33:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker33:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker34:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker34:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider3334
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway3444
+  labels:
+    app: gateway3444
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker34:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker34:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker44:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker44:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider3444
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway3435
+  labels:
+    app: gateway3435
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker34:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker34:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker35:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker35:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider3435
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway3545
+  labels:
+    app: gateway3545
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker35:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker35:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker45:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker45:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider3545
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway3536
+  labels:
+    app: gateway3536
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker35:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker35:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker36:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker36:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider3536
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway3646
+  labels:
+    app: gateway3646
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker36:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker36:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker46:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker46:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider3646
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway4151
+  labels:
+    app: gateway4151
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker41:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker41:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker51:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker51:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider4151
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway4142
+  labels:
+    app: gateway4142
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker41:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker41:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker42:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker42:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider4142
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway4252
+  labels:
+    app: gateway4252
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker42:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker42:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker52:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker52:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider4252
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway4243
+  labels:
+    app: gateway4243
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker42:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker42:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker43:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker43:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider4243
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway4353
+  labels:
+    app: gateway4353
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker43:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker43:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker53:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker53:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider4353
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway4344
+  labels:
+    app: gateway4344
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker43:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker43:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker44:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker44:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider4344
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway4454
+  labels:
+    app: gateway4454
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker44:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker44:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker54:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker54:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider4454
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway4445
+  labels:
+    app: gateway4445
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker44:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker44:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker45:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker45:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider4445
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway4555
+  labels:
+    app: gateway4555
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker45:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker45:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker55:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker55:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider4555
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway4546
+  labels:
+    app: gateway4546
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker45:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker45:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker46:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker46:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider4546
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway4656
+  labels:
+    app: gateway4656
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker46:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker46:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker56:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker56:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider4656
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway5161
+  labels:
+    app: gateway5161
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker51:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker51:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker61:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker61:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider5161
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway5152
+  labels:
+    app: gateway5152
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker51:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker51:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker52:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker52:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider5152
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway5262
+  labels:
+    app: gateway5262
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker52:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker52:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker62:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker62:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider5262
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway5253
+  labels:
+    app: gateway5253
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker52:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker52:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker53:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker53:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider5253
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway5363
+  labels:
+    app: gateway5363
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker53:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker53:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker63:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker63:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider5363
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway5354
+  labels:
+    app: gateway5354
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker53:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker53:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker54:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker54:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider5354
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway5464
+  labels:
+    app: gateway5464
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker54:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker54:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker64:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker64:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider5464
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway5455
+  labels:
+    app: gateway5455
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker54:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker54:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker55:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker55:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider5455
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway5565
+  labels:
+    app: gateway5565
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker55:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker55:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker65:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker65:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider5565
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway5556
+  labels:
+    app: gateway5556
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker55:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker55:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker56:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker56:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider5556
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway5666
+  labels:
+    app: gateway5666
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker56:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker56:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker66:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker66:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider5666
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway6162
+  labels:
+    app: gateway6162
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker61:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker61:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker62:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker62:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider6162
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway6263
+  labels:
+    app: gateway6263
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker62:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker62:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker63:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker63:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider6263
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway6364
+  labels:
+    app: gateway6364
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker63:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker63:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker64:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker64:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider6364
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway6465
+  labels:
+    app: gateway6465
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker64:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker64:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker65:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker65:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider6465
+    ports:
+    - containerPort: 9980
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway6566
+  labels:
+    app: gateway6566
+spec:
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker65:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker65:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker66:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker66:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider6566
+    ports:
+    - containerPort: 9980
+
+---

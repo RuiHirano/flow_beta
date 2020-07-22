@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: simulator
+spec:
+  selector:
+    app: simulator
+  ports:
+    - name: http
+      port: 8000
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: simulator
+  labels:
+    app: simulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: simulator
+  template:
+    metadata:
+      labels:
+        app: simulator
+    spec:
+      containers:
+      - name: simulator
+        image: synerex-simulation/simulator:latest 
+        imagePullPolicy: Never
+        stdin: true
+        tty: true
+        env: 
+        - name: MASTER_ADDRESS
+          value: http://master:800
+        ports:
+        - containerPort: 8000

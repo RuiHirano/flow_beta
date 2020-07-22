@@ -1,0 +1,36 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+node_modules
+
+build
+
+# Eclipse project settings
+.project
+
+# Binaries for server, providers, cli tool
+cli/daemon/se-daemon
+cli/se/se
+monitor/monitor-server
+nodeserv/nodeid-server
+server/synerex-server
+provider/simulation/scenario/scenario-provider
+provider/simulation/pedestrian/pedestrian-provider
+provider/simulation/car/car-provider
+provider/simulation/area/area-provider
+provider/simulation/visualization/visualization-provider
+provider/simulation/route/*
+provider/simulation/visualization/mclient/node_modules
+
+# Go module file
+go.sum

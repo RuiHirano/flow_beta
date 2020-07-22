@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: gateway
+  labels:
+    app: gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      containers:
+      - name: gateway-provider
+        image: synerex-simulation/gateway-provider:latest 
+        imagePullPolicy: Never
+        env: 
+        - name: WORKER_SYNEREX_SERVER1
+          value: worker:700
+        - name: WORKER_NODEID_SERVER1
+          value: worker:600
+        - name: WORKER_SYNEREX_SERVER2
+          value: worker2:700
+        - name: WORKER_NODEID_SERVER2
+          value: worker2:600
+        ports:
+        - containerPort: 9980
+

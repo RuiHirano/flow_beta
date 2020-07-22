@@ -1,0 +1,50 @@
+
+# common
+kubectl get pod
+kubectl get svc
+
+
+# master
+kubectl logs -f master-4xzb9 -c master-provider
+kubectl logs -f master-4xzb9 -c nodeid-server
+kubectl logs -f master-4xzb9 -c synerex-server
+kubectl describe pod master-4xzb9
+
+# worker
+kubectl logs -f worker-4xzb9 -c worker-provider
+kubectl logs -f worker-4xzb9 -c nodeid-server
+kubectl logs -f worker-4xzb9 -c synerex-server
+kubectl logs -f worker-4xzb9 -c agent-provider
+kubectl logs -f worker-4xzb9 -c visualization-provider
+kubectl describe pod worker-4xzb9
+
+# simulator
+kubectl exec -it simulator-bw29p -c simulator bash
+
+# pod-manager
+kubectl logs -f pod-manager-jgtrh -c pod-manager
+kubectl exec -it pod-manager-jgtrh -c pod-manager bash
+
+# delete Evitched
+kubectl get pods | awk '{if ($3 ~ /Evicted/) system ("kubectl delete pods " $1)}'
+
+# volume
+kubectl apply -f volume.yaml
+kubectl get pv,pvc
+
+# delete
+# podを指定すると再生成してしまうためdeploymentを削除する
+kubectl delete deployment master
+
+# dashboard
+https://qiita.com/suwa3/items/d7d13afa681f9d199ebb
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta8/aio/deploy/recommended.yaml
+kubectl proxy
+kubectl -n kubernetes-dashboard get secret
+kubectl -n kubernetes-dashboard describe secret kubernetes-dashboard-token-xxxxx
+
+# drain
+kubectl drain lotus2.novalocal --ignore-daemonsets
+kubectl uncordon lotus2.novalocal
+
+kubectl delete pod --force --grace-period=0 gateway1314

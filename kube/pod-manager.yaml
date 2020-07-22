@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pod-manager
+spec:
+  selector:
+    app: pod-manager
+  ports:
+    - name: synerex
+      port: 700
+      targetPort: 10000
+    - name: nodeid
+      port: 600
+      targetPort: 9000
+
+---
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: pod-manager
+  labels:
+    app: pod-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pod-manager
+  template:
+    metadata:
+      labels:
+        app: pod-manager
+    spec:
+      containers:
+      - name: nodeid-server
+        image: synerex-simulation/nodeid-server:latest 
+        imagePullPolicy: Never
+        env: 
+        - name: NODEID_SERVER
+          value: :9000
+        ports:
+        - containerPort: 9000
+      - name: synerex-server
+        image: synerex-simulation/synerex-server:latest 
+        imagePullPolicy: Never
+        env: 
+        - name: NODEID_SERVER
+          value: :9000
+        - name: SYNEREX_SERVER
+          value: :10000
+        ports:
+        - containerPort: 10000
+      - name: pod-manager
+        image: synerex-simulation/pod-manager:latest 
+        imagePullPolicy: Never
+        env: 
+        - name: NODEID_SERVER
+          value: :9000
+        - name: SYNEREX_SERVER
+          value: :10000
+        - name: PORT
+          value: '9990'
+        ports:
+        - containerPort: 9990
+        volumeMounts:
+          - name: claim-volume
+            mountPath: /synerex_simulation/provider/pod-manager/data
+      volumes:
+      - name: claim-volume
+        persistentVolumeClaim:
+          claimName: pv-slow-claim
+      terminationGracePeriodSeconds: 0

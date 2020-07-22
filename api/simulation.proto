@@ -1,0 +1,283 @@
+syntax = "proto3";
+
+package api;
+
+option go_package="api";
+
+message SimDemand {
+        uint64 msg_id = 1;
+		uint64 sender_id = 2;
+
+        // provider info
+        DemandType type = 3;
+
+        repeated uint64 targets = 4;
+
+        // meta data
+	    string meta = 5;
+
+		// demand data
+        oneof data {
+			SetAgentRequest set_agent_request = 6;
+			RegistProviderRequest regist_provider_request = 7;
+			UpdateProvidersRequest update_providers_request = 8;
+			SetClockRequest set_clock_request = 9;
+			StartClockRequest start_clock_request = 10;
+			StopClockRequest stop_clock_request = 11;
+			ForwardClockRequest forward_clock_request = 12;
+			GetAgentRequest get_agent_request = 13;
+			CreatePodRequest create_pod_request = 14;
+            DeletePodRequest delete_pod_request = 15;
+			ForwardClockInitRequest forward_clock_init_request = 16;
+            ReadyProviderRequest ready_provider_request = 17;
+            SendAreaInfoRequest send_area_info_request = 18;
+        }
+    }
+
+ message SimSupply {
+        uint64 msg_id = 1;
+	 	uint64 sender_id = 2;
+        // demand type
+        SupplyType type = 3;
+
+        repeated uint64 targets = 4;
+
+        // meta data
+        StatusType status = 5;
+        string meta = 6;
+
+		// supply data
+        oneof data {
+			SetAgentResponse set_agent_response = 7;
+			RegistProviderResponse regist_provider_response = 8;
+			UpdateProvidersResponse update_providers_response = 9;
+			SetClockResponse set_clock_response = 10;
+			StartClockResponse start_clock_response = 11;
+			StopClockResponse stop_clock_response = 12;
+			ForwardClockResponse forward_clock_response = 13;
+			GetAgentResponse get_agent_response = 14;
+			CreatePodResponse create_pod_response = 15;
+            DeletePodResponse delete_pod_response = 16;
+			ForwardClockInitResponse forward_clock_init_response = 17;
+            ReadyProviderResponse ready_provider_response = 18;
+            SendAreaInfoResponse send_area_info_response = 19;
+        }
+}
+
+
+enum StatusType {
+    OK = 0;
+    ERROR = 1;
+}
+
+enum DemandType {
+    SET_AGENT_REQUEST = 0;
+    GET_AGENT_REQUEST = 1;
+	REGIST_PROVIDER_REQUEST = 2;
+	UPDATE_PROVIDERS_REQUEST = 3;
+	SET_CLOCK_REQUEST = 4;
+	START_CLOCK_REQUEST = 5;
+	STOP_CLOCK_REQUEST = 6;
+	FORWARD_CLOCK_REQUEST = 7;
+    FORWARD_CLOCK_INIT_REQUEST = 8;
+	CREATE_POD_REQUEST = 9;
+    DELETE_POD_REQUEST = 10;
+    READY_PROVIDER_REQUEST = 11;
+    SEND_AREA_INFO_REQUEST = 12;
+}
+
+enum SupplyType {
+    SET_AGENT_RESPONSE = 0;
+    GET_AGENT_RESPONSE = 1;
+	REGIST_PROVIDER_RESPONSE = 2;
+	UPDATE_PROVIDERS_RESPONSE = 3;
+	SET_CLOCK_RESPONSE = 4;
+	START_CLOCK_RESPONSE = 5;
+	STOP_CLOCK_RESPONSE = 6;
+	FORWARD_CLOCK_RESPONSE = 7;
+    FORWARD_CLOCK_INIT_RESPONSE = 8;
+	CREATE_POD_RESPONSE = 9;
+    DELETE_POD_RESPONSE = 10;
+    READY_PROVIDER_RESPONSE = 11;
+    SEND_AREA_INFO_RESPONSE = 12;
+}
+
+message SendAreaInfoRequest {
+    repeated Area areas = 1;
+}
+
+message SendAreaInfoResponse {
+}
+
+message RegistProviderRequest {
+    Provider provider = 1;
+}
+
+message RegistProviderResponse {
+    Provider provider = 1;
+}
+
+message UpdateProvidersRequest {
+    repeated Provider providers = 1;
+}
+
+message UpdateProvidersResponse {
+}
+
+message ReadyProviderRequest {
+    Provider provider = 1;
+}
+
+message ReadyProviderResponse {
+}
+
+message SetClockRequest {
+    Clock clock = 1;
+}
+
+message SetClockResponse {
+}
+
+message SetAgentRequest {
+    repeated Agent agents = 1;
+}
+
+message SetAgentResponse {
+}
+
+message GetAgentRequest {
+}
+
+message GetAgentResponse {
+    repeated Agent agents = 1;
+}
+
+message StartClockRequest {
+	
+}
+
+message StartClockResponse {
+}
+
+message ForwardClockRequest {
+	Clock clock = 1;
+}
+
+message ForwardClockResponse {
+}
+
+message ForwardClockInitRequest {
+	Clock clock = 1;
+}
+
+message ForwardClockInitResponse {
+}
+
+message StopClockRequest {
+}
+
+message StopClockResponse {
+}
+
+message CreatePodRequest {
+    PodInfo pod_info = 1;
+}
+
+message CreatePodResponse {
+}
+
+message DeletePodRequest {
+    PodInfo pod_info = 1;
+}
+
+message DeletePodResponse {
+}
+
+
+message PodInfo {
+	uint64 id = 1;
+	string name = 2;
+}
+
+
+message Provider {
+	uint64 id = 1;
+	string name = 2;
+    ProviderType type = 3;
+	string address = 5;
+    ClientIds client_ids = 6;
+    oneof data {
+		AgentStatus agent_status = 7;
+		VisualizationStatus visualization_status = 8;
+		ClockStatus clock_status = 9;
+	}
+}
+
+message AgentStatus {
+	Area area = 1;
+    AgentType agent_type = 2;
+	uint64 agent_num = 3;
+}
+
+message VisualizationStatus {
+	Area area = 1;
+}
+
+message ClockStatus {
+}
+
+
+message ClientIds {
+    uint64 clock_service = 1;
+    uint64 agent_service = 2;
+    uint64 provider_service = 3;
+}
+
+enum ProviderType {
+	MASTER = 0;
+	WORKER = 1;
+	AGENT = 2;
+	VISUALIZATION = 3;
+	GATEWAY = 4;
+    DATABASE = 5;
+}
+
+message Clock {
+    double global_time = 1;
+}
+
+message Agent {
+    uint64 id = 1;
+	string name = 2;
+    AgentType type = 3;
+    Route route = 4;
+}
+
+enum AgentType {
+    PEDESTRIAN = 0;
+    CAR = 1;
+}
+
+message Route {
+    Coord position = 1;
+    double direction = 2;
+    double speed = 3;
+    Coord destination = 4;
+    Coord departure = 5;
+    repeated Coord transit_points = 6;
+    Coord next_transit = 7;
+    double total_distance = 8;
+    double required_time = 9;
+}
+
+message Coord {
+    double latitude = 1;
+    double longitude = 2;
+}
+
+message Area {
+    uint64 id = 1;
+    string name = 2;
+    repeated Coord duplicate_area = 3;
+    repeated Coord control_area = 4;
+}

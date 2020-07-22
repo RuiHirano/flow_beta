@@ -1,0 +1,168 @@
+# simulator, master, visのみworkerを自動で増やしていく
+apiVersion: v1
+kind: Service
+metadata:
+  name: simulator
+spec:
+  selector:
+    app: simulator
+  ports:
+  - name: http
+    port: 8000
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simulator
+  labels:
+    app: simulator
+spec:
+  containers:
+  - name: simulator
+    image: synerex-simulation/simulator:latest
+    imagePullPolicy: Never
+    stdin: true
+    tty: true
+    env:
+    - name: MASTER_ADDRESS
+      value: http://master:800
+    ports:
+    - containerPort: 8000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: master
+spec:
+  selector:
+    app: master
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+  - name: master-provider
+    port: 800
+    targetPort: 9990
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: master
+  labels:
+    app: master
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    ports:
+    - containerPort: 10000
+  - name: master-provider
+    image: synerex-simulation/master-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: PORT
+      value: "9990"
+    ports:
+    - containerPort: 9990
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vis-monitor
+spec:
+  selector:
+    app: visualization
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9500
+    nodePort: 30000
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: visualization
+spec:
+  selector:
+    app: visualization
+  ports:
+  - name: synerex
+    port: 700
+    targetPort: 10000
+  - name: nodeid
+    port: 600
+    targetPort: 9000
+    
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: visualization
+  labels:
+    app: visualization
+spec:
+  containers:
+  - name: nodeid-server
+    image: synerex-simulation/nodeid-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: synerex-simulation/synerex-server:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    ports:
+    - containerPort: 10000
+  - name: visualization-provider
+    image: synerex-simulation/visualization-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: :9000
+    - name: SYNEREX_SERVER
+      value: :10000
+    - name: MASTER_SYNEREX_SERVER
+      value: master:700
+    - name: MASTER_NODEID_SERVER
+      value: master:600
+    - name: VIS_ADDRESS
+      value: :9500
+    - name: PROVIDER_NAME
+      value: VisProvider
+    ports:
+    - containerPort: 9500
