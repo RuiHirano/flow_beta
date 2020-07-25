@@ -1,3 +1,6 @@
 [submodule "server/synerex_nodeserv"]
 	path = server/synerex_nodeserv
 	url = https://github.com/synerex/synerex_nodeserv.git
+[submodule "server/synerex_server"]
+	path = server/synerex_server
+	url = https://github.com/synerex/synerex_server.git
