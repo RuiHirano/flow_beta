@@ -85,22 +85,22 @@ func init() {
 		uint32(api.ChannelType_CLOCK): &util.SclientOpt{
 			ChType:       uint32(api.ChannelType_CLOCK),
 			MBusCallback: MbcbClock,
-			ArgJson:      fmt.Sprintf("{Client:TestProvider_Clock}"),
+			ArgJson:      fmt.Sprintf("{Client:MasterProvider_Clock}"),
 		},
 		uint32(api.ChannelType_PROVIDER): &util.SclientOpt{
 			ChType:       uint32(api.ChannelType_PROVIDER),
 			MBusCallback: MbcbProvider,
-			ArgJson:      fmt.Sprintf("{Client:TestProvider_Provider}"),
+			ArgJson:      fmt.Sprintf("{Client:MasterProvider_Provider}"),
 		},
 		uint32(api.ChannelType_AGENT): &util.SclientOpt{
 			ChType:       uint32(api.ChannelType_AGENT),
 			MBusCallback: MbcbAgent,
-			ArgJson:      fmt.Sprintf("{Client:TestProvider_Agent}"),
+			ArgJson:      fmt.Sprintf("{Client:MasterProvider_Agent}"),
 		},
 		uint32(api.ChannelType_AREA): &util.SclientOpt{
 			ChType:       uint32(api.ChannelType_AREA),
 			MBusCallback: MbcbArea,
-			ArgJson:      fmt.Sprintf("{Client:TestProvider_Area}"),
+			ArgJson:      fmt.Sprintf("{Client:MasterProvider_Area}"),
 		},
 	}
 	uid, _ := uuid.NewRandom()
