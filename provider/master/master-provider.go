@@ -706,6 +706,8 @@ func main() {
 	client := util.RegisterSynerexLoop(sxServerAddress)
 	util.RegisterSXServiceClients(client, sclientOpts)
 
+	logger.Info("Register Synerex Server")
+
 	wg := sync.WaitGroup{} // for syncing other goroutines
 	wg.Add(1)
 	wg.Wait()

@@ -282,6 +282,27 @@ func MbcbAreaWorker(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 }
 
+func registerToMaster() {
+	// masterへ登録
+	targets := make([]uint64, 0)
+	sclient := sclientOptsMaster[uint32(api.ChannelType_PROVIDER)].Sclient
+	simapi.RegisterProviderRequest(sclient, targets, myProvider)
+
+	go func() {
+		for {
+			if masterProvider != nil {
+				logger.Debug("Regist Success to Master!")
+				return
+			} else {
+				logger.Debug("Couldn't Regist Master...Retry...\n")
+				time.Sleep(2 * time.Second)
+				// masterへ登録
+				simapi.RegisterProviderRequest(sclient, targets, myProvider)
+			}
+		}
+	}()
+}
+
 func main() {
 	fmt.Printf("NumCPU=%d\n", runtime.NumCPU())
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -301,6 +322,7 @@ func main() {
 	sxServerAddress := "127.0.0.1:10000"
 	client := util.RegisterSynerexLoop(sxServerAddress)
 	util.RegisterSXServiceClients(client, sclientOptsWorker)
+	logger.Info("Register Synerex Server")
 
 	// Connect to Master Syenrex Node Server
 	// Register Node Server
@@ -315,9 +337,13 @@ func main() {
 	sxServerAddress = "127.0.0.1:10000"
 	client = util.RegisterSynerexLoop(sxServerAddress)
 	util.RegisterSXServiceClients(client, sclientOptsMaster)
+	logger.Info("Register Synerex Server")
 
 	wg := sync.WaitGroup{} // for syncing other goroutines
 	wg.Add(1)
+
+	registerToMaster()
+
 	wg.Wait()
 	sxutil.CallDeferFunctions() // cleanup!
 
