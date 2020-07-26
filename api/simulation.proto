@@ -73,10 +73,9 @@ enum StatusType {
 enum ChannelType {
     NONE = 0;
     CLOCK = 1;
-    NEIGHBOR_AGENT = 2;
-    SAME_AGENT = 3;
-    PROVIDER = 4;
-    AREA = 5;
+    AGENT = 2;
+    PROVIDER = 3;
+    AREA = 4;
 }
 
 
@@ -165,9 +164,18 @@ message StopClockResponse {
 }
 
 message Provider {
+    enum Type {
+        MASTER = 0;
+        WORKER = 1;
+        AGENT = 2;
+        VISUALIZATION = 3;
+        GATEWAY = 4;
+        DATABASE = 5;
+    }
+
 	uint64 id = 1;
 	string name = 2;
-    ProviderType type = 3;
+    Type type = 3;
 	string address = 5;
     ClientIds client_ids = 6;
     oneof data {
@@ -197,14 +205,6 @@ message ClientIds {
     uint64 provider_service = 3;
 }
 
-enum ProviderType {
-	MASTER = 0;
-	WORKER = 1;
-	AGENT = 2;
-	VISUALIZATION = 3;
-	GATEWAY = 4;
-    DATABASE = 5;
-}
 
 message Clock {
     double global_time = 1;

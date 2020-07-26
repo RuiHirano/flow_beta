@@ -1,0 +1,6 @@
+area:
+  sideRange: 0.10
+  duplicateRange: 0.0005
+  defaultAreaNum: 
+    column: 3
+    row: 2

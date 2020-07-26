@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"sync"
 	"time"
@@ -31,8 +32,14 @@ func init() {
 			ArgJson:      fmt.Sprintf("{Client:TestProvider_Provider}"),
 		},
 	}
-	simapi = api.NewSimAPI()
-	log.Printf("ProviderID: %d", simapi.ProviderId)
+	uid, _ := uuid.NewRandom()
+	myProvider := &api.Provider{
+		Id:   uint64(uid.ID()),
+		Name: "TestProvider",
+		Type: api.Provider_MASTER,
+	}
+	simapi = api.NewSimAPI(myProvider)
+	log.Printf("ProviderID: %d", simapi.Provider.Id)
 }
 
 func MbcbClock(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {

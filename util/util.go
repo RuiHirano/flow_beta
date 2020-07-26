@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	api "github.com/RuiHirano/flow_beta/api"
 	sxapi "github.com/synerex/synerex_api"
 	sxutil "github.com/synerex/synerex_sxutil"
 )
@@ -14,6 +15,7 @@ type SclientOpt struct {
 	ChType       uint32
 	MBusCallback func(*sxutil.SXServiceClient, *sxapi.MbusMsg)
 	ArgJson      string
+	Providers    []*api.Provider
 }
 
 func RegisterNode(nodesrv string, chTypes []uint32) (string, error) {

@@ -20,15 +20,14 @@ func init() {
 }
 
 type SimAPI struct {
-	Waiter     *Waiter
-	ProviderId uint64
+	Waiter   *Waiter
+	Provider *Provider
 }
 
-func NewSimAPI() *SimAPI {
-	uid, _ := uuid.NewRandom()
+func NewSimAPI(provider *Provider) *SimAPI {
 	s := &SimAPI{
-		Waiter:     NewWaiter(),
-		ProviderId: uint64(uid.ID()),
+		Waiter:   NewWaiter(),
+		Provider: provider,
 	}
 	return s
 }
@@ -180,7 +179,7 @@ func (s *SimAPI) SendAreaInfoRequest(sclient *sxutil.SXServiceClient, targets []
 	msgId := uint64(uid.ID())
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_SEND_AREA_INFO_REQUEST,
 		Data:     &SimMsg_SendAreaInfoRequest{sendAreaInfoRequest},
 	}
@@ -196,7 +195,7 @@ func (s *SimAPI) SendAreaInfoResponse(sclient *sxutil.SXServiceClient, targets [
 
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_SEND_AREA_INFO_RESPONSE,
 		Data:     &SimMsg_SendAreaInfoResponse{sendAreaInfoResponse},
 	}
@@ -221,7 +220,7 @@ func (s *SimAPI) SetAgentRequest(sclient *sxutil.SXServiceClient, targets []uint
 	msgId := uint64(uid.ID())
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_SET_AGENT_REQUEST,
 		Data:     &SimMsg_SetAgentRequest{setAgentRequest},
 	}
@@ -237,7 +236,7 @@ func (s *SimAPI) SetAgentResponse(sclient *sxutil.SXServiceClient, targets []uin
 
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_SET_AGENT_RESPONSE,
 		Data:     &SimMsg_SetAgentResponse{setAgentResponse},
 	}
@@ -256,7 +255,7 @@ func (s *SimAPI) GetAgentRequest(sclient *sxutil.SXServiceClient, targets []uint
 	msgId := uint64(uid.ID())
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_GET_AGENT_REQUEST,
 		Data:     &SimMsg_GetAgentRequest{getAgentRequest},
 	}
@@ -274,7 +273,7 @@ func (s *SimAPI) GetAgentResponse(sclient *sxutil.SXServiceClient, targets []uin
 
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_GET_AGENT_RESPONSE,
 		Data:     &SimMsg_GetAgentResponse{getAgentResponse},
 	}
@@ -298,7 +297,7 @@ func (s *SimAPI) RegisterProviderRequest(sclient *sxutil.SXServiceClient, target
 	msgId := uint64(uid.ID())
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_REGISTER_PROVIDER_REQUEST,
 		Data:     &SimMsg_RegisterProviderRequest{registerProviderRequest},
 	}
@@ -316,7 +315,7 @@ func (s *SimAPI) RegisterProviderResponse(sclient *sxutil.SXServiceClient, targe
 
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_REGISTER_PROVIDER_RESPONSE,
 		Data:     &SimMsg_RegisterProviderResponse{registerProviderResponse},
 	}
@@ -336,7 +335,7 @@ func (s *SimAPI) UpdateProvidersRequest(sclient *sxutil.SXServiceClient, targets
 	msgId := uint64(uid.ID())
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_UPDATE_PROVIDERS_REQUEST,
 		Data:     &SimMsg_UpdateProvidersRequest{updateProvidersRequest},
 	}
@@ -352,7 +351,7 @@ func (s *SimAPI) UpdateProvidersResponse(sclient *sxutil.SXServiceClient, target
 
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_UPDATE_PROVIDERS_RESPONSE,
 		Data:     &SimMsg_UpdateProvidersResponse{updateProvidersResponse},
 	}
@@ -375,7 +374,7 @@ func (s *SimAPI) SetClockRequest(sclient *sxutil.SXServiceClient, targets []uint
 	msgId := uint64(uid.ID())
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_SET_CLOCK_REQUEST,
 		Data:     &SimMsg_SetClockRequest{setClockRequest},
 	}
@@ -391,7 +390,7 @@ func (s *SimAPI) SetClockResponse(sclient *sxutil.SXServiceClient, targets []uin
 
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_SET_CLOCK_RESPONSE,
 		Data:     &SimMsg_SetClockResponse{setClockResponse},
 	}
@@ -408,7 +407,7 @@ func (s *SimAPI) ForwardClockRequest(sclient *sxutil.SXServiceClient, targets []
 	msgId := uint64(uid.ID())
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_FORWARD_CLOCK_REQUEST,
 		Data:     &SimMsg_ForwardClockRequest{forwardClockRequest},
 	}
@@ -424,7 +423,7 @@ func (s *SimAPI) ForwardClockResponse(sclient *sxutil.SXServiceClient, targets [
 
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_FORWARD_CLOCK_RESPONSE,
 		Data:     &SimMsg_ForwardClockResponse{forwardClockResponse},
 	}
@@ -441,7 +440,7 @@ func (s *SimAPI) ForwardClockInitRequest(sclient *sxutil.SXServiceClient, target
 	msgId := uint64(uid.ID())
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_FORWARD_CLOCK_INIT_REQUEST,
 		Data:     &SimMsg_ForwardClockInitRequest{forwardClockInitRequest},
 	}
@@ -457,7 +456,7 @@ func (s *SimAPI) ForwardClockInitResponse(sclient *sxutil.SXServiceClient, targe
 
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_FORWARD_CLOCK_INIT_RESPONSE,
 		Data:     &SimMsg_ForwardClockInitResponse{forwardClockInitResponse},
 	}
@@ -474,7 +473,7 @@ func (s *SimAPI) ForwardClockMainRequest(sclient *sxutil.SXServiceClient, target
 	msgId := uint64(uid.ID())
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_FORWARD_CLOCK_MAIN_REQUEST,
 		Data:     &SimMsg_ForwardClockMainRequest{forwardClockMainRequest},
 	}
@@ -490,7 +489,7 @@ func (s *SimAPI) ForwardClockMainResponse(sclient *sxutil.SXServiceClient, targe
 
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_FORWARD_CLOCK_MAIN_RESPONSE,
 		Data:     &SimMsg_ForwardClockMainResponse{forwardClockMainResponse},
 	}
@@ -507,7 +506,7 @@ func (s *SimAPI) ForwardClockTerminateRequest(sclient *sxutil.SXServiceClient, t
 	msgId := uint64(uid.ID())
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_FORWARD_CLOCK_TERMINATE_REQUEST,
 		Data:     &SimMsg_ForwardClockTerminateRequest{forwardClockTerminateRequest},
 	}
@@ -523,7 +522,7 @@ func (s *SimAPI) ForwardClockTerminateResponse(sclient *sxutil.SXServiceClient, 
 
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_FORWARD_CLOCK_TERMINATE_RESPONSE,
 		Data:     &SimMsg_ForwardClockTerminateResponse{forwardClockTerminateResponse},
 	}
@@ -540,7 +539,7 @@ func (s *SimAPI) StartClockRequest(sclient *sxutil.SXServiceClient, targets []ui
 	msgId := uint64(uid.ID())
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_START_CLOCK_REQUEST,
 		Data:     &SimMsg_StartClockRequest{startClockRequest},
 	}
@@ -556,7 +555,7 @@ func (s *SimAPI) StartClockResponse(sclient *sxutil.SXServiceClient, targets []u
 
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_START_CLOCK_RESPONSE,
 		Data:     &SimMsg_StartClockResponse{startClockResponse},
 	}
@@ -573,7 +572,7 @@ func (s *SimAPI) StopClockRequest(sclient *sxutil.SXServiceClient, targets []uin
 	msgId := uint64(uid.ID())
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_STOP_CLOCK_REQUEST,
 		Data:     &SimMsg_StopClockRequest{stopClockRequest},
 	}
@@ -589,7 +588,7 @@ func (s *SimAPI) StopClockResponse(sclient *sxutil.SXServiceClient, targets []ui
 
 	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: s.ProviderId,
+		SenderId: s.Provider.Id,
 		Type:     MsgType_STOP_CLOCK_RESPONSE,
 		Data:     &SimMsg_StopClockResponse{stopClockResponse},
 	}
