@@ -4,103 +4,81 @@ package api;
 
 option go_package="api";
 
-message SimDemand {
-        uint64 msg_id = 1;
-		uint64 sender_id = 2;
+message SimMsg {
+    uint64 msg_id = 1;
+    uint64 sender_id = 2;
+    MsgType type = 3;
 
-        // provider info
-        DemandType type = 3;
-
-        repeated uint64 targets = 4;
-
-        // meta data
-	    string meta = 5;
-
-		// demand data
-        oneof data {
-			SetAgentRequest set_agent_request = 6;
-			RegistProviderRequest regist_provider_request = 7;
-			UpdateProvidersRequest update_providers_request = 8;
-			SetClockRequest set_clock_request = 9;
-			StartClockRequest start_clock_request = 10;
-			StopClockRequest stop_clock_request = 11;
-			ForwardClockRequest forward_clock_request = 12;
-			GetAgentRequest get_agent_request = 13;
-			CreatePodRequest create_pod_request = 14;
-            DeletePodRequest delete_pod_request = 15;
-			ForwardClockInitRequest forward_clock_init_request = 16;
-            ReadyProviderRequest ready_provider_request = 17;
-            SendAreaInfoRequest send_area_info_request = 18;
-        }
+    oneof data {
+        SetAgentRequest set_agent_request = 4;
+        SetAgentResponse set_agent_response = 5;
+        RegisterProviderRequest register_provider_request = 6;
+        RegisterProviderResponse register_provider_response = 7;
+        UpdateProvidersRequest update_providers_request = 8;
+        UpdateProvidersResponse update_providers_response = 9;
+        SetClockRequest set_clock_request = 10;
+        SetClockResponse set_clock_response = 11;
+        StartClockRequest start_clock_request = 12;
+        StartClockResponse start_clock_response = 13;
+        StopClockRequest stop_clock_request = 14;
+        StopClockResponse stop_clock_response = 15;
+        ForwardClockRequest forward_clock_request = 16;
+        ForwardClockResponse forward_clock_response = 17;
+        ForwardClockInitRequest forward_clock_init_request = 18;
+        ForwardClockInitResponse forward_clock_init_response = 19;
+        ForwardClockMainRequest forward_clock_main_request = 20;
+        ForwardClockMainResponse forward_clock_main_response = 21;
+        ForwardClockTerminateRequest forward_clock_terminate_request = 22;
+        ForwardClockTerminateResponse forward_clock_terminate_response = 23;
+        GetAgentRequest get_agent_request = 24;
+        GetAgentResponse get_agent_response = 25;
+        SendAreaInfoRequest send_area_info_request = 26;
+        SendAreaInfoResponse send_area_info_response = 27;
     }
-
- message SimSupply {
-        uint64 msg_id = 1;
-	 	uint64 sender_id = 2;
-        // demand type
-        SupplyType type = 3;
-
-        repeated uint64 targets = 4;
-
-        // meta data
-        StatusType status = 5;
-        string meta = 6;
-
-		// supply data
-        oneof data {
-			SetAgentResponse set_agent_response = 7;
-			RegistProviderResponse regist_provider_response = 8;
-			UpdateProvidersResponse update_providers_response = 9;
-			SetClockResponse set_clock_response = 10;
-			StartClockResponse start_clock_response = 11;
-			StopClockResponse stop_clock_response = 12;
-			ForwardClockResponse forward_clock_response = 13;
-			GetAgentResponse get_agent_response = 14;
-			CreatePodResponse create_pod_response = 15;
-            DeletePodResponse delete_pod_response = 16;
-			ForwardClockInitResponse forward_clock_init_response = 17;
-            ReadyProviderResponse ready_provider_response = 18;
-            SendAreaInfoResponse send_area_info_response = 19;
-        }
 }
 
+
+enum MsgType {
+    SET_AGENT_REQUEST = 0;
+    SET_AGENT_RESPONSE = 1;
+    GET_AGENT_REQUEST = 2;
+    GET_AGENT_RESPONSE = 3;
+	REGISTER_PROVIDER_REQUEST = 4;
+    REGISTER_PROVIDER_RESPONSE = 5;
+	UPDATE_PROVIDERS_REQUEST = 6;
+    UPDATE_PROVIDERS_RESPONSE = 7;
+	SET_CLOCK_REQUEST = 8;
+    SET_CLOCK_RESPONSE = 9;
+	START_CLOCK_REQUEST = 10;
+    START_CLOCK_RESPONSE = 11;
+	STOP_CLOCK_REQUEST = 12;
+    STOP_CLOCK_RESPONSE = 13;
+	FORWARD_CLOCK_REQUEST = 14;
+    FORWARD_CLOCK_RESPONSE = 15;
+    FORWARD_CLOCK_INIT_REQUEST = 16;
+    FORWARD_CLOCK_INIT_RESPONSE = 17;
+    FORWARD_CLOCK_MAIN_REQUEST = 18;
+    FORWARD_CLOCK_MAIN_RESPONSE = 19;
+    FORWARD_CLOCK_TERMINATE_REQUEST = 20;
+    FORWARD_CLOCK_TERMINATE_RESPONSE = 21;
+    SEND_AREA_INFO_REQUEST = 22;
+    SEND_AREA_INFO_RESPONSE = 23;
+}
 
 enum StatusType {
     OK = 0;
     ERROR = 1;
 }
 
-enum DemandType {
-    SET_AGENT_REQUEST = 0;
-    GET_AGENT_REQUEST = 1;
-	REGIST_PROVIDER_REQUEST = 2;
-	UPDATE_PROVIDERS_REQUEST = 3;
-	SET_CLOCK_REQUEST = 4;
-	START_CLOCK_REQUEST = 5;
-	STOP_CLOCK_REQUEST = 6;
-	FORWARD_CLOCK_REQUEST = 7;
-    FORWARD_CLOCK_INIT_REQUEST = 8;
-	CREATE_POD_REQUEST = 9;
-    DELETE_POD_REQUEST = 10;
-    READY_PROVIDER_REQUEST = 11;
-    SEND_AREA_INFO_REQUEST = 12;
+enum ChannelType {
+    NONE = 0;
+    CLOCK = 1;
+    NEIGHBOR_AGENT = 2;
+    SAME_AGENT = 3;
+    PROVIDER = 4;
+    AREA = 5;
 }
 
-enum SupplyType {
-    SET_AGENT_RESPONSE = 0;
-    GET_AGENT_RESPONSE = 1;
-	REGIST_PROVIDER_RESPONSE = 2;
-	UPDATE_PROVIDERS_RESPONSE = 3;
-	SET_CLOCK_RESPONSE = 4;
-	START_CLOCK_RESPONSE = 5;
-	STOP_CLOCK_RESPONSE = 6;
-	FORWARD_CLOCK_RESPONSE = 7;
-    FORWARD_CLOCK_INIT_RESPONSE = 8;
-	CREATE_POD_RESPONSE = 9;
-    DELETE_POD_RESPONSE = 10;
-    READY_PROVIDER_RESPONSE = 11;
-    SEND_AREA_INFO_RESPONSE = 12;
-}
 
 message SendAreaInfoRequest {
     repeated Area areas = 1;
@@ -109,11 +87,11 @@ message SendAreaInfoRequest {
 message SendAreaInfoResponse {
 }
 
-message RegistProviderRequest {
+message RegisterProviderRequest {
     Provider provider = 1;
 }
 
-message RegistProviderResponse {
+message RegisterProviderResponse {
     Provider provider = 1;
 }
 
@@ -122,13 +100,6 @@ message UpdateProvidersRequest {
 }
 
 message UpdateProvidersResponse {
-}
-
-message ReadyProviderRequest {
-    Provider provider = 1;
-}
-
-message ReadyProviderResponse {
 }
 
 message SetClockRequest {
@@ -173,32 +144,25 @@ message ForwardClockInitRequest {
 message ForwardClockInitResponse {
 }
 
+message ForwardClockMainRequest {
+	Clock clock = 1;
+}
+
+message ForwardClockMainResponse {
+}
+
+message ForwardClockTerminateRequest {
+	Clock clock = 1;
+}
+
+message ForwardClockTerminateResponse {
+}
+
 message StopClockRequest {
 }
 
 message StopClockResponse {
 }
-
-message CreatePodRequest {
-    PodInfo pod_info = 1;
-}
-
-message CreatePodResponse {
-}
-
-message DeletePodRequest {
-    PodInfo pod_info = 1;
-}
-
-message DeletePodResponse {
-}
-
-
-message PodInfo {
-	uint64 id = 1;
-	string name = 2;
-}
-
 
 message Provider {
 	uint64 id = 1;

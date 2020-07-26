@@ -2,39 +2,33 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
-	pb "github.com/RuiHirano/synerex_simulation_beta/api/sim_proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
-	synpb "github.com/synerex/synerex_api"
+	sxapi "github.com/synerex/synerex_api"
+	sxutil "github.com/synerex/synerex_sxutil"
 )
 
 var (
-	mu        sync.Mutex
-	waitChMap map[pb.SupplyType]chan *synpb.Supply
-	//spMesMap            map[pb.SupplyType]*Message
-	//logger              *util.Logger
-	CHANNEL_BUFFER_SIZE int
+	mu sync.Mutex
 )
 
 func init() {
-	waitChMap = make(map[pb.SupplyType]chan *synpb.Supply)
-	//logger = util.NewLogger()
-	CHANNEL_BUFFER_SIZE = 10
 }
 
 type SimAPI struct {
-	Client *SMServiceClient
-	Waiter *Waiter
+	Waiter     *Waiter
+	ProviderId uint64
 }
 
 func NewSimAPI() *SimAPI {
+	uid, _ := uuid.NewRandom()
 	s := &SimAPI{
-		Waiter: NewWaiter(),
+		Waiter:     NewWaiter(),
+		ProviderId: uint64(uid.ID()),
 	}
 	return s
 }
@@ -43,125 +37,133 @@ func NewSimAPI() *SimAPI {
 ////////////        Supply Demand Function       ///////////
 ///////////////////////////////////////////////////////////
 
-func (s *SimAPI) RegistClients(client synpb.SynerexClient, providerId uint64, argJson string) {
+func (s *SimAPI) SendSimMsg(sclient *sxutil.SXServiceClient, targets []uint64, simMsg *SimMsg) ([]*SimMsg, error) {
 
-	simChType := uint64(1)
-	s.Client = NewSMServiceClient(client, simChType, providerId, argJson)
-
-}
-
-// SubscribeAll: 全てのチャネルに登録、SubscribeSupply, SubscribeDemandする
-func (s *SimAPI) Subscribe(demandCallback func(*SMServiceClient, *synpb.Demand), supplyCallback func(*SMServiceClient, *synpb.Supply)) error {
-
-	// SubscribeDemand, SubscribeSupply
-	go subscribeDemand(s.Client, demandCallback)
-	go subscribeSupply(s.Client, supplyCallback)
-
-	return nil
-}
-
-func subscribeSupply(client *SMServiceClient, supplyCallback func(*SMServiceClient, *synpb.Supply)) {
-	//called as goroutine
-	ctx := context.Background() // should check proper context
-	client.SubscribeSupply(ctx, supplyCallback)
-	// comes here if channel closed
-	log.Printf("SMarket Server Closed? Reconnect...")
-	time.Sleep(2 * time.Second)
-	subscribeSupply(client, supplyCallback)
-
-}
-
-func subscribeDemand(client *SMServiceClient, demandCallback func(*SMServiceClient, *synpb.Demand)) {
-
-	//called as goroutine
-	ctx := context.Background() // should check proper context
-	client.SubscribeDemand(ctx, demandCallback)
-	// comes here if channel closed
-	log.Printf("SMarket Server Closed? Reconnect...")
-	time.Sleep(2 * time.Second)
-	subscribeDemand(client, demandCallback)
-}
-
-func sendDemand(sclient *SMServiceClient, simDemand *pb.SimDemand) uint64 {
-	nm := ""
-	js := ""
-	opts := &DemandOpts{Name: nm, JSON: js, SimDemand: simDemand}
-
-	mu.Lock()
-	id := sclient.RegisterDemand(opts)
-	mu.Unlock()
-	return id
-}
-
-func sendSupply(sclient *SMServiceClient, simSupply *pb.SimSupply) uint64 {
-	nm := ""
-	js := ""
-	opts := &SupplyOpts{Name: nm, JSON: js, SimSupply: simSupply}
-
-	mu.Lock()
-	id := sclient.RegisterSupply(opts)
-	mu.Unlock()
-	return id
-}
-
-//////////////////////////
-// add new function////////
-/////////////////////////
-func (s *SimAPI) SendSyncDemand(simDemand *pb.SimDemand) ([]*synpb.Supply, error) {
-	//nm := ""
-	//js := ""
-	//opts := &DemandOpts{Name: nm, JSON: js, SimDemand: simDemand}
+	cdata, _ := proto.Marshal(simMsg)
+	msg := &sxapi.MbusMsg{
+		Cdata: &sxapi.Content{
+			Entity: cdata,
+		},
+	}
+	simMsgId := simMsg.GetMsgId()
+	bufSize := 10 // Channel Buffer Size
+	s.Waiter.RegisterWaitCh(simMsgId, bufSize)
 
 	mu.Lock()
 	ctx := context.Background()
-	s.Client.SendMsg(ctx, msg)
-	msgId := simDemand.GetMsgId()
-	CHANNEL_BUFFER_SIZE := 10
-	waitCh := make(chan *synpb.Supply, CHANNEL_BUFFER_SIZE)
-	s.Waiter.WaitSpChMap[msgId] = waitCh
-	s.Waiter.SpMap[msgId] = make([]*synpb.Supply, 0)
-	mu.Unlock()
-
-	mu.Lock()
-	sclient.SyncDemand(opts)
+	err := sclient.SendMbusMsg(ctx, msg)
+	if err != nil {
+		return nil, err
+	}
 	mu.Unlock()
 
 	// waitする
-	sps := []*synpb.Supply{}
-	var err error
-	targets := simDemand.GetTargets()
+	msgs := []*SimMsg{}
 	if len(targets) != 0 {
-		msgId := simDemand.GetMsgId()
-		sps, err = s.Waiter.WaitSp(msgId, targets, 1000)
-		s.Waiter = NewWaiter()
+		msgs, err = s.Waiter.WaitMsg(simMsgId, targets, 1000)
+		if err == nil {
+			return nil, err
+		}
+		s.Waiter = NewWaiter() // Is it OK?
 	}
 
-	return sps, err
+	return msgs, nil
 }
 
-func (s *SimAPI) SendSyncSupply(simSupply *pb.SimSupply) uint64 {
-	//nm := ""
-	//js := ""
-	//opts := &SupplyOpts{Name: nm, JSON: js, SimSupply: simSupply}
-	msg := &synpb.MbusMsg{
-		MsgId:    0,
-		SenderId: 0,
-		TargetId: 0,
-		MbusId:   0,
-		MsgType:  0,
-		MsgInfo:  0,
-		ArgJson:  GetSimSupplyJson(simSupply),
+func (s *SimAPI) SendMsgToWait(msg *sxapi.MbusMsg) {
+	s.Waiter.SendMsgToWait(msg)
+}
+
+///////////////////////////////////////////
+/////////////      Waiter      ////////////
+//////////////////////////////////////////
+
+type Waiter struct {
+	WaitChMap map[uint64]chan *SimMsg
+	MsgMap    map[uint64][]*SimMsg
+}
+
+func NewWaiter() *Waiter {
+	w := &Waiter{
+		WaitChMap: make(map[uint64]chan *SimMsg),
+		MsgMap:    make(map[uint64][]*SimMsg),
 	}
+	return w
+}
+
+func (w *Waiter) RegisterWaitCh(simMsgId uint64, bufSize int) {
 	mu.Lock()
-	ctx := context.Background()
-	s.Client.SendMsg(ctx, msg)
-	//id := sclient.SyncSupply(opts)
+	waitCh := make(chan *SimMsg, bufSize)
+	w.WaitChMap[simMsgId] = waitCh
+	w.MsgMap[simMsgId] = make([]*SimMsg, 0)
 	mu.Unlock()
-	return 0
 }
 
-func (s *SimAPI) SendSpToWait(sp *synpb.Supply) {
-	s.Waiter.SendSpToWait(sp)
+func (w *Waiter) WaitMsg(simMsgId uint64, targets []uint64, timeout uint64) ([]*SimMsg, error) {
+
+	mu.Lock()
+	waitCh := w.WaitChMap[simMsgId]
+	mu.Unlock()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	var err error
+	go func() {
+		for {
+			select {
+			case simMsg, _ := <-waitCh:
+				mu.Lock()
+				// spのidがidListに入っているか
+				if simMsg.GetMsgId() == simMsgId {
+					w.MsgMap[simMsgId] = append(w.MsgMap[simMsgId], simMsg)
+					// 同期が終了したかどうか
+					if w.IsFinishWait(simMsgId, targets) {
+						mu.Unlock()
+						wg.Done()
+						return
+					}
+				}
+				mu.Unlock()
+			case <-time.After(time.Duration(timeout) * time.Millisecond):
+				err = fmt.Errorf("Timeout Error")
+				wg.Done()
+				return
+			}
+		}
+	}()
+	wg.Wait()
+	mu.Lock()
+	msgs := w.MsgMap[simMsgId]
+	mu.Unlock()
+	return msgs, err
+}
+
+func (w *Waiter) SendMsgToWait(msg *sxapi.MbusMsg) {
+	mu.Lock()
+	simMsg := &SimMsg{}
+	proto.Unmarshal(msg.Cdata.Entity, simMsg)
+	waitCh := w.WaitChMap[simMsg.GetMsgId()]
+	mu.Unlock()
+	waitCh <- simMsg
+}
+
+func (w *Waiter) IsFinishWait(simMsgId uint64, targets []uint64) bool {
+	mu.Lock()
+	for _, target := range targets {
+		isExist := false
+		for _, simMsg := range w.MsgMap[simMsgId] {
+			senderId := simMsg.GetSenderId()
+			if senderId == target {
+				isExist = true
+			}
+		}
+		if isExist == false {
+			return false
+		}
+	}
+	mu.Unlock()
+
+	return true
 }
 
 ///////////////////////////////////////////
@@ -169,41 +171,37 @@ func (s *SimAPI) SendSpToWait(sp *synpb.Supply) {
 //////////////////////////////////////////
 
 // Areaを送るDemand
-func (s *SimAPI) SendAreaInfoRequest(senderId uint64, targets []uint64, areas []*pb.Area) ([]*synpb.Supply, error) {
-
+func (s *SimAPI) SendAreaInfoRequest(sclient *sxutil.SXServiceClient, targets []uint64, areas []*Area) ([]*SimMsg, error) {
 	uid, _ := uuid.NewRandom()
-	sendAreaInfoRequest := &pb.SendAreaInfoRequest{
+	sendAreaInfoRequest := &SendAreaInfoRequest{
 		Areas: areas,
 	}
 
 	msgId := uint64(uid.ID())
-	simDemand := &pb.SimDemand{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.DemandType_SEND_AREA_INFO_REQUEST,
-		Data:     &pb.SimDemand_SendAreaInfoRequest{sendAreaInfoRequest},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_SEND_AREA_INFO_REQUEST,
+		Data:     &SimMsg_SendAreaInfoRequest{sendAreaInfoRequest},
 	}
 
-	sps, err := s.SendSyncDemand(simDemand)
+	sps, err := s.SendSimMsg(sclient, targets, simMsg)
 
 	return sps, err
 }
 
 // Agentのセット完了
-func (s *SimAPI) SendAreaInfoResponse(senderId uint64, targets []uint64, msgId uint64) uint64 {
-	sendAreaInfoResponse := &pb.SendAreaInfoResponse{}
+func (s *SimAPI) SendAreaInfoResponse(sclient *sxutil.SXServiceClient, targets []uint64, msgId uint64) uint64 {
+	sendAreaInfoResponse := &SendAreaInfoResponse{}
 
-	simSupply := &pb.SimSupply{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.SupplyType_SEND_AREA_INFO_RESPONSE,
-		Status:   pb.StatusType_OK,
-		Data:     &pb.SimSupply_SendAreaInfoResponse{sendAreaInfoResponse},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_SEND_AREA_INFO_RESPONSE,
+		Data:     &SimMsg_SendAreaInfoResponse{sendAreaInfoResponse},
 	}
 
-	s.SendSyncSupply(simSupply)
+	s.SendSimMsg(sclient, targets, simMsg)
 
 	return msgId
 }
@@ -213,81 +211,75 @@ func (s *SimAPI) SendAreaInfoResponse(senderId uint64, targets []uint64, msgId u
 //////////////////////////////////////////
 
 // AgentをセットするDemand
-func (s *SimAPI) SetAgentRequest(senderId uint64, targets []uint64, agents []*pb.Agent) ([]*synpb.Supply, error) {
+func (s *SimAPI) SetAgentRequest(sclient *sxutil.SXServiceClient, targets []uint64, agents []*Agent) ([]*SimMsg, error) {
 
 	uid, _ := uuid.NewRandom()
-	setAgentRequest := &pb.SetAgentRequest{
+	setAgentRequest := &SetAgentRequest{
 		Agents: agents,
 	}
 
 	msgId := uint64(uid.ID())
-	simDemand := &pb.SimDemand{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.DemandType_SET_AGENT_REQUEST,
-		Data:     &pb.SimDemand_SetAgentRequest{setAgentRequest},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_SET_AGENT_REQUEST,
+		Data:     &SimMsg_SetAgentRequest{setAgentRequest},
 	}
 
-	sps, err := s.SendSyncDemand(simDemand)
+	sps, err := s.SendSimMsg(sclient, targets, simMsg)
 
 	return sps, err
 }
 
 // Agentのセット完了
-func (s *SimAPI) SetAgentResponse(senderId uint64, targets []uint64, msgId uint64) uint64 {
-	setAgentResponse := &pb.SetAgentResponse{}
+func (s *SimAPI) SetAgentResponse(sclient *sxutil.SXServiceClient, targets []uint64, msgId uint64) uint64 {
+	setAgentResponse := &SetAgentResponse{}
 
-	simSupply := &pb.SimSupply{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.SupplyType_SET_AGENT_RESPONSE,
-		Status:   pb.StatusType_OK,
-		Data:     &pb.SimSupply_SetAgentResponse{setAgentResponse},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_SET_AGENT_RESPONSE,
+		Data:     &SimMsg_SetAgentResponse{setAgentResponse},
 	}
 
-	s.SendSyncSupply(simSupply)
+	s.SendSimMsg(sclient, targets, simMsg)
 
 	return msgId
 }
 
 // AgentをセットするDemand
-func (s *SimAPI) GetAgentRequest(senderId uint64, targets []uint64) ([]*synpb.Supply, error) {
+func (s *SimAPI) GetAgentRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
 
 	uid, _ := uuid.NewRandom()
-	getAgentRequest := &pb.GetAgentRequest{}
+	getAgentRequest := &GetAgentRequest{}
 
 	msgId := uint64(uid.ID())
-	simDemand := &pb.SimDemand{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.DemandType_GET_AGENT_REQUEST,
-		Data:     &pb.SimDemand_GetAgentRequest{getAgentRequest},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_GET_AGENT_REQUEST,
+		Data:     &SimMsg_GetAgentRequest{getAgentRequest},
 	}
 
-	sps, err := s.SendSyncDemand(simDemand)
+	sps, err := s.SendSimMsg(sclient, targets, simMsg)
 
 	return sps, err
 }
 
 // Agentのセット完了
-func (s *SimAPI) GetAgentResponse(senderId uint64, targets []uint64, msgId uint64, agents []*pb.Agent) uint64 {
-	getAgentResponse := &pb.GetAgentResponse{
+func (s *SimAPI) GetAgentResponse(sclient *sxutil.SXServiceClient, targets []uint64, msgId uint64, agents []*Agent) uint64 {
+	getAgentResponse := &GetAgentResponse{
 		Agents: agents,
 	}
 
-	simSupply := &pb.SimSupply{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.SupplyType_GET_AGENT_RESPONSE,
-		Status:   pb.StatusType_OK,
-		Data:     &pb.SimSupply_GetAgentResponse{getAgentResponse},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_GET_AGENT_RESPONSE,
+		Data:     &SimMsg_GetAgentResponse{getAgentResponse},
 	}
 
-	s.SendSyncSupply(simSupply)
+	s.SendSimMsg(sclient, targets, simMsg)
 
 	return msgId
 }
@@ -297,120 +289,75 @@ func (s *SimAPI) GetAgentResponse(senderId uint64, targets []uint64, msgId uint6
 //////////////////////////////////////////
 
 // Providerを登録するDemand
-func (s *SimAPI) ReadyProviderRequest(senderId uint64, targets []uint64, providerInfo *pb.Provider) ([]*synpb.Supply, error) {
-	readyProviderRequest := &pb.ReadyProviderRequest{
+func (s *SimAPI) RegisterProviderRequest(sclient *sxutil.SXServiceClient, targets []uint64, providerInfo *Provider) ([]*SimMsg, error) {
+	registerProviderRequest := &RegisterProviderRequest{
 		Provider: providerInfo,
 	}
 
 	uid, _ := uuid.NewRandom()
 	msgId := uint64(uid.ID())
-	simDemand := &pb.SimDemand{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.DemandType_READY_PROVIDER_REQUEST,
-		Data:     &pb.SimDemand_ReadyProviderRequest{readyProviderRequest},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_REGISTER_PROVIDER_REQUEST,
+		Data:     &SimMsg_RegisterProviderRequest{registerProviderRequest},
 	}
 
-	sps, err := s.SendSyncDemand(simDemand)
+	sps, err := s.SendSimMsg(sclient, targets, simMsg)
 
 	return sps, err
 }
 
 // Providerを登録するSupply
-func (s *SimAPI) ReadyProviderResponse(senderId uint64, targets []uint64, msgId uint64) uint64 {
-	readyProviderResponse := &pb.ReadyProviderResponse{}
-
-	simSupply := &pb.SimSupply{
-		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.SupplyType_READY_PROVIDER_RESPONSE,
-		Status:   pb.StatusType_OK,
-		Data:     &pb.SimSupply_ReadyProviderResponse{readyProviderResponse},
-		Targets:  targets,
+func (s *SimAPI) RegisterProviderResponse(sclient *sxutil.SXServiceClient, targets []uint64, msgId uint64, providerInfo *Provider) uint64 {
+	registerProviderResponse := &RegisterProviderResponse{
+		Provider: providerInfo,
 	}
 
-	s.SendSyncSupply(simSupply)
+	simMsg := &SimMsg{
+		MsgId:    msgId,
+		SenderId: s.ProviderId,
+		Type:     MsgType_REGISTER_PROVIDER_RESPONSE,
+		Data:     &SimMsg_RegisterProviderResponse{registerProviderResponse},
+	}
+
+	s.SendSimMsg(sclient, targets, simMsg)
 
 	return msgId
 }
 
 // Providerを登録するDemand
-func (s *SimAPI) RegistProviderRequest(senderId uint64, targets []uint64, providerInfo *pb.Provider) ([]*synpb.Supply, error) {
-	registProviderRequest := &pb.RegistProviderRequest{
-		Provider: providerInfo,
-	}
-
-	uid, _ := uuid.NewRandom()
-	msgId := uint64(uid.ID())
-	simDemand := &pb.SimDemand{
-		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.DemandType_REGIST_PROVIDER_REQUEST,
-		Data:     &pb.SimDemand_RegistProviderRequest{registProviderRequest},
-		Targets:  targets,
-	}
-
-	sps, err := s.SendSyncDemand(simDemand)
-
-	return sps, err
-}
-
-// Providerを登録するSupply
-func (s *SimAPI) RegistProviderResponse(senderId uint64, targets []uint64, msgId uint64, providerInfo *pb.Provider) uint64 {
-	registProviderResponse := &pb.RegistProviderResponse{
-		Provider: providerInfo,
-	}
-
-	simSupply := &pb.SimSupply{
-		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.SupplyType_REGIST_PROVIDER_RESPONSE,
-		Status:   pb.StatusType_OK,
-		Data:     &pb.SimSupply_RegistProviderResponse{registProviderResponse},
-		Targets:  targets,
-	}
-
-	s.SendSyncSupply(simSupply)
-
-	return msgId
-}
-
-// Providerを登録するDemand
-func (s *SimAPI) UpdateProvidersRequest(senderId uint64, targets []uint64, providers []*pb.Provider) ([]*synpb.Supply, error) {
-	updateProvidersRequest := &pb.UpdateProvidersRequest{
+func (s *SimAPI) UpdateProvidersRequest(sclient *sxutil.SXServiceClient, targets []uint64, providers []*Provider) ([]*SimMsg, error) {
+	updateProvidersRequest := &UpdateProvidersRequest{
 		Providers: providers,
 	}
 
 	uid, _ := uuid.NewRandom()
 	msgId := uint64(uid.ID())
-	simDemand := &pb.SimDemand{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.DemandType_UPDATE_PROVIDERS_REQUEST,
-		Data:     &pb.SimDemand_UpdateProvidersRequest{updateProvidersRequest},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_UPDATE_PROVIDERS_REQUEST,
+		Data:     &SimMsg_UpdateProvidersRequest{updateProvidersRequest},
 	}
 
-	sps, err := s.SendSyncDemand(simDemand)
+	sps, err := s.SendSimMsg(sclient, targets, simMsg)
 
 	return sps, err
 }
 
 // Providerを登録するSupply
-func (s *SimAPI) UpdateProvidersResponse(senderId uint64, targets []uint64, msgId uint64) uint64 {
-	updateProvidersResponse := &pb.UpdateProvidersResponse{}
+func (s *SimAPI) UpdateProvidersResponse(sclient *sxutil.SXServiceClient, targets []uint64, msgId uint64) uint64 {
+	updateProvidersResponse := &UpdateProvidersResponse{}
 
-	simSupply := &pb.SimSupply{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.SupplyType_UPDATE_PROVIDERS_RESPONSE,
-		Status:   pb.StatusType_OK,
-		Data:     &pb.SimSupply_UpdateProvidersResponse{updateProvidersResponse},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_UPDATE_PROVIDERS_RESPONSE,
+		Data:     &SimMsg_UpdateProvidersResponse{updateProvidersResponse},
 	}
 
-	s.SendSyncSupply(simSupply)
+	s.SendSimMsg(sclient, targets, simMsg)
 
 	return msgId
 }
@@ -419,406 +366,235 @@ func (s *SimAPI) UpdateProvidersResponse(senderId uint64, targets []uint64, msgI
 /////////////   Clock API   //////////////
 //////////////////////////////////////////
 
-func (s *SimAPI) SetClockRequest(senderId uint64, targets []uint64, clockInfo *pb.Clock) ([]*synpb.Supply, error) {
-	setClockRequest := &pb.SetClockRequest{
+func (s *SimAPI) SetClockRequest(sclient *sxutil.SXServiceClient, targets []uint64, clockInfo *Clock) ([]*SimMsg, error) {
+	setClockRequest := &SetClockRequest{
 		Clock: clockInfo,
 	}
 
 	uid, _ := uuid.NewRandom()
 	msgId := uint64(uid.ID())
-	simDemand := &pb.SimDemand{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.DemandType_SET_CLOCK_REQUEST,
-		Data:     &pb.SimDemand_SetClockRequest{setClockRequest},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_SET_CLOCK_REQUEST,
+		Data:     &SimMsg_SetClockRequest{setClockRequest},
 	}
 
-	sps, err := s.SendSyncDemand(simDemand)
+	sps, err := s.SendSimMsg(sclient, targets, simMsg)
 
 	return sps, err
 }
 
 // Agentを取得するSupply
-func (s *SimAPI) SetClockResponse(senderId uint64, targets []uint64, msgId uint64) uint64 {
-	setClockResponse := &pb.SetClockResponse{}
+func (s *SimAPI) SetClockResponse(sclient *sxutil.SXServiceClient, targets []uint64, msgId uint64) uint64 {
+	setClockResponse := &SetClockResponse{}
 
-	simSupply := &pb.SimSupply{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.SupplyType_SET_CLOCK_RESPONSE,
-		Status:   pb.StatusType_OK,
-		Data:     &pb.SimSupply_SetClockResponse{setClockResponse},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_SET_CLOCK_RESPONSE,
+		Data:     &SimMsg_SetClockResponse{setClockResponse},
 	}
 
-	s.SendSyncSupply(simSupply)
+	s.SendSimMsg(sclient, targets, simMsg)
 
 	return msgId
 }
 
-func (s *SimAPI) ForwardClockRequest(senderId uint64, targets []uint64) ([]*synpb.Supply, error) {
-	forwardClockRequest := &pb.ForwardClockRequest{}
+func (s *SimAPI) ForwardClockRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+	forwardClockRequest := &ForwardClockRequest{}
 
 	uid, _ := uuid.NewRandom()
 	msgId := uint64(uid.ID())
-	simDemand := &pb.SimDemand{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.DemandType_FORWARD_CLOCK_REQUEST,
-		Data:     &pb.SimDemand_ForwardClockRequest{forwardClockRequest},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_FORWARD_CLOCK_REQUEST,
+		Data:     &SimMsg_ForwardClockRequest{forwardClockRequest},
 	}
 
-	sps, err := s.SendSyncDemand(simDemand)
+	sps, err := s.SendSimMsg(sclient, targets, simMsg)
 
 	return sps, err
 }
 
 // Agentを取得するSupply
-func (s *SimAPI) ForwardClockResponse(senderId uint64, targets []uint64, msgId uint64) uint64 {
-	forwardClockResponse := &pb.ForwardClockResponse{}
+func (s *SimAPI) ForwardClockResponse(sclient *sxutil.SXServiceClient, targets []uint64, msgId uint64) uint64 {
+	forwardClockResponse := &ForwardClockResponse{}
 
-	simSupply := &pb.SimSupply{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.SupplyType_FORWARD_CLOCK_RESPONSE,
-		Status:   pb.StatusType_OK,
-		Data:     &pb.SimSupply_ForwardClockResponse{forwardClockResponse},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_FORWARD_CLOCK_RESPONSE,
+		Data:     &SimMsg_ForwardClockResponse{forwardClockResponse},
 	}
 
-	s.SendSyncSupply(simSupply)
+	s.SendSimMsg(sclient, targets, simMsg)
 
 	return msgId
 }
 
-func (s *SimAPI) ForwardClockInitRequest(senderId uint64, targets []uint64) ([]*synpb.Supply, error) {
-	forwardClockInitRequest := &pb.ForwardClockInitRequest{}
+func (s *SimAPI) ForwardClockInitRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+	forwardClockInitRequest := &ForwardClockInitRequest{}
 
 	uid, _ := uuid.NewRandom()
 	msgId := uint64(uid.ID())
-	simDemand := &pb.SimDemand{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.DemandType_FORWARD_CLOCK_INIT_REQUEST,
-		Data:     &pb.SimDemand_ForwardClockInitRequest{forwardClockInitRequest},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_FORWARD_CLOCK_INIT_REQUEST,
+		Data:     &SimMsg_ForwardClockInitRequest{forwardClockInitRequest},
 	}
 
-	sps, err := s.SendSyncDemand(simDemand)
+	sps, err := s.SendSimMsg(sclient, targets, simMsg)
 
 	return sps, err
 }
 
 // Agentを取得するSupply
-func (s *SimAPI) ForwardClockInitResponse(senderId uint64, targets []uint64, msgId uint64) uint64 {
-	forwardClockInitResponse := &pb.ForwardClockInitResponse{}
+func (s *SimAPI) ForwardClockInitResponse(sclient *sxutil.SXServiceClient, targets []uint64, msgId uint64) uint64 {
+	forwardClockInitResponse := &ForwardClockInitResponse{}
 
-	simSupply := &pb.SimSupply{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.SupplyType_FORWARD_CLOCK_INIT_RESPONSE,
-		Status:   pb.StatusType_OK,
-		Data:     &pb.SimSupply_ForwardClockInitResponse{forwardClockInitResponse},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_FORWARD_CLOCK_INIT_RESPONSE,
+		Data:     &SimMsg_ForwardClockInitResponse{forwardClockInitResponse},
 	}
 
-	s.SendSyncSupply(simSupply)
+	s.SendSimMsg(sclient, targets, simMsg)
 
 	return msgId
 }
 
-func (s *SimAPI) StartClockRequest(senderId uint64, targets []uint64) ([]*synpb.Supply, error) {
-	startClockRequest := &pb.StartClockRequest{}
+func (s *SimAPI) ForwardClockMainRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+	forwardClockMainRequest := &ForwardClockMainRequest{}
 
 	uid, _ := uuid.NewRandom()
 	msgId := uint64(uid.ID())
-	simDemand := &pb.SimDemand{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.DemandType_START_CLOCK_REQUEST,
-		Data:     &pb.SimDemand_StartClockRequest{startClockRequest},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_FORWARD_CLOCK_MAIN_REQUEST,
+		Data:     &SimMsg_ForwardClockMainRequest{forwardClockMainRequest},
 	}
 
-	sps, err := s.SendSyncDemand(simDemand)
+	sps, err := s.SendSimMsg(sclient, targets, simMsg)
 
 	return sps, err
 }
 
 // Agentを取得するSupply
-func (s *SimAPI) StartClockResponse(senderId uint64, targets []uint64, msgId uint64) uint64 {
-	startClockResponse := &pb.StartClockResponse{}
+func (s *SimAPI) ForwardClockMainResponse(sclient *sxutil.SXServiceClient, targets []uint64, msgId uint64) uint64 {
+	forwardClockMainResponse := &ForwardClockMainResponse{}
 
-	simSupply := &pb.SimSupply{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.SupplyType_START_CLOCK_RESPONSE,
-		Status:   pb.StatusType_OK,
-		Data:     &pb.SimSupply_StartClockResponse{startClockResponse},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_FORWARD_CLOCK_MAIN_RESPONSE,
+		Data:     &SimMsg_ForwardClockMainResponse{forwardClockMainResponse},
 	}
 
-	s.SendSyncSupply(simSupply)
+	s.SendSimMsg(sclient, targets, simMsg)
 
 	return msgId
 }
 
-func (s *SimAPI) StopClockRequest(senderId uint64, targets []uint64) ([]*synpb.Supply, error) {
-	stopClockRequest := &pb.StopClockRequest{}
+func (s *SimAPI) ForwardClockTerminateRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+	forwardClockTerminateRequest := &ForwardClockTerminateRequest{}
 
 	uid, _ := uuid.NewRandom()
 	msgId := uint64(uid.ID())
-	simDemand := &pb.SimDemand{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.DemandType_STOP_CLOCK_REQUEST,
-		Data:     &pb.SimDemand_StopClockRequest{stopClockRequest},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_FORWARD_CLOCK_TERMINATE_REQUEST,
+		Data:     &SimMsg_ForwardClockTerminateRequest{forwardClockTerminateRequest},
 	}
 
-	sps, err := s.SendSyncDemand(simDemand)
+	sps, err := s.SendSimMsg(sclient, targets, simMsg)
 
 	return sps, err
 }
 
 // Agentを取得するSupply
-func (s *SimAPI) StopClockResponse(senderId uint64, targets []uint64, msgId uint64) uint64 {
-	stopClockResponse := &pb.StopClockResponse{}
+func (s *SimAPI) ForwardClockTerminateResponse(sclient *sxutil.SXServiceClient, targets []uint64, msgId uint64) uint64 {
+	forwardClockTerminateResponse := &ForwardClockTerminateResponse{}
 
-	simSupply := &pb.SimSupply{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.SupplyType_STOP_CLOCK_RESPONSE,
-		Status:   pb.StatusType_OK,
-		Data:     &pb.SimSupply_StopClockResponse{stopClockResponse},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_FORWARD_CLOCK_TERMINATE_RESPONSE,
+		Data:     &SimMsg_ForwardClockTerminateResponse{forwardClockTerminateResponse},
 	}
 
-	s.SendSyncSupply(simSupply)
+	s.SendSimMsg(sclient, targets, simMsg)
 
 	return msgId
 }
 
-///////////////////////////////////////////
-/////////////   Pod API   //////////////
-//////////////////////////////////////////
-
-// AgentをセットするDemand
-func (s *SimAPI) CreatePodRequest(senderId uint64, targets []uint64) ([]*synpb.Supply, error) {
+func (s *SimAPI) StartClockRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+	startClockRequest := &StartClockRequest{}
 
 	uid, _ := uuid.NewRandom()
-	createPodRequest := &pb.CreatePodRequest{}
-
 	msgId := uint64(uid.ID())
-	simDemand := &pb.SimDemand{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.DemandType_SET_AGENT_REQUEST,
-		Data:     &pb.SimDemand_CreatePodRequest{createPodRequest},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_START_CLOCK_REQUEST,
+		Data:     &SimMsg_StartClockRequest{startClockRequest},
 	}
 
-	sps, err := s.SendSyncDemand(simDemand)
+	sps, err := s.SendSimMsg(sclient, targets, simMsg)
 
 	return sps, err
 }
 
-// Agentのセット完了
-func (s *SimAPI) CreatePodResponse(senderId uint64, targets []uint64, msgId uint64) uint64 {
-	createPodResponse := &pb.CreatePodResponse{}
+// Agentを取得するSupply
+func (s *SimAPI) StartClockResponse(sclient *sxutil.SXServiceClient, targets []uint64, msgId uint64) uint64 {
+	startClockResponse := &StartClockResponse{}
 
-	simSupply := &pb.SimSupply{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.SupplyType_SET_AGENT_RESPONSE,
-		Status:   pb.StatusType_OK,
-		Data:     &pb.SimSupply_CreatePodResponse{createPodResponse},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_START_CLOCK_RESPONSE,
+		Data:     &SimMsg_StartClockResponse{startClockResponse},
 	}
 
-	s.SendSyncSupply(simSupply)
+	s.SendSimMsg(sclient, targets, simMsg)
 
 	return msgId
 }
 
-// AgentをセットするDemand
-func (s *SimAPI) DeletePodRequest(senderId uint64, targets []uint64) ([]*synpb.Supply, error) {
+func (s *SimAPI) StopClockRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+	stopClockRequest := &StopClockRequest{}
 
 	uid, _ := uuid.NewRandom()
-	deletePodRequest := &pb.DeletePodRequest{}
-
 	msgId := uint64(uid.ID())
-	simDemand := &pb.SimDemand{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.DemandType_GET_AGENT_REQUEST,
-		Data:     &pb.SimDemand_DeletePodRequest{deletePodRequest},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_STOP_CLOCK_REQUEST,
+		Data:     &SimMsg_StopClockRequest{stopClockRequest},
 	}
 
-	sps, err := s.SendSyncDemand(simDemand)
+	sps, err := s.SendSimMsg(sclient, targets, simMsg)
 
 	return sps, err
 }
 
-// Agentのセット完了
-func (s *SimAPI) DeletePodResponse(senderId uint64, targets []uint64, msgId uint64) uint64 {
-	deletePodResponse := &pb.DeletePodResponse{}
+// Agentを取得するSupply
+func (s *SimAPI) StopClockResponse(sclient *sxutil.SXServiceClient, targets []uint64, msgId uint64) uint64 {
+	stopClockResponse := &StopClockResponse{}
 
-	simSupply := &pb.SimSupply{
+	simMsg := &SimMsg{
 		MsgId:    msgId,
-		SenderId: senderId,
-		Type:     pb.SupplyType_GET_AGENT_RESPONSE,
-		Status:   pb.StatusType_OK,
-		Data:     &pb.SimSupply_DeletePodResponse{deletePodResponse},
-		Targets:  targets,
+		SenderId: s.ProviderId,
+		Type:     MsgType_STOP_CLOCK_RESPONSE,
+		Data:     &SimMsg_StopClockResponse{stopClockResponse},
 	}
 
-	s.SendSyncSupply(simSupply)
+	s.SendSimMsg(sclient, targets, simMsg)
 
 	return msgId
-}
-
-// Marshal/UnMershal SimSupply/SimDemand
-func GetSimSupply(argJson string) (*pb.SimSupply, error) {
-	simSupply := &pb.SimSupply{}
-	err := json.Unmarshal([]byte(argJson), simSupply)
-	if err != nil {
-		return nil, err
-	}
-	return simSupply, nil
-}
-
-// Marshal/UnMershal SimSupply/SimDemand
-func GetSimSupplyJson(simSupply *pb.SimSupply) (string, error) {
-	byte, err := json.Marshal(simSupply)
-	if err != nil {
-		return "", err
-	}
-	return string(byte), nil
-}
-
-// Marshal/UnMershal SimSupply/SimDemand
-func GetSimDemand(argJson string) (*pb.SimDemand, error) {
-	simDemand := &pb.SimDemand{}
-	err := json.Unmarshal([]byte(argJson), simDemand)
-	if err != nil {
-		return nil, err
-	}
-	return simDemand, nil
-}
-
-// Marshal/UnMershal SimSupply/SimDemand
-func GetSimDemandJson(simDemand *pb.SimDemand) (string, error) {
-	byte, err := json.Marshal(simDemand)
-	if err != nil {
-		return "", err
-	}
-	return string(byte), nil
-}
-
-///////////////////////////////////////////
-/////////////      Wait      //////////////
-//////////////////////////////////////////
-
-type Waiter struct {
-	WaitSpChMap map[uint64]chan *synpb.Supply
-	SpMap       map[uint64][]*synpb.Supply
-}
-
-func NewWaiter() *Waiter {
-	w := &Waiter{
-		WaitSpChMap: make(map[uint64]chan *synpb.Supply),
-		SpMap:       make(map[uint64][]*synpb.Supply),
-	}
-	return w
-}
-
-func (w *Waiter) WaitSp(msgId uint64, targets []uint64, timeout uint64) ([]*synpb.Supply, error) {
-
-	waitCh := w.WaitSpChMap[msgId]
-
-	var err error
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		for {
-			select {
-			case sp, _ := <-waitCh:
-				mu.Lock()
-				//log.Printf("getSP %v, %v\n", GetSimSupply(sp.GetArgJson()).GetSenderId(), GetSimSupply(sp.GetArgJson()).GetMsgId())
-				// spのidがidListに入っているか
-				simSupply, _ := GetSimSupply(sp.GetArgJson())
-				if simSupply.GetMsgId() == msgId {
-					//mu.Lock()
-					w.SpMap[simSupply.GetMsgId()] = append(w.SpMap[simSupply.GetMsgId()], sp)
-					//mu.Unlock()
-					//log.Printf("msgID spId %v, msgId %v targets %v\n", w.SpMap[GetSimSupply(sp.GetArgJson()).GetMsgId()], msgId, targets)
-
-					// 同期が終了したかどうか
-					if w.isFinishSpSync(msgId, targets) {
-						//logger.Debug("Finish Wait!")
-						mu.Unlock()
-						wg.Done()
-						return
-					}
-				}
-				mu.Unlock()
-			case <-time.After(time.Duration(timeout) * time.Millisecond):
-				noIds := []uint64{}
-				noSps := []*synpb.Supply{} // test
-				var sp2 *synpb.Supply
-				for _, tgt := range targets {
-					isExist := false
-					for _, sp := range w.SpMap[msgId] {
-						sp2 = sp
-						simSupply, _ := GetSimSupply(sp.GetArgJson())
-						if tgt == simSupply.GetSenderId() {
-							isExist = true
-						}
-					}
-					if isExist == false {
-						noIds = append(noIds, tgt)
-						noSps = append(noSps, sp2)
-					}
-				}
-				//logger.Error("Sync Error... noids %v, msgId %v \n%v\n\n", noIds, msgId, noSps)
-				err = fmt.Errorf("Timeout Error")
-				wg.Done()
-				return
-			}
-		}
-	}()
-	wg.Wait()
-	return w.SpMap[msgId], err
-}
-
-func (w *Waiter) SendSpToWait(sp *synpb.Supply) {
-	//log.Printf("getSP2 %v, %v\n", GetSimSupply(sp.GetArgJson()).GetSenderId(), GetSimSupply(sp.GetArgJson()).GetMsgId())
-	mu.Lock()
-	simSupply, _ := GetSimSupply(sp.GetArgJson())
-	waitCh := w.WaitSpChMap[simSupply.GetMsgId()]
-	mu.Unlock()
-	waitCh <- sp
-}
-
-func (w *Waiter) isFinishSpSync(msgId uint64, targets []uint64) bool {
-
-	for _, pid := range targets {
-		isExist := false
-		for _, sp := range w.SpMap[msgId] {
-			simSupply, _ := GetSimSupply(sp.GetArgJson())
-			senderId := simSupply.GetSenderId()
-			if senderId == pid {
-				isExist = true
-			}
-		}
-		if isExist == false {
-			return false
-		}
-	}
-
-	return true
 }
