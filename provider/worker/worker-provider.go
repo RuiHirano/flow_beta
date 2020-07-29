@@ -43,61 +43,64 @@ var (
 const MAX_AGENTS_NUM = 1000
 
 func init() {
-
-	sclientOptsMaster = map[uint32]*util.SclientOpt{
-		uint32(api.ChannelType_CLOCK): &util.SclientOpt{
-			ChType:       uint32(api.ChannelType_CLOCK),
-			MBusCallback: MbcbClockMaster,
-			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Clock}"),
-		},
-		uint32(api.ChannelType_PROVIDER): &util.SclientOpt{
-			ChType:       uint32(api.ChannelType_PROVIDER),
-			MBusCallback: MbcbProviderMaster,
-			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Provider}"),
-		},
-		uint32(api.ChannelType_AGENT): &util.SclientOpt{
-			ChType:       uint32(api.ChannelType_AGENT),
-			MBusCallback: MbcbAgentMaster,
-			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Agent}"),
-		},
-		uint32(api.ChannelType_AREA): &util.SclientOpt{
-			ChType:       uint32(api.ChannelType_AREA),
-			MBusCallback: MbcbAreaMaster,
-			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Area}"),
-		},
-	}
-
-	sclientOptsWorker = map[uint32]*util.SclientOpt{
-		uint32(api.ChannelType_CLOCK): &util.SclientOpt{
-			ChType:       uint32(api.ChannelType_CLOCK),
-			MBusCallback: MbcbClockWorker,
-			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Clock}"),
-		},
-		uint32(api.ChannelType_PROVIDER): &util.SclientOpt{
-			ChType:       uint32(api.ChannelType_PROVIDER),
-			MBusCallback: MbcbProviderWorker,
-			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Provider}"),
-		},
-		uint32(api.ChannelType_AGENT): &util.SclientOpt{
-			ChType:       uint32(api.ChannelType_AGENT),
-			MBusCallback: MbcbAgentWorker,
-			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Agent}"),
-		},
-		uint32(api.ChannelType_AREA): &util.SclientOpt{
-			ChType:       uint32(api.ChannelType_AREA),
-			MBusCallback: MbcbAreaWorker,
-			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Area}"),
-		},
-	}
 	uid, _ := uuid.NewRandom()
 	myProvider := &api.Provider{
 		Id:   uint64(uid.ID()),
-		Name: "MasterServer",
-		Type: api.Provider_MASTER,
+		Name: "WorkerServer",
+		Type: api.Provider_WORKER,
 	}
 	simapi = api.NewSimAPI(myProvider)
 	pm = util.NewProviderManager(myProvider)
 	log.Printf("ProviderID: %d", simapi.Provider.Id)
+
+	cb := util.NewCallback()
+	mscb := &MasterCallback{cb} // override
+	sclientOptsMaster = map[uint32]*util.SclientOpt{
+		uint32(api.ChannelType_CLOCK): &util.SclientOpt{
+			ChType:       uint32(api.ChannelType_CLOCK),
+			MBusCallback: util.GetClockCallback(simapi, mscb),
+			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Clock}"),
+		},
+		uint32(api.ChannelType_PROVIDER): &util.SclientOpt{
+			ChType:       uint32(api.ChannelType_PROVIDER),
+			MBusCallback: util.GetProviderCallback(simapi, mscb),
+			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Provider}"),
+		},
+		uint32(api.ChannelType_AGENT): &util.SclientOpt{
+			ChType:       uint32(api.ChannelType_AGENT),
+			MBusCallback: util.GetAgentCallback(simapi, mscb),
+			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Agent}"),
+		},
+		uint32(api.ChannelType_AREA): &util.SclientOpt{
+			ChType:       uint32(api.ChannelType_AREA),
+			MBusCallback: util.GetAreaCallback(simapi, mscb),
+			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Area}"),
+		},
+	}
+
+	wocb := &WorkerCallback{cb} // override
+	sclientOptsWorker = map[uint32]*util.SclientOpt{
+		uint32(api.ChannelType_CLOCK): &util.SclientOpt{
+			ChType:       uint32(api.ChannelType_CLOCK),
+			MBusCallback: util.GetClockCallback(simapi, wocb),
+			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Clock}"),
+		},
+		uint32(api.ChannelType_PROVIDER): &util.SclientOpt{
+			ChType:       uint32(api.ChannelType_PROVIDER),
+			MBusCallback: util.GetProviderCallback(simapi, wocb),
+			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Provider}"),
+		},
+		uint32(api.ChannelType_AGENT): &util.SclientOpt{
+			ChType:       uint32(api.ChannelType_AGENT),
+			MBusCallback: util.GetAgentCallback(simapi, wocb),
+			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Agent}"),
+		},
+		uint32(api.ChannelType_AREA): &util.SclientOpt{
+			ChType:       uint32(api.ChannelType_AREA),
+			MBusCallback: util.GetAreaCallback(simapi, wocb),
+			ArgJson:      fmt.Sprintf("{Client:WorkerProvider_Area}"),
+		},
+	}
 
 	workerClock = 0
 	logger = util.NewLogger()
@@ -128,10 +131,75 @@ func init() {
 }
 
 ////////////////////////////////////////////////////////////
+////////////         Master Callback       ////////////////
+///////////////////////////////////////////////////////////
+type MasterCallback struct {
+	*util.Callback
+}
+
+func (cb *MasterCallback) ForwardClockRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	fmt.Printf("get forwardClockRequest")
+	t1 := time.Now()
+
+	// request to worker providers
+	/*targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_AGENT,
+	})
+	sclient := sclientOptsWorker[uint32(api.ChannelType_CLOCK)].Sclient
+	// init
+	simapi.ForwardClockInitRequest(sclient, targets)
+
+	// main
+	simapi.ForwardClockRequest(sclient, targets)
+
+	// terminate
+	simapi.ForwardClockTerminateRequest(sclient, targets)*/
+
+	t2 := time.Now()
+	duration := t2.Sub(t1).Milliseconds()
+	logger.Info("Duration: %v, PID: %v", duration, simapi.Provider.Id)
+	// response to master
+	//targets = []uint64{simMsg.GetSenderId()}
+	//msgId := simMsg.GetMsgId()
+	//logger.Debug("Response to master pid %v, msgId%v\n", myProvider.Id, msgId)
+	//sclient = sclientOptsMaster[uint32(api.ChannelType_CLOCK)].Sclient
+	//simapi.ForwardClockResponse(sclient, msgId)
+
+}
+
+func (cb *MasterCallback) UpdateProvidersRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	providers := simMsg.GetUpdateProvidersRequest().GetProviders()
+	logger.Info("Finish: Update Workers num: %v\n", len(providers))
+	//targets := []uint64{simMsg.GetSenderId()}
+	//msgId := simMsg.GetMsgId()
+	//sclient := sclientOptsMaster[uint32(api.ChannelType_PROVIDER)].Sclient
+	//simapi.UpdateProvidersResponse(sclient, targets, msgId)
+}
+
+func (cb *MasterCallback) SetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+
+	// request to providers
+	agents := simMsg.GetSetAgentRequest().GetAgents()
+	targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_AGENT,
+	})
+	sclient := sclientOptsWorker[uint32(api.ChannelType_AGENT)].Sclient
+	simapi.SetAgentRequest(sclient, targets, agents)
+
+	logger.Info("Finish: Set Agent %v\n")
+}
+
+////////////////////////////////////////////////////////////
 ////////////     Master Demand Supply Callback     ////////
 ///////////////////////////////////////////////////////////
 
-func MbcbClockMaster(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+/*func MbcbClockMaster(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	log.Println("Got clock callback")
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
@@ -172,10 +240,8 @@ func MbcbProviderMaster(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	switch simMsg.GetType() {
 	case api.MsgType_REGISTER_PROVIDER_RESPONSE:
-		mu.Lock()
-		masterProvider = simMsg.GetRegisterProviderResponse().GetProvider()
-		mu.Unlock()
-		fmt.Printf("regist provider to Master Provider!\n")
+		simapi.SendMsgToWait(msg)
+		logger.Info("regist provider to Master Provider!\n")
 	case api.MsgType_UPDATE_PROVIDERS_REQUEST:
 		providers := simMsg.GetUpdateProvidersRequest().GetProviders()
 		targets := []uint64{simMsg.GetSenderId()}
@@ -213,9 +279,33 @@ func MbcbAreaMaster(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	log.Println("Got mbcb callback")
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
-}
+}*/
 
 ////////////////////////////////////////////////////////////
+////////////         Worker Callback       ////////////////
+///////////////////////////////////////////////////////////
+type WorkerCallback struct {
+	*util.Callback
+}
+
+func (cb *WorkerCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) *api.Provider {
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	p := simMsg.GetRegisterProviderRequest().GetProvider()
+	pm.AddProvider(p)
+	fmt.Printf("regist provider! %v %v\n", p.GetId(), p.GetType())
+
+	// update provider to worker
+	targets := pm.GetProviderIds([]api.Provider_Type{})
+	//sclient := sclientOpts[uint32(api.ChannelType_PROVIDER)].Sclient
+	logger.Info("Send UpdateProvidersRequest %v, %v", targets, simapi.Provider)
+	//simapi.UpdateProvidersRequest(sclient, targets, pm.GetProviders())
+	logger.Info("Success Update Providers! Worker Num: ", len(targets))
+
+	return simapi.Provider
+}
+
+/*////////////////////////////////////////////////////////////
 ////////////     Worker Demand Supply Callback     ////////
 ///////////////////////////////////////////////////////////
 
@@ -251,7 +341,7 @@ func MbcbProviderWorker(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 		targets := []uint64{p.GetId()}
 		msgId := simMsg.GetMsgId()
 		sclient := sclientOptsWorker[uint32(api.ChannelType_PROVIDER)].Sclient
-		simapi.RegisterProviderResponse(sclient, targets, msgId, myProvider)
+		simapi.RegisterProviderResponse(sclient, msgId, myProvider)
 
 		logger.Info("Success Regist Agent or Vis Providers", targets)
 
@@ -280,28 +370,7 @@ func MbcbAreaWorker(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	log.Println("Got mbcb callback")
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
-}
-
-func registerToMaster() {
-	// masterへ登録
-	targets := make([]uint64, 0)
-	sclient := sclientOptsMaster[uint32(api.ChannelType_PROVIDER)].Sclient
-	simapi.RegisterProviderRequest(sclient, targets, myProvider)
-
-	go func() {
-		for {
-			if masterProvider != nil {
-				logger.Debug("Regist Success to Master!")
-				return
-			} else {
-				logger.Debug("Couldn't Regist Master...Retry...\n")
-				time.Sleep(2 * time.Second)
-				// masterへ登録
-				simapi.RegisterProviderRequest(sclient, targets, myProvider)
-			}
-		}
-	}()
-}
+}*/
 
 func main() {
 	fmt.Printf("NumCPU=%d\n", runtime.NumCPU())
@@ -311,7 +380,7 @@ func main() {
 
 	// Connect to Worker Syenrex Node Server
 	// Register Node Server
-	nodesrv := "127.0.0.1:9990"
+	/*nodesrv := "127.0.0.1:9990"
 	channelTypes := []uint32{}
 	for _, opt := range sclientOptsWorker {
 		channelTypes = append(channelTypes, opt.ChType)
@@ -322,112 +391,31 @@ func main() {
 	sxServerAddress := "127.0.0.1:10000"
 	client := util.RegisterSynerexLoop(sxServerAddress)
 	util.RegisterSXServiceClients(client, sclientOptsWorker)
-	logger.Info("Register Synerex Server")
+	logger.Info("Register Synerex Server")*/
 
 	// Connect to Master Syenrex Node Server
 	// Register Node Server
-	nodesrv = "127.0.0.1:9990"
-	channelTypes = []uint32{}
+	nodesrv := "127.0.0.1:9990"
+	channelTypes := []uint32{}
 	for _, opt := range sclientOptsMaster {
 		channelTypes = append(channelTypes, opt.ChType)
 	}
 	util.RegisterNodeLoop(nodesrv, "WorkerProvider", channelTypes)
 
 	// Register Synerex Server
-	sxServerAddress = "127.0.0.1:10000"
-	client = util.RegisterSynerexLoop(sxServerAddress)
+	sxServerAddress := "127.0.0.1:10000"
+	client := util.RegisterSynerexLoop(sxServerAddress)
 	util.RegisterSXServiceClients(client, sclientOptsMaster)
 	logger.Info("Register Synerex Server")
 
 	wg := sync.WaitGroup{} // for syncing other goroutines
 	wg.Add(1)
-
-	registerToMaster()
+	sclient := sclientOptsMaster[uint32(api.ChannelType_PROVIDER)].Sclient
+	//logger.Info("Register Master Provider %+v", sclientOptsMaster[uint32(api.ChannelType_PROVIDER)].Sclient)
+	masterProvider = util.RegisterProviderLoop(sclient, simapi)
+	logger.Info("Register Master Provider")
 
 	wg.Wait()
 	sxutil.CallDeferFunctions() // cleanup!
-
-	/*// ProviderManager
-	uid, _ := uuid.NewRandom()
-	myProvider = &api.Provider{
-		Id:   uint64(uid.ID()),
-		Name: providerName,
-		Type: api.ProviderType_WORKER,
-	}
-	pm = util.NewProviderManager(myProvider)
-
-	// For Master
-	// Connect to Node Server
-	nodeapi1 := napi.NewNodeAPI()
-	for {
-		err := nodeapi1.RegisterNodeName(masterNodeIdAddr, providerName, false)
-		if err == nil {
-			logger.Info("connected NodeID server!")
-			go nodeapi1.HandleSigInt()
-			nodeapi1.RegisterDeferFunction(nodeapi1.UnRegisterNode)
-			break
-		} else {
-			logger.Warn("NodeID Error... reconnecting...")
-			time.Sleep(2 * time.Second)
-		}
-	}
-
-	// Connect to Node Server
-	nodeapi2 := napi.NewNodeAPI()
-	for {
-		err := nodeapi2.RegisterNodeName(workerNodeIdAddr, providerName, false)
-		if err == nil {
-			logger.Info("connected NodeID server!")
-			go nodeapi2.HandleSigInt()
-			nodeapi2.RegisterDeferFunction(nodeapi2.UnRegisterNode)
-			break
-		} else {
-			logger.Warn("NodeID Error... reconnecting...")
-			time.Sleep(2 * time.Second)
-		}
-	}
-
-	// Connect to Synerex Server
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithInsecure())
-	conn, err := grpc.Dial(masterSynerexAddr, opts...)
-	if err != nil {
-		log.Fatalf("fail to dial: %v", err)
-	}
-	nodeapi1.RegisterDeferFunction(func() { conn.Close() })
-	client := api.NewSynerexClient(conn)
-	argJson := fmt.Sprintf("{Client:Worker}")
-
-	// Connect to Synerex Server
-	var wopts []grpc.DialOption
-	wopts = append(wopts, grpc.WithInsecure())
-	wconn, werr := grpc.Dial(workerSynerexAddr, wopts...)
-	if werr != nil {
-		log.Fatalf("fail to dial: %v", werr)
-	}
-	nodeapi2.RegisterDeferFunction(func() { wconn.Close() })
-	wclient := api.NewSynerexClient(wconn)
-	wargJson := fmt.Sprintf("{Client:Worker}")
-
-	// Communicator
-	masterapi = api.NewSimAPI()
-	masterapi.RegistClients(client, myProvider.Id, argJson)            // channelごとのClientを作成
-	masterapi.SubscribeAll(masterDemandCallback, masterSupplyCallback) // ChannelにSubscribe
-
-	// Communicator
-	workerapi = api.NewSimAPI()
-	workerapi.RegistClients(wclient, myProvider.Id, wargJson)          // channelごとのClientを作成
-	workerapi.SubscribeAll(workerDemandCallback, workerSupplyCallback) // ChannelにSubscribe
-
-	time.Sleep(3 * time.Second)
-
-	registToMaster()
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	wg.Wait()
-	fmt.Printf("clean up!")
-	nodeapi1.CallDeferFunctions() // cleanup!
-	nodeapi2.CallDeferFunctions() // cleanup!*/
 
 }

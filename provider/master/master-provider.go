@@ -80,29 +80,6 @@ func readConfig() (*Config, error) {
 }
 
 func init() {
-
-	sclientOpts = map[uint32]*util.SclientOpt{
-		uint32(api.ChannelType_CLOCK): &util.SclientOpt{
-			ChType:       uint32(api.ChannelType_CLOCK),
-			MBusCallback: MbcbClock,
-			ArgJson:      fmt.Sprintf("{Client:MasterProvider_Clock}"),
-		},
-		uint32(api.ChannelType_PROVIDER): &util.SclientOpt{
-			ChType:       uint32(api.ChannelType_PROVIDER),
-			MBusCallback: MbcbProvider,
-			ArgJson:      fmt.Sprintf("{Client:MasterProvider_Provider}"),
-		},
-		uint32(api.ChannelType_AGENT): &util.SclientOpt{
-			ChType:       uint32(api.ChannelType_AGENT),
-			MBusCallback: MbcbAgent,
-			ArgJson:      fmt.Sprintf("{Client:MasterProvider_Agent}"),
-		},
-		uint32(api.ChannelType_AREA): &util.SclientOpt{
-			ChType:       uint32(api.ChannelType_AREA),
-			MBusCallback: MbcbArea,
-			ArgJson:      fmt.Sprintf("{Client:MasterProvider_Area}"),
-		},
-	}
 	uid, _ := uuid.NewRandom()
 	myProvider := &api.Provider{
 		Id:   uint64(uid.ID()),
@@ -112,6 +89,31 @@ func init() {
 	simapi = api.NewSimAPI(myProvider)
 	pm = util.NewProviderManager(myProvider)
 	log.Printf("ProviderID: %d", simapi.Provider.Id)
+
+	cb := util.NewCallback()
+	mycb := &MyCallback{cb} // override
+	sclientOpts = map[uint32]*util.SclientOpt{
+		uint32(api.ChannelType_CLOCK): &util.SclientOpt{
+			ChType:       uint32(api.ChannelType_CLOCK),
+			MBusCallback: util.GetClockCallback(simapi, mycb),
+			ArgJson:      fmt.Sprintf("{Client:MasterProvider_Clock}"),
+		},
+		uint32(api.ChannelType_PROVIDER): &util.SclientOpt{
+			ChType:       uint32(api.ChannelType_PROVIDER),
+			MBusCallback: util.GetProviderCallback(simapi, mycb),
+			ArgJson:      fmt.Sprintf("{Client:MasterProvider_Provider}"),
+		},
+		uint32(api.ChannelType_AGENT): &util.SclientOpt{
+			ChType:       uint32(api.ChannelType_AGENT),
+			MBusCallback: util.GetAgentCallback(simapi, mycb),
+			ArgJson:      fmt.Sprintf("{Client:MasterProvider_Agent}"),
+		},
+		uint32(api.ChannelType_AREA): &util.SclientOpt{
+			ChType:       uint32(api.ChannelType_AREA),
+			MBusCallback: util.GetAreaCallback(simapi, mycb),
+			ArgJson:      fmt.Sprintf("{Client:MasterProvider_Area}"),
+		},
+	}
 
 	podgen = NewPodGenerator()
 	proc = NewProcessor()
@@ -134,7 +136,7 @@ func init() {
 	}
 	port = os.Getenv("PORT")
 	if port == "" {
-		port = "9990"
+		port = "9991"
 	}
 }
 
@@ -166,10 +168,34 @@ func (m *Manager) GetProviderIds() []uint64 {
 }*/
 
 ////////////////////////////////////////////////////////////
+////////////     Callback     ////////////////
+///////////////////////////////////////////////////////////
+type MyCallback struct {
+	*util.Callback
+}
+
+func (cb *MyCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) *api.Provider {
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	p := simMsg.GetRegisterProviderRequest().GetProvider()
+	pm.AddProvider(p)
+	fmt.Printf("regist provider! %v %v\n", p.GetId(), p.GetType())
+
+	// update provider to worker
+	targets := pm.GetProviderIds([]api.Provider_Type{})
+	//sclient := sclientOpts[uint32(api.ChannelType_PROVIDER)].Sclient
+	logger.Info("Send UpdateProvidersRequest %v, %v", targets, simapi.Provider)
+	//simapi.UpdateProvidersRequest(sclient, targets, pm.GetProviders())
+	logger.Info("Success Update Providers! Worker Num: ", len(targets))
+
+	return simapi.Provider
+}
+
+////////////////////////////////////////////////////////////
 ////////////     Demand Supply Callback     ////////////////
 ///////////////////////////////////////////////////////////
 
-func MbcbClock(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+/*func MbcbClock(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	log.Println("Got clock callback")
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
@@ -231,9 +257,9 @@ func MbcbArea(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	case api.MsgType_SEND_AREA_INFO_RESPONSE:
 		simapi.SendMsgToWait(msg)
 	}
-}
+}*/
 
-/*// Supplyのコールバック関数
+/* // Supplyのコールバック関数
 func supplyCallback(clt *api.SMServiceClient, sp *api.Supply) {
 	// 自分宛かどうか
 	// check if supply is match with my demand.

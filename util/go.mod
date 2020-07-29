@@ -8,7 +8,6 @@ require (
 	github.com/synerex/synerex_sxutil v0.4.12
 )
 
-
 replace (
 	github.com/RuiHirano/flow_beta/api => ./../../api
 	github.com/RuiHirano/flow_beta/util => ./../../util

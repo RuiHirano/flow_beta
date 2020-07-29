@@ -106,7 +106,7 @@ func init() {
 
 	masterProviderAddr := os.Getenv("MASTER_ADDRESS")
 	if masterProviderAddr == "" {
-		masterProviderAddr = "http://localhost:9990"
+		masterProviderAddr = "http://localhost:9991"
 	}
 	sender = NewSender(masterProviderAddr)
 
