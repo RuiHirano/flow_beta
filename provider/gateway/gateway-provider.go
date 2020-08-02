@@ -4,7 +4,7 @@ package main
 // 基本的に一方通行
 
 import (
-	//"flag"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -23,13 +23,6 @@ import (
 )
 
 var (
-	workerSynerexAddr1 string
-	workerSynerexAddr2 string
-	workerNodeIdAddr1  string
-	workerNodeIdAddr2  string
-	providerName       string
-	//pm1                *simutil.ProviderManager
-	//pm2                *simutil.ProviderManager
 	apm             *AgentProviderManager
 	waiter          *api.Waiter
 	mu              sync.Mutex
@@ -38,21 +31,62 @@ var (
 	workerProvider2 *api.Provider
 	agentProvider1  *api.Provider
 	agentProvider2  *api.Provider
-	worker1api      *api.SimAPI
-	worker2api      *api.SimAPI
-	//scenarioProvider   *provider.Provider
-	//com1               *simutil.Communicator
-	//com2               *simutil.Communicator
-	//providerManager1   *simutil.ProviderManager
-	//providerManager2   *simutil.ProviderManager
-	logger *util.Logger
-	//mes1               *Message
-	//mes2               *Message
+	logger          *util.Logger
 
 	sclientOptsWorker1 map[uint32]*util.SclientOpt
 	sclientOptsWorker2 map[uint32]*util.SclientOpt
 	simapi             *api.SimAPI
+	servaddr           = flag.String("servaddr", getServerAddress(), "The Synerex Server Listening Address")
+	nodeaddr           = flag.String("nodeaddr", getNodeservAddress(), "Node ID Server Address")
+	workerServaddr     = flag.String("workerServaddr", getWorkerServerAddress(), "Worker Synerex Server Listening Address")
+	workerNodeaddr     = flag.String("workerNodeaddr", getWorkerNodeservAddress(), "Worker Node ID Server Address")
+	providerName       = flag.String("providerName", getProviderName(), "Provider Name")
 )
+
+func getNodeservAddress() string {
+	env := os.Getenv("SX_NODESERV_ADDRESS")
+	if env != "" {
+		return env
+	} else {
+		return "127.0.0.1:9990"
+	}
+}
+
+func getServerAddress() string {
+	env := os.Getenv("SX_SERVER_ADDRESS")
+	if env != "" {
+		return env
+	} else {
+		return "127.0.0.1:10000"
+	}
+}
+
+func getWorkerNodeservAddress() string {
+	env := os.Getenv("SX_WORKER_NODESERV_ADDRESS")
+	if env != "" {
+		return env
+	} else {
+		return "127.0.0.1:9990"
+	}
+}
+
+func getWorkerServerAddress() string {
+	env := os.Getenv("SX_WORKER_SERVER_ADDRESS")
+	if env != "" {
+		return env
+	} else {
+		return "127.0.0.1:10000"
+	}
+}
+
+func getProviderName() string {
+	env := os.Getenv("PROVIDER_NAME")
+	if env != "" {
+		return env
+	} else {
+		return "GatewayProvider"
+	}
+}
 
 func init() {
 
@@ -119,33 +153,6 @@ func init() {
 	logger = util.NewLogger()
 	waiter = api.NewWaiter()
 	apm = NewAgentProviderManager()
-	//myProvider = flagToProviderInfo(*providerJson)
-	//scenarioProvider = flagToProviderInfo(*scenarioProviderJson)
-
-	workerSynerexAddr1 = os.Getenv("WORKER_SYNEREX_SERVER1")
-	if workerSynerexAddr1 == "" {
-		workerSynerexAddr1 = "127.0.0.1:10000"
-	}
-
-	workerSynerexAddr2 = os.Getenv("WORKER_SYNEREX_SERVER2")
-	if workerSynerexAddr2 == "" {
-		workerSynerexAddr2 = "127.0.0.1:10000"
-	}
-
-	workerNodeIdAddr1 = os.Getenv("WORKER_NODEID_SERVER1")
-	if workerNodeIdAddr1 == "" {
-		workerNodeIdAddr1 = "127.0.0.1:9000"
-	}
-
-	workerNodeIdAddr2 = os.Getenv("WORKER_NODEID_SERVER2")
-	if workerNodeIdAddr2 == "" {
-		workerNodeIdAddr2 = "127.0.0.1:9000"
-	}
-
-	providerName = os.Getenv("PROVIDER_NAME")
-	if providerName == "" {
-		providerName = "GatewayProvider"
-	}
 
 }
 
@@ -696,33 +703,32 @@ func main() {
 
 	// Connect to Worker Syenrex Node Server
 	// Register Node Server
-	nodesrv := "127.0.0.1:9990"
 	channelTypes := []uint32{}
 	for _, opt := range sclientOptsWorker1 {
 		channelTypes = append(channelTypes, opt.ChType)
 	}
-	util.RegisterNodeLoop(nodesrv, "GatewayProvider", channelTypes)
+	ni := sxutil.GetDefaultNodeServInfo()
+	util.RegisterNodeLoop(ni, *nodeaddr, "GatewayProvider", channelTypes)
 
 	// Register Synerex Server
-	sxServerAddress := "127.0.0.1:10000"
-	client := util.RegisterSynerexLoop(sxServerAddress)
-	util.RegisterSXServiceClients(client, sclientOptsWorker1)
+	client := util.RegisterSynerexLoop(*servaddr)
+	util.RegisterSXServiceClients(ni, client, sclientOptsWorker1)
 	logger.Info("Register Synerex Server")
 
 	// Connect to Master Syenrex Node Server
 	// Register Node Server
-	/*nodesrv = "127.0.0.1:9990"
+
 	channelTypes = []uint32{}
 	for _, opt := range sclientOptsWorker2 {
 		channelTypes = append(channelTypes, opt.ChType)
 	}
-	util.RegisterNodeLoop(nodesrv, "GatewayProvider", channelTypes)
+	ni = sxutil.NewNodeServInfo()
+	util.RegisterNodeLoop(ni, *workerNodeaddr, "GatewayProvider", channelTypes)
 
 	// Register Synerex Server
-	sxServerAddress = "127.0.0.1:10000"
-	client = util.RegisterSynerexLoop(sxServerAddress)
-	util.RegisterSXServiceClients(client, sclientOptsWorker2)
-	logger.Info("Register Synerex Server")*/
+	client = util.RegisterSynerexLoop(*workerServaddr)
+	util.RegisterSXServiceClients(ni, client, sclientOptsWorker2)
+	logger.Info("Register Synerex Server")
 
 	wg := sync.WaitGroup{} // for syncing other goroutines
 	wg.Add(1)

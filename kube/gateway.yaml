@@ -1,32 +1,25 @@
-apiVersion: apps/v1
-kind: ReplicaSet
+apiVersion: v1
+kind: Pod
 metadata:
-  name: gateway
+  name: gateway1121
   labels:
-    app: gateway
+    app: gateway1121
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: gateway
-  template:
-    metadata:
-      labels:
-        app: gateway
-    spec:
-      containers:
-      - name: gateway-provider
-        image: synerex-simulation/gateway-provider:latest 
-        imagePullPolicy: Never
-        env: 
-        - name: WORKER_SYNEREX_SERVER1
-          value: worker:700
-        - name: WORKER_NODEID_SERVER1
-          value: worker:600
-        - name: WORKER_SYNEREX_SERVER2
-          value: worker2:700
-        - name: WORKER_NODEID_SERVER2
-          value: worker2:600
-        ports:
-        - containerPort: 9980
+  containers:
+  - name: gateway-provider
+    image: synerex-simulation/gateway-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: WORKER_SYNEREX_SERVER1
+      value: worker11:700
+    - name: WORKER_NODEID_SERVER1
+      value: worker11:600
+    - name: WORKER_SYNEREX_SERVER2
+      value: worker21:700
+    - name: WORKER_NODEID_SERVER2
+      value: worker21:600
+    - name: PROVIDER_NAME
+      value: GatewayProvider1121
+    ports:
+    - containerPort: 9980
 

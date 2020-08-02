@@ -30,9 +30,6 @@ import (
 
 var (
 	myProvider  *api.Provider
-	synerexAddr string
-	nodeIdAddr  string
-	port        string
 	startFlag   bool
 	masterClock int
 	mu          sync.Mutex
@@ -45,7 +42,49 @@ var (
 
 	sclientOpts map[uint32]*util.SclientOpt
 	simapi      *api.SimAPI
+
+	cliport      = flag.Int("cliport", getCLIPort(), "CLI Listening Port")
+	servaddr     = flag.String("servaddr", getServerAddress(), "The Synerex Server Listening Address")
+	nodeaddr     = flag.String("nodeaddr", getNodeservAddress(), "Node ID Server Address")
+	providerName = flag.String("providerName", getProviderName(), "Provider Name")
 )
+
+func getCLIPort() int {
+	env := os.Getenv("CLI_PORT")
+	if env != "" {
+		env, _ := strconv.Atoi(env)
+		return env
+	} else {
+		return 9900
+	}
+}
+
+func getNodeservAddress() string {
+	env := os.Getenv("SX_NODESERV_ADDRESS")
+	if env != "" {
+		return env
+	} else {
+		return "127.0.0.1:9990"
+	}
+}
+
+func getServerAddress() string {
+	env := os.Getenv("SX_SERVER_ADDRESS")
+	if env != "" {
+		return env
+	} else {
+		return "127.0.0.1:10000"
+	}
+}
+
+func getProviderName() string {
+	env := os.Getenv("PROVIDER_NAME")
+	if env != "" {
+		return env
+	} else {
+		return "MasterProvider"
+	}
+}
 
 type Config struct {
 	Area Config_Area `yaml:"area"`
@@ -80,6 +119,8 @@ func readConfig() (*Config, error) {
 }
 
 func init() {
+	flag.Parse()
+
 	uid, _ := uuid.NewRandom()
 	myProvider := &api.Provider{
 		Id:   uint64(uid.ID()),
@@ -121,51 +162,10 @@ func init() {
 	masterClock = 0
 	logger = util.NewLogger()
 	logger.SetPrefix("Master")
-	flag.Parse()
 	//providerManager = NewManager()
 	// configを読み取る
 	config, _ = readConfig()
-
-	synerexAddr = os.Getenv("SYNEREX_SERVER")
-	if synerexAddr == "" {
-		synerexAddr = "127.0.0.1:10000"
-	}
-	nodeIdAddr = os.Getenv("NODEID_SERVER")
-	if nodeIdAddr == "" {
-		nodeIdAddr = "127.0.0.1:9000"
-	}
-	port = os.Getenv("PORT")
-	if port == "" {
-		port = "9991"
-	}
 }
-
-////////////////////////////////////////////////////////////
-//////////////////        Manager          ///////////////////
-///////////////////////////////////////////////////////////
-
-/*type Manager struct {
-	Providers []*api.Provider
-}
-
-func NewManager() *Manager {
-	m := &Manager{
-		Providers: make([]*api.Provider, 0),
-	}
-	return m
-}
-
-func (m *Manager) AddProvider(provider *api.Provider) {
-	m.Providers = append(m.Providers, provider)
-}
-
-func (m *Manager) GetProviderIds() []uint64 {
-	pids := make([]uint64, 0)
-	for _, p := range m.Providers {
-		pids = append(pids, p.GetId())
-	}
-	return pids
-}*/
 
 ////////////////////////////////////////////////////////////
 ////////////     Callback     ////////////////
@@ -182,131 +182,16 @@ func (cb *MyCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg *
 	fmt.Printf("regist provider! %v %v\n", p.GetId(), p.GetType())
 
 	// update provider to worker
-	targets := pm.GetProviderIds([]api.Provider_Type{})
-	//sclient := sclientOpts[uint32(api.ChannelType_PROVIDER)].Sclient
+	targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_WORKER,
+	})
+	sclient := sclientOpts[uint32(api.ChannelType_PROVIDER)].Sclient
 	logger.Info("Send UpdateProvidersRequest %v, %v", targets, simapi.Provider)
-	//simapi.UpdateProvidersRequest(sclient, targets, pm.GetProviders())
+	simapi.UpdateProvidersRequest(sclient, targets, pm.GetProviders())
 	logger.Info("Success Update Providers! Worker Num: ", len(targets))
 
 	return simapi.Provider
 }
-
-////////////////////////////////////////////////////////////
-////////////     Demand Supply Callback     ////////////////
-///////////////////////////////////////////////////////////
-
-/*func MbcbClock(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
-	log.Println("Got clock callback")
-	simMsg := &api.SimMsg{}
-	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
-	switch simMsg.GetType() {
-
-	case api.MsgType_SET_CLOCK_RESPONSE:
-		simapi.SendMsgToWait(msg)
-	case api.MsgType_FORWARD_CLOCK_RESPONSE:
-		simapi.SendMsgToWait(msg)
-	}
-}
-
-func MbcbProvider(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
-	log.Println("Got provider callback")
-	simMsg := &api.SimMsg{}
-	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
-	switch simMsg.GetType() {
-	case api.MsgType_REGISTER_PROVIDER_REQUEST:
-		// Register Provider Request from Worker
-		// providerを追加する
-		// TODO
-		p := simMsg.GetRegisterProviderRequest().GetProvider()
-		pm.AddProvider(p)
-		fmt.Printf("regist provider! %v\n", p.GetId())
-		// 登録完了通知
-		targets := []uint64{p.GetId()}
-		msgId := simMsg.GetMsgId()
-		sclient := sclientOpts[uint32(api.ChannelType_PROVIDER)].Sclient
-		simapi.RegisterProviderResponse(sclient, targets, msgId, simapi.Provider)
-
-		// update provider to worker
-		targets = pm.GetProviderIds([]api.Provider_Type{
-			api.Provider_WORKER,
-		})
-		simapi.UpdateProvidersRequest(sclient, targets, pm.GetProviders())
-
-		logger.Info("Success Update Providers! Worker Num: ", len(targets))
-
-	case api.MsgType_UPDATE_PROVIDERS_RESPONSE:
-		simapi.SendMsgToWait(msg)
-	}
-}
-
-func MbcbAgent(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
-	log.Println("Got agent callback")
-	simMsg := &api.SimMsg{}
-	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
-	switch simMsg.GetType() {
-	case api.MsgType_SET_AGENT_RESPONSE:
-		simapi.SendMsgToWait(msg)
-	}
-}
-
-func MbcbArea(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
-	log.Println("Got mbcb callback")
-	simMsg := &api.SimMsg{}
-	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
-	switch simMsg.GetType() {
-	case api.MsgType_SEND_AREA_INFO_RESPONSE:
-		simapi.SendMsgToWait(msg)
-	}
-}*/
-
-/* // Supplyのコールバック関数
-func supplyCallback(clt *api.SMServiceClient, sp *api.Supply) {
-	// 自分宛かどうか
-	// check if supply is match with my demand.
-	switch sp.GetSimSupply().GetType() {
-	case api.SupplyType_SET_CLOCK_RESPONSE:
-		simapi.SendSpToWait(sp)
-	case api.SupplyType_SET_AGENT_RESPONSE:
-		simapi.SendSpToWait(sp)
-	case api.SupplyType_FORWARD_CLOCK_RESPONSE:
-		simapi.SendSpToWait(sp)
-	case api.SupplyType_FORWARD_CLOCK_INIT_RESPONSE:
-		simapi.SendSpToWait(sp)
-	case api.SupplyType_UPDATE_PROVIDERS_RESPONSE:
-		simapi.SendSpToWait(sp)
-	case api.SupplyType_SEND_AREA_INFO_RESPONSE:
-		simapi.SendSpToWait(sp)
-	}
-}*/
-
-// Demandのコールバック関数
-/*func demandCallback(clt *api.SMServiceClient, dm *api.Demand) {
-
-	// check if supply is match with my demand.
-	switch dm.GetSimDemand().GetType() {
-	case api.DemandType_REGIST_PROVIDER_REQUEST:
-		// providerを追加する
-		p := dm.GetSimDemand().GetRegistProviderRequest().GetProvider()
-		//providerManager.AddProvider(p)
-		pm.AddProvider(p)
-		fmt.Printf("regist provider! %v\n", p.GetId())
-		// 登録完了通知
-		//targets := []uint64{tid}
-		senderInfo := myProvider.Id
-		targets := []uint64{p.GetId()}
-		msgId := dm.GetSimDemand().GetMsgId()
-		simapi.RegistProviderResponse(senderInfo, targets, msgId, pm.MyProvider)
-
-		// update provider to worker
-		targets = pm.GetProviderIds([]api.Provider_Type{
-			api.Provider_WORKER,
-		})
-		simapi.UpdateProvidersRequest(senderInfo, targets, pm.GetProviders())
-
-		logger.Info("Success Update Providers! Worker Num: ", len(targets))
-
-	}
-}*/
 
 ///////////////////////////////////////////////
 ////////////  Processor  //////////////////////
@@ -545,6 +430,20 @@ func (proc *Processor) startClock() {
 
 }
 
+func (proc *Processor) setClock(clocktime int) {
+	targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_WORKER,
+		api.Provider_VISUALIZATION,
+	})
+	logger.Debug("Set Clock! \n%v\n", targets)
+	sclient := sclientOpts[uint32(api.ChannelType_CLOCK)].Sclient
+	clock := &api.Clock{
+		GlobalTime: uint64(clocktime),
+	}
+	simapi.SetClockRequest(sclient, targets, clock)
+	logger.Debug("Finish Set Clock! \n")
+}
+
 // areaをrow、columnに分割する関数
 func (proc *Processor) divideArea(areaCoords []*api.Coord, areaConfig Config_Area) ([]*api.Area, map[int][]string) {
 	row := areaConfig.DefaultAreaNum.Row
@@ -621,6 +520,7 @@ func (or *Order) SetClock() echo.HandlerFunc {
 		}
 		fmt.Printf("time %d\n", co.Time)
 		masterClock = co.Time
+		proc.setClock(masterClock)
 		return c.String(http.StatusOK, "Set Clock")
 	}
 }
@@ -707,7 +607,8 @@ func startSimulatorServer() {
 	e.POST("/order/start", order.Start())
 	e.POST("/order/stop", order.Stop())
 
-	e.Start(":" + port)
+	log.Printf("Listen Simulator Port at %d", *cliport)
+	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", *cliport)))
 }
 
 func main() {
@@ -720,17 +621,16 @@ func main() {
 	go startSimulatorServer()
 
 	// Register Node Server
-	nodesrv := "127.0.0.1:9990"
 	channelTypes := []uint32{}
 	for _, opt := range sclientOpts {
 		channelTypes = append(channelTypes, opt.ChType)
 	}
-	util.RegisterNodeLoop(nodesrv, "MasterProvider", channelTypes)
+	ni := sxutil.GetDefaultNodeServInfo()
+	util.RegisterNodeLoop(ni, *nodeaddr, "MasterProvider", channelTypes)
 
 	// Register Synerex Server
-	sxServerAddress := "127.0.0.1:10000"
-	client := util.RegisterSynerexLoop(sxServerAddress)
-	util.RegisterSXServiceClients(client, sclientOpts)
+	client := util.RegisterSynerexLoop(*servaddr)
+	util.RegisterSXServiceClients(ni, client, sclientOpts)
 
 	logger.Info("Register Synerex Server")
 

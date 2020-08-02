@@ -24,10 +24,8 @@ WORKDIR /synerex_simulation
 COPY /provider/visualization/visualization-provider.go ./provider/visualization/
 COPY /provider/visualization/go.mod ./provider/visualization/
 COPY /provider/visualization/monitor/build ./provider/visualization/monitor/build
-COPY /provider/simutil ./provider/simutil
 COPY /util ./util
 COPY /api ./api
-COPY /nodeapi ./nodeapi
 
 
 # expose port

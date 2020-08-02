@@ -19,41 +19,27 @@ type SclientOpt struct {
 	Providers    []*api.Provider
 }
 
-func RegisterNode(nodesrv string, chTypes []uint32) (string, error) {
-	sxServerAddress, err := sxutil.RegisterNode(nodesrv, "TestProvoider", chTypes, nil)
-	if err != nil {
-		// error occour
-		return "", err
-	}
-	log.Printf("Connecting SynerexServer at [%s]\n", sxServerAddress)
-
-	go sxutil.HandleSigInt()
-	sxutil.RegisterDeferFunction(sxutil.UnRegisterNode)
-
-	return sxServerAddress, nil
-}
-
 // NodeServに繋がるまで繰り返す
-func RegisterNodeLoop(nodesrv string, name string, chTypes []uint32) *sxutil.NodeServInfo {
+func RegisterNodeLoop(ni *sxutil.NodeServInfo, nodesrv string, name string, chTypes []uint32) *sxutil.NodeServInfo {
 	go sxutil.HandleSigInt() // Ctl+cを認識させる
 	for {
-		sxServerAddress, err := sxutil.RegisterNodeWithCmd(nodesrv, name, chTypes, nil, nil)
+		_, err := ni.RegisterNodeWithCmd(nodesrv, name, chTypes, nil, nil)
 		if err != nil {
 			log.Printf("Can't register node. reconeccting...\n")
 			time.Sleep(1 * time.Second)
 		} else {
 			sxutil.RegisterDeferFunction(sxutil.UnRegisterNode)
-			log.Printf("Connecting NodeServer at [%s]\n", sxServerAddress)
-			ni := sxutil.GetDefaultNodeServInfo()
+			log.Printf("Connecting NodeServer at [%s]\n", nodesrv)
+			//ni := sxutil.GetDefaultNodeServInfo()
 			return ni
 		}
 	}
 }
 
-func RegisterSXServiceClients(client sxapi.SynerexClient, opts map[uint32]*SclientOpt) map[uint32]*SclientOpt {
+func RegisterSXServiceClients(ni *sxutil.NodeServInfo, client sxapi.SynerexClient, opts map[uint32]*SclientOpt) map[uint32]*SclientOpt {
 	for key, opt := range opts {
-		sclient := sxutil.NewSXServiceClient(client, opt.ChType, opt.ArgJson) // service client
-		sclient.MbusID = sxutil.IDType(opt.ChType)                            // MbusIDをChTypeに変更
+		sclient := ni.NewSXServiceClient(client, opt.ChType, opt.ArgJson) // service client
+		sclient.MbusID = sxutil.IDType(opt.ChType)                        // MbusIDをChTypeに変更
 		log.Printf("debug MbusID: %d", sclient.MbusID)
 		opts[key].Sclient = sclient
 		go SubscribeMbusLoop(sclient, opt.MBusCallback)
@@ -84,7 +70,7 @@ func RegisterSynerexLoop(sxServerAddress string) sxapi.SynerexClient {
 			log.Printf("Can't register synerex. reconeccting...\n")
 			time.Sleep(1 * time.Second)
 		} else {
-			log.Printf("Register to %s\n", sxServerAddress)
+			log.Printf("Register Synerex Server at %s\n", sxServerAddress)
 			return client
 		}
 	}
@@ -99,6 +85,7 @@ func RegisterProviderLoop(sclient *sxutil.SXServiceClient, simapi *api.SimAPI) *
 	ch := make(chan struct{})
 	go func() {
 		for {
+			log.Printf("RegistProviderRequst %v", simapi.Provider.Id)
 			msgs, err := simapi.RegisterProviderRequest(sclient, targets, simapi.Provider)
 			if err != nil {
 				//logger.Debug("Couldn't Regist Master...Retry...\n")
@@ -107,7 +94,8 @@ func RegisterProviderLoop(sclient *sxutil.SXServiceClient, simapi *api.SimAPI) *
 
 			} else {
 				//logger.Debug("Regist Success to Master!")
-				provider = msgs[0].GetRegisterProviderRequest().GetProvider()
+				provider = msgs[0].GetRegisterProviderResponse().GetProvider()
+				log.Printf("Register Provider at %s\n", provider.Name)
 				ch <- struct{}{}
 				return
 			}
@@ -187,6 +175,7 @@ func (bc *BaseCallback) AgentCallback(clt *sxutil.SXServiceClient, msg *sxapi.Mb
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	//targets := []uint64{simMsg.GetSenderId()}
+	log.Printf("get Agent Callback %v\n", simMsg)
 	msgId := simMsg.GetMsgId()
 	switch simMsg.GetType() {
 	case api.MsgType_SET_AGENT_REQUEST:
@@ -211,23 +200,34 @@ func (bc *BaseCallback) ProviderCallback(clt *sxutil.SXServiceClient, msg *sxapi
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	targets := []uint64{simMsg.GetSenderId()}
 	msgId := simMsg.GetMsgId()
+
+	log.Printf("get Provider Callback %v\n", simMsg)
 	switch simMsg.GetType() {
 	case api.MsgType_REGISTER_PROVIDER_REQUEST:
-		provider := bc.RegisterProviderRequest(clt, msg)
-		// response
-		bc.simapi.RegisterProviderResponse(clt, msgId, provider)
+		go func() {
+			provider := bc.RegisterProviderRequest(clt, msg)
+			// response
+			bc.simapi.RegisterProviderResponse(clt, msgId, provider)
+		}()
+
 	case api.MsgType_UPDATE_PROVIDERS_REQUEST:
-		bc.UpdateProvidersRequest(clt, msg)
-		// response
-		log.Printf("UPDATE_PROVIDERS_RESPONSE %v %v", targets, msgId)
-		bc.simapi.UpdateProvidersResponse(clt, msgId)
+		go func() {
+			bc.UpdateProvidersRequest(clt, msg)
+			// response
+			log.Printf("UPDATE_PROVIDERS_RESPONSE %v %v", targets, msgId)
+			bc.simapi.UpdateProvidersResponse(clt, msgId)
+		}()
 	case api.MsgType_REGISTER_PROVIDER_RESPONSE:
-		bc.RegisterProviderResponse(clt, msg)
-		bc.simapi.SendMsgToWait(msg)
+		go func() {
+			bc.RegisterProviderResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+		}()
 	case api.MsgType_UPDATE_PROVIDERS_RESPONSE:
-		bc.UpdateProvidersResponse(clt, msg)
-		log.Printf("UPDATE_PROVIDERS_RESPONSE")
-		bc.simapi.SendMsgToWait(msg)
+		go func() {
+			bc.UpdateProvidersResponse(clt, msg)
+			log.Printf("UPDATE_PROVIDERS_RESPONSE")
+			bc.simapi.SendMsgToWait(msg)
+		}()
 	}
 }
 
@@ -235,6 +235,7 @@ func (bc *BaseCallback) ClockCallback(clt *sxutil.SXServiceClient, msg *sxapi.Mb
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	//targets := []uint64{simMsg.GetSenderId()}
+	log.Printf("get Clock Callback %v\n", simMsg)
 	msgId := simMsg.GetMsgId()
 	switch simMsg.GetType() {
 	case api.MsgType_SET_CLOCK_REQUEST:
@@ -293,6 +294,7 @@ func (bc *BaseCallback) AreaCallback(clt *sxutil.SXServiceClient, msg *sxapi.Mbu
 	simMsg := &api.SimMsg{}
 	//targets := []uint64{simMsg.GetSenderId()}
 	msgId := simMsg.GetMsgId()
+	log.Printf("get Area Callback %v\n", simMsg)
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	switch simMsg.GetType() {
 	case api.MsgType_SEND_AREA_INFO_REQUEST:

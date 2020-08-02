@@ -106,8 +106,9 @@ func init() {
 
 	masterProviderAddr := os.Getenv("MASTER_ADDRESS")
 	if masterProviderAddr == "" {
-		masterProviderAddr = "http://localhost:9991"
+		masterProviderAddr = "http://localhost:9900"
 	}
+	log.Printf("Master Address is %d", masterProviderAddr)
 	sender = NewSender(masterProviderAddr)
 
 	time.Sleep(200 * time.Millisecond)

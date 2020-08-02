@@ -11,30 +11,21 @@ spec:
   type: NodePort
 
 ---
-apiVersion: apps/v1
-kind: ReplicaSet
+apiVersion: v1
+kind: Pod
 metadata:
   name: simulator
   labels:
     app: simulator
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: simulator
-  template:
-    metadata:
-      labels:
-        app: simulator
-    spec:
-      containers:
-      - name: simulator
-        image: synerex-simulation/simulator:latest 
-        imagePullPolicy: Never
-        stdin: true
-        tty: true
-        env: 
-        - name: MASTER_ADDRESS
-          value: http://master:800
-        ports:
-        - containerPort: 8000
+  containers:
+  - name: simulator
+    image: synerex-simulation/simulator:latest 
+    imagePullPolicy: Never
+    stdin: true
+    tty: true
+    env: 
+    - name: MASTER_ADDRESS
+      value: http://master:9900
+    ports:
+    - containerPort: 8000

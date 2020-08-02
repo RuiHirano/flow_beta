@@ -26,12 +26,6 @@ import (
 )
 
 var (
-	synerexAddr    string
-	nodeIdAddr     string
-	visSynerexAddr string
-	visNodeIdAddr  string
-	visAddr        string
-	providerName   string
 	myProvider     *api.Provider
 	workerProvider *api.Provider
 	visProvider    *api.Provider
@@ -46,7 +40,58 @@ var (
 	sclientOptsVis    map[uint32]*util.SclientOpt
 	sclientOptsWorker map[uint32]*util.SclientOpt
 	simapi            *api.SimAPI
+
+	servaddr     = flag.String("servaddr", getServerAddress(), "The Synerex Server Listening Address")
+	nodeaddr     = flag.String("nodeaddr", getNodeservAddress(), "Node ID Server Address")
+	visServaddr  = flag.String("visServaddr", getVisServerAddress(), "Vis Synerex Server Listening Address")
+	visNodeaddr  = flag.String("visNodeaddr", getVisNodeservAddress(), "Vis Node ID Server Address")
+	providerName = flag.String("providerName", getProviderName(), "Provider Name")
 )
+
+func getNodeservAddress() string {
+	env := os.Getenv("SX_NODESERV_ADDRESS")
+	if env != "" {
+		return env
+	} else {
+		return "127.0.0.1:9990"
+	}
+}
+
+func getServerAddress() string {
+	env := os.Getenv("SX_SERVER_ADDRESS")
+	if env != "" {
+		return env
+	} else {
+		return "127.0.0.1:10000"
+	}
+}
+
+func getVisNodeservAddress() string {
+	env := os.Getenv("SX_VIS_NODESERV_ADDRESS")
+	if env != "" {
+		return env
+	} else {
+		return "127.0.0.1:9990"
+	}
+}
+
+func getVisServerAddress() string {
+	env := os.Getenv("SX_VIS_SERVER_ADDRESS")
+	if env != "" {
+		return env
+	} else {
+		return "127.0.0.1:10000"
+	}
+}
+
+func getProviderName() string {
+	env := os.Getenv("PROVIDER_NAME")
+	if env != "" {
+		return env
+	} else {
+		return "AgentProvider"
+	}
+}
 
 func init() {
 	flag.Parse()
@@ -110,34 +155,6 @@ func init() {
 			MBusCallback: util.GetAreaCallback(simapi, wocb),
 			ArgJson:      fmt.Sprintf("{Client:AgentProvider_Area}"),
 		},
-	}
-
-	synerexAddr = os.Getenv("SYNEREX_SERVER")
-	if synerexAddr == "" {
-		synerexAddr = "127.0.0.1:10000"
-	}
-	nodeIdAddr = os.Getenv("NODEID_SERVER")
-	if nodeIdAddr == "" {
-		nodeIdAddr = "127.0.0.1:9000"
-	}
-
-	visSynerexAddr = os.Getenv("VIS_SYNEREX_SERVER")
-	if visSynerexAddr == "" {
-		visSynerexAddr = "127.0.0.1:10000"
-	}
-	visNodeIdAddr = os.Getenv("VIS_NODEID_SERVER")
-	if visNodeIdAddr == "" {
-		visNodeIdAddr = "127.0.0.1:9000"
-	}
-
-	providerName = os.Getenv("PROVIDER_NAME")
-	if providerName == "" {
-		providerName = "AgentProvider"
-	}
-
-	visAddr = os.Getenv("VIS_SERVER")
-	if visAddr == "" {
-		visAddr = "127.0.0.1:8080"
 	}
 
 	areaJson := os.Getenv("AREA")
@@ -658,33 +675,32 @@ func main() {
 
 	// Connect to Worker Syenrex Node Server
 	// Register Node Server
-	nodesrv := "127.0.0.1:9990"
 	channelTypes := []uint32{}
 	for _, opt := range sclientOptsWorker {
 		channelTypes = append(channelTypes, opt.ChType)
 	}
-	util.RegisterNodeLoop(nodesrv, "WorkerProvider", channelTypes)
+	ni := sxutil.GetDefaultNodeServInfo()
+	util.RegisterNodeLoop(ni, *nodeaddr, "AgentProvider", channelTypes)
 
 	// Register Synerex Server
-	sxServerAddress := "127.0.0.1:10000"
-	client := util.RegisterSynerexLoop(sxServerAddress)
-	util.RegisterSXServiceClients(client, sclientOptsWorker)
+	client := util.RegisterSynerexLoop(*servaddr)
+	util.RegisterSXServiceClients(ni, client, sclientOptsWorker)
 	logger.Info("Register Synerex Server")
 
 	// Connect to Master Syenrex Node Server
 	// Register Node Server
-	/*nodesrv = "127.0.0.1:9990"
+
 	channelTypes = []uint32{}
 	for _, opt := range sclientOptsVis {
 		channelTypes = append(channelTypes, opt.ChType)
 	}
-	util.RegisterNodeLoop(nodesrv, "WorkerProvider", channelTypes)
+	ni = sxutil.NewNodeServInfo()
+	util.RegisterNodeLoop(ni, *visNodeaddr, "WorkerProvider", channelTypes)
 
 	// Register Synerex Server
-	sxServerAddress = "127.0.0.1:10000"
-	client = util.RegisterSynerexLoop(sxServerAddress)
-	util.RegisterSXServiceClients(client, sclientOptsVis)
-	logger.Info("Register Synerex Server")*/
+	client = util.RegisterSynerexLoop(*visServaddr)
+	util.RegisterSXServiceClients(ni, client, sclientOptsVis)
+	logger.Info("Register Synerex Server")
 
 	wg := sync.WaitGroup{} // for syncing other goroutines
 	wg.Add(1)

@@ -207,7 +207,7 @@ message ClientIds {
 
 
 message Clock {
-    double global_time = 1;
+    uint64 global_time = 1;
 }
 
 message Agent {

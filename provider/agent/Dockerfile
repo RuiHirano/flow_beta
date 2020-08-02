@@ -22,10 +22,8 @@ RUN go get -u google.golang.org/grpc
 # build synerex daemon
 WORKDIR /synerex_simulation
 COPY /provider/agent ./provider/agent
-COPY /provider/simutil ./provider/simutil
 COPY /util ./util
 COPY /api ./api
-COPY /nodeapi ./nodeapi
 RUN cd provider/agent && \
     sed -i 's/\r//' ./entrypoint.sh && \
     chmod +x ./entrypoint.sh
