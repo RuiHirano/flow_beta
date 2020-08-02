@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: agent
+  labels:
+    app: agent
+spec:
+  containers:
+  - name: agent-provider
+    image: synerex-simulation/agent-provider:latest
+    imagePullPolicy: Never
+    env:
+    - name: NODEID_SERVER
+      value: worker:600
+    - name: SYNEREX_SERVER
+      value: worker:700
+    - name: AREA
+      value: '{"id":11, "name":"Unknown", "duplicate_area": [{"latitude":35.15731895,
+        "longitude":136.97073834999998},{"latitude":35.151745549999994, "longitude":136.97073834999998},{"latitude":35.151745549999994,
+        "longitude":136.98139015},{"latitude":35.15731895, "longitude":136.98139015}],
+        "control_area": [{"latitude":35.156854499999994, "longitude":136.971626},{"latitude":35.15221,
+        "longitude":136.971626},{"latitude":35.15221, "longitude":136.9805025},{"latitude":35.156854499999994,
+        "longitude":136.9805025}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider
