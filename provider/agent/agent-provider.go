@@ -229,16 +229,20 @@ func forwardClock() {
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	sclient := sclientOptsWorker[uint32(api.ChannelType_AGENT)].Sclient
 	sameAgents := []*api.Agent{}
-	if len(targets) != 0 {
-		simMsgs, _ := simapi.GetAgentRequest(sclient, targets)
-		////logger.Debug("1: targets %v\n", targets)
-		for _, simMsg := range simMsgs {
-			agents := simMsg.GetGetAgentResponse().GetAgents()
-			sameAgents = append(sameAgents, agents...)
-		}
+	//if len(targets) != 0 {
+	simMsgs, _ := simapi.GetAgentRequest(sclient, filters)
+	////logger.Debug("1: targets %v\n", targets)
+	for _, simMsg := range simMsgs {
+		agents := simMsg.GetGetAgentResponse().GetAgents()
+		sameAgents = append(sameAgents, agents...)
 	}
+	//}
 
 	// [2. Calculation]次の時間のエージェントを計算する
 	//logger.Debug("2: エージェント計算を行う")
@@ -256,24 +260,32 @@ func forwardClock() {
 	targets = pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_VISUALIZATION,
 	})
+	filters = []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	sclient = sclientOptsVis[uint32(api.ChannelType_AGENT)].Sclient
-	simapi.SetAgentRequest(sclient, targets, nextControlAgents)
+	simapi.SetAgentRequest(sclient, filters, nextControlAgents)
 
 	//logger.Debug("3: 隣接エージェントを取得")
 	targets = pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_GATEWAY,
 	})
+	filters = []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	sclient = sclientOptsWorker[uint32(api.ChannelType_AGENT)].Sclient
 
 	neighborAgents := []*api.Agent{}
-	if len(targets) != 0 {
-		simMsgs, _ := simapi.GetAgentRequest(sclient, targets)
-		////logger.Debug("3: targets %v\n", targets)
-		for _, simMsg := range simMsgs {
-			agents := simMsg.GetGetAgentResponse().GetAgents()
-			neighborAgents = append(neighborAgents, agents...)
-		}
+	//if len(targets) != 0 {
+	simMsgs, _ = simapi.GetAgentRequest(sclient, filters)
+	////logger.Debug("3: targets %v\n", targets)
+	for _, simMsg := range simMsgs {
+		agents := simMsg.GetGetAgentResponse().GetAgents()
+		neighborAgents = append(neighborAgents, agents...)
 	}
+	//}
 
 	//logger.Debug("4: エージェントを更新")
 	// [4. Update Agents]重複エリアのエージェントを更新する

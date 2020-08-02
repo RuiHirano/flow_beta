@@ -4,7 +4,6 @@ import (
 	"context"
 	//"log"
 	"sync"
-	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
@@ -17,6 +16,11 @@ var (
 )
 
 func init() {
+}
+
+// Waitする基準となるFilter　nilにすれば対象でなくなる
+type Filter struct {
+	TargetId uint64
 }
 
 type SimAPI struct {
@@ -57,11 +61,7 @@ func (s *SimAPI) ResponseSimMsg(sclient *sxutil.SXServiceClient, simMsg *SimMsg)
 	return nil
 }
 
-////////////////////////////////////////////////////////////
-////////////        Supply Demand Function       ///////////
-///////////////////////////////////////////////////////////
-
-func (s *SimAPI) RequestSimMsg(sclient *sxutil.SXServiceClient, targets []uint64, simMsg *SimMsg) ([]*SimMsg, error) {
+func (s *SimAPI) RequestSimMsg(sclient *sxutil.SXServiceClient, filters []*Filter, simMsg *SimMsg) ([]*SimMsg, error) {
 
 	cdata, _ := proto.Marshal(simMsg)
 	msg := &sxapi.MbusMsg{
@@ -83,61 +83,16 @@ func (s *SimAPI) RequestSimMsg(sclient *sxutil.SXServiceClient, targets []uint64
 
 	// waitする
 	simMsgs := []*SimMsg{}
-	// if len(targets) = 0, wait until recieving first msg
-	simMsgs, err = s.Waiter.WaitMsg(simMsgId, targets, 1000)
-	//log.Printf("debug: %v, %v", simMsgs, err)
-	if err != nil {
-		return nil, err
-	}
-	s.Waiter = NewWaiter() // Is it OK?
-
-	return simMsgs, nil
-}
-
-////////////////////////////////////////////////////////////
-////////////        Supply Demand Function       ///////////
-///////////////////////////////////////////////////////////
-
-func (s *SimAPI) SendSimMsg(sclient *sxutil.SXServiceClient, targets []uint64, simMsg *SimMsg) ([]*SimMsg, error) {
-	//log.Printf("\nsend msg\n")
-	cdata, _ := proto.Marshal(simMsg)
-	msg := &sxapi.MbusMsg{
-		Cdata: &sxapi.Content{
-			Entity: cdata,
-		},
-	}
-	simMsgId := simMsg.GetMsgId()
-	bufSize := 10 // Channel Buffer Size
-	s.Waiter.RegisterWaitCh(simMsgId, bufSize)
-	//log.Printf("\nsend msg2\n")
-	//mu.Lock()
-	ctxWithTimeout, _ := context.WithTimeout(context.Background(), time.Second*1)
-	err := sclient.SendMbusMsg(ctxWithTimeout, msg)
-	//log.Printf("\nerr %v\n", err)
-	if err != nil {
-		//mu.Unlock()
-		return nil, err
-	}
-	//mu.Unlock()
-	//log.Printf("\nsend msg3\n")
-	// waitする
-	msgs := []*SimMsg{}
-	/*if len(targets) != 0 {
-		msgs, err = s.Waiter.WaitMsg(simMsgId, targets, 1000)
-		if err == nil {
+	// if len(filters) = 0, wait until recieving first msg
+	if len(filters) != 0 {
+		simMsgs, err = s.Waiter.WaitMsg(simMsgId, filters, 1000)
+		//log.Printf("debug: %v, %v", simMsgs, err)
+		if err != nil {
 			return nil, err
 		}
-		s.Waiter = NewWaiter() // Is it OK?
-	}*/
-	// if len(targets) = 0, wait until recieving first msg
-	msgs, err = s.Waiter.WaitMsg(simMsgId, targets, 1000)
-	//log.Printf("\nmsg %v\n", msgs, err)
-	if err != nil {
-		return nil, err
 	}
-	//s.Waiter = NewWaiter() // Is it OK?
 
-	return msgs, nil
+	return simMsgs, nil
 }
 
 func (s *SimAPI) SendMsgToWait(msg *sxapi.MbusMsg) {
@@ -170,7 +125,7 @@ func (w *Waiter) RegisterWaitCh(simMsgId uint64, bufSize int) {
 	//log.Printf("RegisterWaitCh\n")
 }
 
-func (w *Waiter) WaitMsg(simMsgId uint64, targets []uint64, timeout uint64) ([]*SimMsg, error) {
+func (w *Waiter) WaitMsg(simMsgId uint64, filters []*Filter, timeout uint64) ([]*SimMsg, error) {
 
 	mu.Lock()
 	waitCh := w.WaitChMap[simMsgId]
@@ -184,14 +139,14 @@ func (w *Waiter) WaitMsg(simMsgId uint64, targets []uint64, timeout uint64) ([]*
 		for {
 			select {
 			case simMsg, _ := <-waitCh:
-				//log.Printf("\nGetmsg\n", targets, simMsg.GetMsgId(), simMsgId)
+				//log.Printf("\nGetmsg\n", filters, simMsg.GetMsgId(), simMsgId)
 				mu.Lock()
 				// spのidがidListに入っているか
 				if simMsg.GetMsgId() == simMsgId {
 					w.MsgMap[simMsgId] = append(w.MsgMap[simMsgId], simMsg)
 					//log.Printf("\nDone0\n")
 					// 同期が終了したかどうか
-					if w.IsFinishWait(simMsgId, targets) {
+					if w.IsFinishWait(simMsgId, filters) {
 						mu.Unlock()
 						wg.Done()
 						//log.Printf("Done\n")
@@ -228,16 +183,16 @@ func (w *Waiter) SendMsgToWait(msg *sxapi.MbusMsg) {
 	//log.Printf("\nSendMsgTowait\n")
 }
 
-func (w *Waiter) IsFinishWait(simMsgId uint64, targets []uint64) bool {
-	//log.Printf("\nIsFinishWait\n", targets, simMsgId)
+func (w *Waiter) IsFinishWait(simMsgId uint64, filters []*Filter) bool {
+	//log.Printf("\nIsFinishWait\n", filters, simMsgId)
 	//mu.Lock()
 	//defer mu.Unlock()
-	for _, target := range targets {
+	for _, filter := range filters {
 		//log.Printf("\nIsFini2\n")
+		targetId := filter.TargetId
 		isExist := false
 		for _, simMsg := range w.MsgMap[simMsgId] {
-			senderId := simMsg.GetSenderId()
-			if senderId == target {
+			if targetId == simMsg.GetSenderId() || targetId == 0 {
 				isExist = true
 			}
 		}
@@ -255,7 +210,10 @@ func (w *Waiter) IsFinishWait(simMsgId uint64, targets []uint64) bool {
 //////////////////////////////////////////
 
 // Areaを送るDemand
-func (s *SimAPI) SendAreaInfoRequest(sclient *sxutil.SXServiceClient, targets []uint64, areas []*Area) ([]*SimMsg, error) {
+func (s *SimAPI) SendAreaInfoRequest(sclient *sxutil.SXServiceClient, filters []*Filter, areas []*Area) ([]*SimMsg, error) {
+	if len(filters) == 0 {
+		return []*SimMsg{}, nil
+	}
 	uid, _ := uuid.NewRandom()
 	sendAreaInfoRequest := &SendAreaInfoRequest{
 		Areas: areas,
@@ -269,7 +227,7 @@ func (s *SimAPI) SendAreaInfoRequest(sclient *sxutil.SXServiceClient, targets []
 		Data:     &SimMsg_SendAreaInfoRequest{sendAreaInfoRequest},
 	}
 
-	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+	sps, err := s.RequestSimMsg(sclient, filters, simMsg)
 
 	return sps, err
 }
@@ -295,7 +253,10 @@ func (s *SimAPI) SendAreaInfoResponse(sclient *sxutil.SXServiceClient, msgId uin
 //////////////////////////////////////////
 
 // AgentをセットするDemand
-func (s *SimAPI) SetAgentRequest(sclient *sxutil.SXServiceClient, targets []uint64, agents []*Agent) ([]*SimMsg, error) {
+func (s *SimAPI) SetAgentRequest(sclient *sxutil.SXServiceClient, filters []*Filter, agents []*Agent) ([]*SimMsg, error) {
+	if len(filters) == 0 {
+		return []*SimMsg{}, nil
+	}
 
 	uid, _ := uuid.NewRandom()
 	setAgentRequest := &SetAgentRequest{
@@ -310,7 +271,7 @@ func (s *SimAPI) SetAgentRequest(sclient *sxutil.SXServiceClient, targets []uint
 		Data:     &SimMsg_SetAgentRequest{setAgentRequest},
 	}
 
-	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+	sps, err := s.RequestSimMsg(sclient, filters, simMsg)
 
 	return sps, err
 }
@@ -332,7 +293,10 @@ func (s *SimAPI) SetAgentResponse(sclient *sxutil.SXServiceClient, msgId uint64)
 }
 
 // AgentをセットするDemand
-func (s *SimAPI) GetAgentRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+func (s *SimAPI) GetAgentRequest(sclient *sxutil.SXServiceClient, filters []*Filter) ([]*SimMsg, error) {
+	if len(filters) == 0 {
+		return []*SimMsg{}, nil
+	}
 
 	uid, _ := uuid.NewRandom()
 	getAgentRequest := &GetAgentRequest{}
@@ -345,7 +309,7 @@ func (s *SimAPI) GetAgentRequest(sclient *sxutil.SXServiceClient, targets []uint
 		Data:     &SimMsg_GetAgentRequest{getAgentRequest},
 	}
 
-	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+	sps, err := s.RequestSimMsg(sclient, filters, simMsg)
 
 	return sps, err
 }
@@ -373,7 +337,10 @@ func (s *SimAPI) GetAgentResponse(sclient *sxutil.SXServiceClient, msgId uint64,
 //////////////////////////////////////////
 
 // Providerを登録するDemand
-func (s *SimAPI) RegisterProviderRequest(sclient *sxutil.SXServiceClient, targets []uint64, providerInfo *Provider) ([]*SimMsg, error) {
+func (s *SimAPI) RegisterProviderRequest(sclient *sxutil.SXServiceClient, filters []*Filter, providerInfo *Provider) ([]*SimMsg, error) {
+	if len(filters) == 0 {
+		return []*SimMsg{}, nil
+	}
 	registerProviderRequest := &RegisterProviderRequest{
 		Provider: providerInfo,
 	}
@@ -387,7 +354,7 @@ func (s *SimAPI) RegisterProviderRequest(sclient *sxutil.SXServiceClient, target
 		Data:     &SimMsg_RegisterProviderRequest{registerProviderRequest},
 	}
 
-	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+	sps, err := s.RequestSimMsg(sclient, filters, simMsg)
 	//log.Printf("\nsps %v %v\n", sps, err)
 
 	return sps, err
@@ -412,7 +379,10 @@ func (s *SimAPI) RegisterProviderResponse(sclient *sxutil.SXServiceClient, msgId
 }
 
 // Providerを登録するDemand
-func (s *SimAPI) UpdateProvidersRequest(sclient *sxutil.SXServiceClient, targets []uint64, providers []*Provider) ([]*SimMsg, error) {
+func (s *SimAPI) UpdateProvidersRequest(sclient *sxutil.SXServiceClient, filters []*Filter, providers []*Provider) ([]*SimMsg, error) {
+	if len(filters) == 0 {
+		return []*SimMsg{}, nil
+	}
 	updateProvidersRequest := &UpdateProvidersRequest{
 		Providers: providers,
 	}
@@ -427,7 +397,7 @@ func (s *SimAPI) UpdateProvidersRequest(sclient *sxutil.SXServiceClient, targets
 		Data:     &SimMsg_UpdateProvidersRequest{updateProvidersRequest},
 	}
 
-	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+	sps, err := s.RequestSimMsg(sclient, filters, simMsg)
 
 	return sps, err
 }
@@ -454,7 +424,10 @@ func (s *SimAPI) UpdateProvidersResponse(sclient *sxutil.SXServiceClient, msgId 
 /////////////   Clock API   //////////////
 //////////////////////////////////////////
 
-func (s *SimAPI) SetClockRequest(sclient *sxutil.SXServiceClient, targets []uint64, clockInfo *Clock) ([]*SimMsg, error) {
+func (s *SimAPI) SetClockRequest(sclient *sxutil.SXServiceClient, filters []*Filter, clockInfo *Clock) ([]*SimMsg, error) {
+	if len(filters) == 0 {
+		return []*SimMsg{}, nil
+	}
 	setClockRequest := &SetClockRequest{
 		Clock: clockInfo,
 	}
@@ -468,7 +441,7 @@ func (s *SimAPI) SetClockRequest(sclient *sxutil.SXServiceClient, targets []uint
 		Data:     &SimMsg_SetClockRequest{setClockRequest},
 	}
 
-	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+	sps, err := s.RequestSimMsg(sclient, filters, simMsg)
 
 	return sps, err
 }
@@ -489,7 +462,10 @@ func (s *SimAPI) SetClockResponse(sclient *sxutil.SXServiceClient, msgId uint64)
 	return msgId
 }
 
-func (s *SimAPI) ForwardClockRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+func (s *SimAPI) ForwardClockRequest(sclient *sxutil.SXServiceClient, filters []*Filter) ([]*SimMsg, error) {
+	if len(filters) == 0 {
+		return []*SimMsg{}, nil
+	}
 	forwardClockRequest := &ForwardClockRequest{}
 
 	uid, _ := uuid.NewRandom()
@@ -501,7 +477,7 @@ func (s *SimAPI) ForwardClockRequest(sclient *sxutil.SXServiceClient, targets []
 		Data:     &SimMsg_ForwardClockRequest{forwardClockRequest},
 	}
 
-	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+	sps, err := s.RequestSimMsg(sclient, filters, simMsg)
 
 	return sps, err
 }
@@ -522,7 +498,10 @@ func (s *SimAPI) ForwardClockResponse(sclient *sxutil.SXServiceClient, msgId uin
 	return msgId
 }
 
-func (s *SimAPI) ForwardClockInitRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+func (s *SimAPI) ForwardClockInitRequest(sclient *sxutil.SXServiceClient, filters []*Filter) ([]*SimMsg, error) {
+	if len(filters) == 0 {
+		return []*SimMsg{}, nil
+	}
 	forwardClockInitRequest := &ForwardClockInitRequest{}
 
 	uid, _ := uuid.NewRandom()
@@ -534,7 +513,7 @@ func (s *SimAPI) ForwardClockInitRequest(sclient *sxutil.SXServiceClient, target
 		Data:     &SimMsg_ForwardClockInitRequest{forwardClockInitRequest},
 	}
 
-	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+	sps, err := s.RequestSimMsg(sclient, filters, simMsg)
 
 	return sps, err
 }
@@ -555,7 +534,10 @@ func (s *SimAPI) ForwardClockInitResponse(sclient *sxutil.SXServiceClient, msgId
 	return msgId
 }
 
-func (s *SimAPI) ForwardClockMainRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+func (s *SimAPI) ForwardClockMainRequest(sclient *sxutil.SXServiceClient, filters []*Filter) ([]*SimMsg, error) {
+	if len(filters) == 0 {
+		return []*SimMsg{}, nil
+	}
 	forwardClockMainRequest := &ForwardClockMainRequest{}
 
 	uid, _ := uuid.NewRandom()
@@ -567,7 +549,7 @@ func (s *SimAPI) ForwardClockMainRequest(sclient *sxutil.SXServiceClient, target
 		Data:     &SimMsg_ForwardClockMainRequest{forwardClockMainRequest},
 	}
 
-	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+	sps, err := s.RequestSimMsg(sclient, filters, simMsg)
 
 	return sps, err
 }
@@ -588,7 +570,10 @@ func (s *SimAPI) ForwardClockMainResponse(sclient *sxutil.SXServiceClient, msgId
 	return msgId
 }
 
-func (s *SimAPI) ForwardClockTerminateRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+func (s *SimAPI) ForwardClockTerminateRequest(sclient *sxutil.SXServiceClient, filters []*Filter) ([]*SimMsg, error) {
+	if len(filters) == 0 {
+		return []*SimMsg{}, nil
+	}
 	forwardClockTerminateRequest := &ForwardClockTerminateRequest{}
 
 	uid, _ := uuid.NewRandom()
@@ -600,7 +585,7 @@ func (s *SimAPI) ForwardClockTerminateRequest(sclient *sxutil.SXServiceClient, t
 		Data:     &SimMsg_ForwardClockTerminateRequest{forwardClockTerminateRequest},
 	}
 
-	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+	sps, err := s.RequestSimMsg(sclient, filters, simMsg)
 
 	return sps, err
 }
@@ -621,7 +606,10 @@ func (s *SimAPI) ForwardClockTerminateResponse(sclient *sxutil.SXServiceClient, 
 	return msgId
 }
 
-func (s *SimAPI) StartClockRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+func (s *SimAPI) StartClockRequest(sclient *sxutil.SXServiceClient, filters []*Filter) ([]*SimMsg, error) {
+	if len(filters) == 0 {
+		return []*SimMsg{}, nil
+	}
 	startClockRequest := &StartClockRequest{}
 
 	uid, _ := uuid.NewRandom()
@@ -633,7 +621,7 @@ func (s *SimAPI) StartClockRequest(sclient *sxutil.SXServiceClient, targets []ui
 		Data:     &SimMsg_StartClockRequest{startClockRequest},
 	}
 
-	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+	sps, err := s.RequestSimMsg(sclient, filters, simMsg)
 
 	return sps, err
 }
@@ -654,7 +642,10 @@ func (s *SimAPI) StartClockResponse(sclient *sxutil.SXServiceClient, msgId uint6
 	return msgId
 }
 
-func (s *SimAPI) StopClockRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+func (s *SimAPI) StopClockRequest(sclient *sxutil.SXServiceClient, filters []*Filter) ([]*SimMsg, error) {
+	if len(filters) == 0 {
+		return []*SimMsg{}, nil
+	}
 	stopClockRequest := &StopClockRequest{}
 
 	uid, _ := uuid.NewRandom()
@@ -666,7 +657,7 @@ func (s *SimAPI) StopClockRequest(sclient *sxutil.SXServiceClient, targets []uin
 		Data:     &SimMsg_StopClockRequest{stopClockRequest},
 	}
 
-	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+	sps, err := s.RequestSimMsg(sclient, filters, simMsg)
 
 	return sps, err
 }

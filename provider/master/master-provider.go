@@ -185,10 +185,14 @@ func (cb *MyCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg *
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_WORKER,
 	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	sclient := sclientOpts[uint32(api.ChannelType_PROVIDER)].Sclient
 	logger.Info("Send UpdateProvidersRequest %v, %v", targets, simapi.Provider)
-	simapi.UpdateProvidersRequest(sclient, targets, pm.GetProviders())
-	logger.Info("Success Update Providers! Worker Num: ", len(targets))
+	simapi.UpdateProvidersRequest(sclient, filters, pm.GetProviders())
+	logger.Info("Success Update Providers! Worker Num: ", len(filters))
 
 	return simapi.Provider
 }
@@ -253,8 +257,12 @@ func (proc *Processor) setAgents3(agentNum uint64) (bool, error) {
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_WORKER,
 	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	sclient := sclientOpts[uint32(api.ChannelType_AGENT)].Sclient
-	simapi.SetAgentRequest(sclient, targets, agents)
+	simapi.SetAgentRequest(sclient, filters, agents)
 
 	logger.Info("Finish Setting Agents \n Add: %v", len(agents))
 	return true, nil
@@ -301,8 +309,12 @@ func (proc *Processor) setAgents2(agentNum uint64) (bool, error) {
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_WORKER,
 	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	sclient := sclientOpts[uint32(api.ChannelType_AGENT)].Sclient
-	simapi.SetAgentRequest(sclient, targets, agents)
+	simapi.SetAgentRequest(sclient, filters, agents)
 
 	logger.Info("Finish Setting Agents \n Add: %v", len(agents))
 	return true, nil
@@ -355,8 +367,12 @@ func (proc *Processor) setAgents(agentNum uint64) (bool, error) {
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_WORKER,
 	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	sclient := sclientOpts[uint32(api.ChannelType_AGENT)].Sclient
-	simapi.SetAgentRequest(sclient, targets, agents)
+	simapi.SetAgentRequest(sclient, filters, agents)
 
 	logger.Info("Finish Setting Agents \n Add: %v", len(agents))
 	return true, nil
@@ -383,10 +399,14 @@ func (proc *Processor) setAreas(areaCoords []*api.Coord) (bool, error) {
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_VISUALIZATION,
 	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	logger.Debug("Send Area Info to Vis! \n%v\n", targets)
 	//areas := []*api.Area{proc.Area}
 	sclient := sclientOpts[uint32(api.ChannelType_AREA)].Sclient
-	simapi.SendAreaInfoRequest(sclient, targets, areas)
+	simapi.SendAreaInfoRequest(sclient, filters, areas)
 
 	return true, nil
 }
@@ -399,9 +419,13 @@ func (proc *Processor) startClock() {
 		api.Provider_WORKER,
 		api.Provider_VISUALIZATION,
 	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	logger.Debug("Next Cycle! \n%v\n", targets)
 	sclient := sclientOpts[uint32(api.ChannelType_CLOCK)].Sclient
-	simapi.ForwardClockRequest(sclient, targets)
+	simapi.ForwardClockRequest(sclient, filters)
 
 	// calc next time
 	masterClock++
@@ -435,12 +459,16 @@ func (proc *Processor) setClock(clocktime int) {
 		api.Provider_WORKER,
 		api.Provider_VISUALIZATION,
 	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	logger.Debug("Set Clock! \n%v\n", targets)
 	sclient := sclientOpts[uint32(api.ChannelType_CLOCK)].Sclient
 	clock := &api.Clock{
 		GlobalTime: uint64(clocktime),
 	}
-	simapi.SetClockRequest(sclient, targets, clock)
+	simapi.SetClockRequest(sclient, filters, clock)
 	logger.Debug("Finish Set Clock! \n")
 }
 

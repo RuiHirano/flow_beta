@@ -413,9 +413,13 @@ func (cb *VisCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg 
 
 	// update provider to Vis
 	targets := pm.GetProviderIds([]api.Provider_Type{})
-	//sclient := sclientOpts[uint32(api.ChannelType_PROVIDER)].Sclient
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
+	sclient := sclientOptsVis[uint32(api.ChannelType_PROVIDER)].Sclient
 	logger.Info("Send UpdateProvidersRequest %v, %v", targets, simapi.Provider)
-	//simapi.UpdateProvidersRequest(sclient, targets, pm.GetProviders())
+	simapi.UpdateProvidersRequest(sclient, filters, pm.GetProviders())
 	logger.Info("Success Update Providers! Worker Num: ", len(targets))
 
 	return simapi.Provider

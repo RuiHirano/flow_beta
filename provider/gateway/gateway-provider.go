@@ -392,9 +392,13 @@ func (cb *Worker1Callback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxa
 
 	agents := []*api.Agent{}
 	// worker2のagent-providerから取得
-	targets2 := []uint64{agentProvider2.Id}
+	targets := []uint64{agentProvider2.Id}
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	sclient := sclientOptsWorker2[uint32(api.ChannelType_AGENT)].Sclient
-	msgs, _ := simapi.GetAgentRequest(sclient, targets2)
+	msgs, _ := simapi.GetAgentRequest(sclient, filters)
 
 	for _, msg := range msgs {
 		ags := msg.GetGetAgentResponse().GetAgents()
@@ -520,9 +524,13 @@ func (cb *Worker2Callback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxa
 
 	agents := []*api.Agent{}
 	// worker2のagent-providerから取得
-	targets2 := []uint64{agentProvider2.Id}
+	targets := []uint64{agentProvider2.Id}
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	sclient := sclientOptsWorker1[uint32(api.ChannelType_AGENT)].Sclient
-	msgs, _ := simapi.GetAgentRequest(sclient, targets2)
+	msgs, _ := simapi.GetAgentRequest(sclient, filters)
 
 	for _, msg := range msgs {
 		ags := msg.GetGetAgentResponse().GetAgents()

@@ -207,8 +207,12 @@ func (cb *MasterCallback) SetAgentRequest(clt *sxutil.SXServiceClient, msg *sxap
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	sclient := sclientOptsWorker[uint32(api.ChannelType_AGENT)].Sclient
-	simapi.SetAgentRequest(sclient, targets, agents)
+	simapi.SetAgentRequest(sclient, filters, agents)
 
 	logger.Info("Finish: Set Agent %v\n")
 }
@@ -222,8 +226,12 @@ func (cb *MasterCallback) SetClockRequest(clt *sxutil.SXServiceClient, msg *sxap
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	sclient := sclientOptsWorker[uint32(api.ChannelType_CLOCK)].Sclient
-	simapi.SetClockRequest(sclient, targets, clock)
+	simapi.SetClockRequest(sclient, filters, clock)
 
 	logger.Info("Finish: Set Clock %v\n")
 }
@@ -244,9 +252,13 @@ func (cb *WorkerCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, m
 
 	// update provider to worker
 	targets := pm.GetProviderIds([]api.Provider_Type{})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	//sclient := sclientOpts[uint32(api.ChannelType_PROVIDER)].Sclient
 	logger.Info("Send UpdateProvidersRequest %v, %v", targets, simapi.Provider)
-	//simapi.UpdateProvidersRequest(sclient, targets, pm.GetProviders())
+	simapi.UpdateProvidersRequest(sclient, filters, pm.GetProviders())
 	logger.Info("Success Update Providers! Worker Num: ", len(targets))
 
 	return simapi.Provider

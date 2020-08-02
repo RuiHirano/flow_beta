@@ -79,14 +79,16 @@ func RegisterSynerexLoop(sxServerAddress string) sxapi.SynerexClient {
 // WorkerやMasterにProviderを登録する
 func RegisterProviderLoop(sclient *sxutil.SXServiceClient, simapi *api.SimAPI) *api.Provider {
 	// masterへ登録
-	targets := make([]uint64, 0)
+	filters := []*api.Filter{&api.Filter{
+		TargetId: 0, // allow any msg
+	}}
 	//bc.simapi.RegisterProviderRequest(sclient, targets, bc.simapi.Provider)
 	var provider *api.Provider
 	ch := make(chan struct{})
 	go func() {
 		for {
 			log.Printf("RegistProviderRequst %v", simapi.Provider.Id)
-			msgs, err := simapi.RegisterProviderRequest(sclient, targets, simapi.Provider)
+			msgs, err := simapi.RegisterProviderRequest(sclient, filters, simapi.Provider)
 			if err != nil {
 				//logger.Debug("Couldn't Regist Master...Retry...\n")
 				log.Printf("Error: no response! %v", err)
@@ -350,48 +352,3 @@ func (cb Callback) ForwardClockTerminateResponse(clt *sxutil.SXServiceClient, ms
 // Area
 func (cb Callback) SendAreaInfoRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)  {}
 func (cb Callback) SendAreaInfoResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {}
-
-/*type Callback interface {
-	AgentCallback()
-}
-
-type BaseCallback struct {
-	AgentCallbackInterface
-}
-
-func NewBaseCallback(ac AgentCallbackInterface) Callback {
-	var bc Callback
-	bc = &BaseCallback{
-		ac,
-	}
-	return bc
-}
-
-func (bc *BaseCallback) AgentCallback() {
-	bc.SetAgentRequest()
-}
-
-// Overrideされる前のデフォルト関数
-type AgentCallbackInterface interface {
-	SetAgentRequest()
-	getSimAPI() string
-}
-
-type AgentCallback struct {
-	Name string
-}
-
-func NewAgentCallback(name string) AgentCallback {
-	var bc AgentCallback
-	bc = AgentCallback{Name: name}
-	return bc
-}
-
-func (bc AgentCallback) SetAgentRequest() {
-	fmt.Printf("before %s\n", bc.Name)
-}
-
-func (bc AgentCallback) getSimAPI() string {
-	return bc.Name
-}
-*/
