@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"log"
+	//"log"
 	"sync"
 	"time"
 
@@ -46,7 +46,7 @@ func (s *SimAPI) ResponseSimMsg(sclient *sxutil.SXServiceClient, simMsg *SimMsg)
 	}
 
 	//mu.Lock()
-	log.Printf("responseSimMsg: %v", simMsg)
+	//log.Printf("responseSimMsg: %v", simMsg)
 	ctx := context.Background()
 	err := sclient.SendMbusMsg(ctx, msg)
 	if err != nil {
@@ -85,7 +85,7 @@ func (s *SimAPI) RequestSimMsg(sclient *sxutil.SXServiceClient, targets []uint64
 	simMsgs := []*SimMsg{}
 	// if len(targets) = 0, wait until recieving first msg
 	simMsgs, err = s.Waiter.WaitMsg(simMsgId, targets, 1000)
-	log.Printf("debug: %v, %v", simMsgs, err)
+	//log.Printf("debug: %v, %v", simMsgs, err)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (w *Waiter) RegisterWaitCh(simMsgId uint64, bufSize int) {
 	waitCh := make(chan *SimMsg, bufSize)
 	w.WaitChMap[simMsgId] = waitCh
 	w.MsgMap[simMsgId] = make([]*SimMsg, 0)
-	log.Printf("RegisterWaitCh\n")
+	//log.Printf("RegisterWaitCh\n")
 }
 
 func (w *Waiter) WaitMsg(simMsgId uint64, targets []uint64, timeout uint64) ([]*SimMsg, error) {
@@ -179,22 +179,22 @@ func (w *Waiter) WaitMsg(simMsgId uint64, targets []uint64, timeout uint64) ([]*
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	var err error
-	log.Printf("WaitMsg %v\n", simMsgId)
+	//log.Printf("WaitMsg %v\n", simMsgId)
 	go func() {
 		for {
 			select {
 			case simMsg, _ := <-waitCh:
-				log.Printf("\nGetmsg\n", targets, simMsg.GetMsgId(), simMsgId)
+				//log.Printf("\nGetmsg\n", targets, simMsg.GetMsgId(), simMsgId)
 				mu.Lock()
 				// spのidがidListに入っているか
 				if simMsg.GetMsgId() == simMsgId {
 					w.MsgMap[simMsgId] = append(w.MsgMap[simMsgId], simMsg)
-					log.Printf("\nDone0\n")
+					//log.Printf("\nDone0\n")
 					// 同期が終了したかどうか
 					if w.IsFinishWait(simMsgId, targets) {
 						mu.Unlock()
 						wg.Done()
-						log.Printf("Done\n")
+						//log.Printf("Done\n")
 						return
 					}
 				}
@@ -214,7 +214,7 @@ func (w *Waiter) WaitMsg(simMsgId uint64, targets []uint64, timeout uint64) ([]*
 	delete(w.MsgMap, simMsgId)
 	delete(w.WaitChMap, simMsgId)
 	mu.Unlock()
-	log.Printf("\nsimmsgs %v %v\n", msgs, err)
+	//log.Printf("\nsimmsgs %v %v\n", msgs, err)
 	return msgs, err
 }
 
@@ -225,15 +225,15 @@ func (w *Waiter) SendMsgToWait(msg *sxapi.MbusMsg) {
 	waitCh := w.WaitChMap[simMsg.GetMsgId()]
 	mu.Unlock()
 	waitCh <- simMsg
-	log.Printf("\nSendMsgTowait\n")
+	//log.Printf("\nSendMsgTowait\n")
 }
 
 func (w *Waiter) IsFinishWait(simMsgId uint64, targets []uint64) bool {
-	log.Printf("\nIsFinishWait\n", targets, simMsgId)
+	//log.Printf("\nIsFinishWait\n", targets, simMsgId)
 	//mu.Lock()
 	//defer mu.Unlock()
 	for _, target := range targets {
-		log.Printf("\nIsFini2\n")
+		//log.Printf("\nIsFini2\n")
 		isExist := false
 		for _, simMsg := range w.MsgMap[simMsgId] {
 			senderId := simMsg.GetSenderId()
@@ -246,7 +246,7 @@ func (w *Waiter) IsFinishWait(simMsgId uint64, targets []uint64) bool {
 		}
 	}
 	//mu.Unlock()
-	log.Printf("\nIsFinishWait2\n", targets, simMsgId)
+	//log.Printf("\nIsFinishWait2\n", targets, simMsgId)
 	return true
 }
 
@@ -388,7 +388,7 @@ func (s *SimAPI) RegisterProviderRequest(sclient *sxutil.SXServiceClient, target
 	}
 
 	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
-	log.Printf("\nsps %v %v\n", sps, err)
+	//log.Printf("\nsps %v %v\n", sps, err)
 
 	return sps, err
 }
@@ -419,7 +419,7 @@ func (s *SimAPI) UpdateProvidersRequest(sclient *sxutil.SXServiceClient, targets
 
 	uid, _ := uuid.NewRandom()
 	msgId := uint64(uid.ID())
-	log.Printf("msgId: %v", msgId)
+	//log.Printf("msgId: %v", msgId)
 	simMsg := &SimMsg{
 		MsgId:    msgId,
 		SenderId: s.Provider.Id,
@@ -436,7 +436,7 @@ func (s *SimAPI) UpdateProvidersRequest(sclient *sxutil.SXServiceClient, targets
 func (s *SimAPI) UpdateProvidersResponse(sclient *sxutil.SXServiceClient, msgId uint64) uint64 {
 	updateProvidersResponse := &UpdateProvidersResponse{}
 
-	log.Printf("response simMsg\n")
+	//log.Printf("response simMsg\n")
 	simMsg := &SimMsg{
 		MsgId:    msgId,
 		SenderId: s.Provider.Id,
@@ -444,7 +444,7 @@ func (s *SimAPI) UpdateProvidersResponse(sclient *sxutil.SXServiceClient, msgId 
 		Data:     &SimMsg_UpdateProvidersResponse{updateProvidersResponse},
 	}
 
-	log.Printf("response simMsg: %v\n", simMsg)
+	//log.Printf("response simMsg: %v\n", simMsg)
 	s.ResponseSimMsg(sclient, simMsg)
 
 	return msgId
