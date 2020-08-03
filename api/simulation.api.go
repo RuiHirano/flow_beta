@@ -42,10 +42,11 @@ func NewSimAPI(provider *Provider) *SimAPI {
 ////////////        Supply Demand Function       ///////////
 ///////////////////////////////////////////////////////////
 
-func (s *SimAPI) ResponseSimMsg(sclient *sxutil.SXServiceClient, simMsg *SimMsg) error {
+func (s *SimAPI) ResponseSimMsg(sclient *sxutil.SXServiceClient, simMsg *SimMsg, targetId uint64) error {
 
 	cdata, _ := proto.Marshal(simMsg)
 	msg := &sxapi.MbusMsg{
+		TargetId: targetId,
 		Cdata: &sxapi.Content{
 			Entity: cdata,
 		},
@@ -238,7 +239,7 @@ func (s *SimAPI) SendAreaInfoRequest(sclient *sxutil.SXServiceClient, filters []
 }
 
 // Agentのセット完了
-func (s *SimAPI) SendAreaInfoResponse(sclient *sxutil.SXServiceClient, msgId uint64) uint64 {
+func (s *SimAPI) SendAreaInfoResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64) uint64 {
 	sendAreaInfoResponse := &SendAreaInfoResponse{}
 
 	simMsg := &SimMsg{
@@ -248,7 +249,7 @@ func (s *SimAPI) SendAreaInfoResponse(sclient *sxutil.SXServiceClient, msgId uin
 		Data:     &SimMsg_SendAreaInfoResponse{sendAreaInfoResponse},
 	}
 
-	s.ResponseSimMsg(sclient, simMsg)
+	s.ResponseSimMsg(sclient, simMsg, targetId)
 
 	return msgId
 }
@@ -282,7 +283,7 @@ func (s *SimAPI) SetAgentRequest(sclient *sxutil.SXServiceClient, filters []*Fil
 }
 
 // Agentのセット完了
-func (s *SimAPI) SetAgentResponse(sclient *sxutil.SXServiceClient, msgId uint64) uint64 {
+func (s *SimAPI) SetAgentResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64) uint64 {
 	setAgentResponse := &SetAgentResponse{}
 
 	simMsg := &SimMsg{
@@ -292,7 +293,7 @@ func (s *SimAPI) SetAgentResponse(sclient *sxutil.SXServiceClient, msgId uint64)
 		Data:     &SimMsg_SetAgentResponse{setAgentResponse},
 	}
 
-	s.ResponseSimMsg(sclient, simMsg)
+	s.ResponseSimMsg(sclient, simMsg, targetId)
 
 	return msgId
 }
@@ -320,7 +321,7 @@ func (s *SimAPI) GetAgentRequest(sclient *sxutil.SXServiceClient, filters []*Fil
 }
 
 // Agentのセット完了
-func (s *SimAPI) GetAgentResponse(sclient *sxutil.SXServiceClient, msgId uint64, agents []*Agent) uint64 {
+func (s *SimAPI) GetAgentResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64, agents []*Agent) uint64 {
 	getAgentResponse := &GetAgentResponse{
 		Agents: agents,
 	}
@@ -332,7 +333,7 @@ func (s *SimAPI) GetAgentResponse(sclient *sxutil.SXServiceClient, msgId uint64,
 		Data:     &SimMsg_GetAgentResponse{getAgentResponse},
 	}
 
-	s.ResponseSimMsg(sclient, simMsg)
+	s.ResponseSimMsg(sclient, simMsg, targetId)
 
 	return msgId
 }
@@ -366,7 +367,7 @@ func (s *SimAPI) RegisterProviderRequest(sclient *sxutil.SXServiceClient, filter
 }
 
 // Providerを登録するSupply
-func (s *SimAPI) RegisterProviderResponse(sclient *sxutil.SXServiceClient, msgId uint64, providerInfo *Provider) uint64 {
+func (s *SimAPI) RegisterProviderResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64, providerInfo *Provider) uint64 {
 	registerProviderResponse := &RegisterProviderResponse{
 		Provider: providerInfo,
 	}
@@ -378,7 +379,7 @@ func (s *SimAPI) RegisterProviderResponse(sclient *sxutil.SXServiceClient, msgId
 		Data:     &SimMsg_RegisterProviderResponse{registerProviderResponse},
 	}
 
-	s.ResponseSimMsg(sclient, simMsg)
+	s.ResponseSimMsg(sclient, simMsg, targetId)
 
 	return msgId
 }
@@ -408,7 +409,7 @@ func (s *SimAPI) UpdateProvidersRequest(sclient *sxutil.SXServiceClient, filters
 }
 
 // Providerを登録するSupply
-func (s *SimAPI) UpdateProvidersResponse(sclient *sxutil.SXServiceClient, msgId uint64) uint64 {
+func (s *SimAPI) UpdateProvidersResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64) uint64 {
 	updateProvidersResponse := &UpdateProvidersResponse{}
 
 	//log.Printf("response simMsg\n")
@@ -420,7 +421,7 @@ func (s *SimAPI) UpdateProvidersResponse(sclient *sxutil.SXServiceClient, msgId 
 	}
 
 	//log.Printf("response simMsg: %v\n", simMsg)
-	s.ResponseSimMsg(sclient, simMsg)
+	s.ResponseSimMsg(sclient, simMsg, targetId)
 
 	return msgId
 }
@@ -452,7 +453,7 @@ func (s *SimAPI) SetClockRequest(sclient *sxutil.SXServiceClient, filters []*Fil
 }
 
 // Agentを取得するSupply
-func (s *SimAPI) SetClockResponse(sclient *sxutil.SXServiceClient, msgId uint64) uint64 {
+func (s *SimAPI) SetClockResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64) uint64 {
 	setClockResponse := &SetClockResponse{}
 
 	simMsg := &SimMsg{
@@ -462,7 +463,7 @@ func (s *SimAPI) SetClockResponse(sclient *sxutil.SXServiceClient, msgId uint64)
 		Data:     &SimMsg_SetClockResponse{setClockResponse},
 	}
 
-	s.ResponseSimMsg(sclient, simMsg)
+	s.ResponseSimMsg(sclient, simMsg, targetId)
 
 	return msgId
 }
@@ -488,7 +489,7 @@ func (s *SimAPI) ForwardClockRequest(sclient *sxutil.SXServiceClient, filters []
 }
 
 // Agentを取得するSupply
-func (s *SimAPI) ForwardClockResponse(sclient *sxutil.SXServiceClient, msgId uint64) uint64 {
+func (s *SimAPI) ForwardClockResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64) uint64 {
 	forwardClockResponse := &ForwardClockResponse{}
 
 	simMsg := &SimMsg{
@@ -498,7 +499,7 @@ func (s *SimAPI) ForwardClockResponse(sclient *sxutil.SXServiceClient, msgId uin
 		Data:     &SimMsg_ForwardClockResponse{forwardClockResponse},
 	}
 
-	s.ResponseSimMsg(sclient, simMsg)
+	s.ResponseSimMsg(sclient, simMsg, targetId)
 
 	return msgId
 }
@@ -524,7 +525,7 @@ func (s *SimAPI) ForwardClockInitRequest(sclient *sxutil.SXServiceClient, filter
 }
 
 // Agentを取得するSupply
-func (s *SimAPI) ForwardClockInitResponse(sclient *sxutil.SXServiceClient, msgId uint64) uint64 {
+func (s *SimAPI) ForwardClockInitResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64) uint64 {
 	forwardClockInitResponse := &ForwardClockInitResponse{}
 
 	simMsg := &SimMsg{
@@ -534,7 +535,7 @@ func (s *SimAPI) ForwardClockInitResponse(sclient *sxutil.SXServiceClient, msgId
 		Data:     &SimMsg_ForwardClockInitResponse{forwardClockInitResponse},
 	}
 
-	s.ResponseSimMsg(sclient, simMsg)
+	s.ResponseSimMsg(sclient, simMsg, targetId)
 
 	return msgId
 }
@@ -560,7 +561,7 @@ func (s *SimAPI) ForwardClockMainRequest(sclient *sxutil.SXServiceClient, filter
 }
 
 // Agentを取得するSupply
-func (s *SimAPI) ForwardClockMainResponse(sclient *sxutil.SXServiceClient, msgId uint64) uint64 {
+func (s *SimAPI) ForwardClockMainResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64) uint64 {
 	forwardClockMainResponse := &ForwardClockMainResponse{}
 
 	simMsg := &SimMsg{
@@ -570,7 +571,7 @@ func (s *SimAPI) ForwardClockMainResponse(sclient *sxutil.SXServiceClient, msgId
 		Data:     &SimMsg_ForwardClockMainResponse{forwardClockMainResponse},
 	}
 
-	s.ResponseSimMsg(sclient, simMsg)
+	s.ResponseSimMsg(sclient, simMsg, targetId)
 
 	return msgId
 }
@@ -596,7 +597,7 @@ func (s *SimAPI) ForwardClockTerminateRequest(sclient *sxutil.SXServiceClient, f
 }
 
 // Agentを取得するSupply
-func (s *SimAPI) ForwardClockTerminateResponse(sclient *sxutil.SXServiceClient, msgId uint64) uint64 {
+func (s *SimAPI) ForwardClockTerminateResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64) uint64 {
 	forwardClockTerminateResponse := &ForwardClockTerminateResponse{}
 
 	simMsg := &SimMsg{
@@ -606,7 +607,7 @@ func (s *SimAPI) ForwardClockTerminateResponse(sclient *sxutil.SXServiceClient, 
 		Data:     &SimMsg_ForwardClockTerminateResponse{forwardClockTerminateResponse},
 	}
 
-	s.ResponseSimMsg(sclient, simMsg)
+	s.ResponseSimMsg(sclient, simMsg, targetId)
 
 	return msgId
 }
@@ -632,7 +633,7 @@ func (s *SimAPI) StartClockRequest(sclient *sxutil.SXServiceClient, filters []*F
 }
 
 // Agentを取得するSupply
-func (s *SimAPI) StartClockResponse(sclient *sxutil.SXServiceClient, msgId uint64) uint64 {
+func (s *SimAPI) StartClockResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64) uint64 {
 	startClockResponse := &StartClockResponse{}
 
 	simMsg := &SimMsg{
@@ -642,7 +643,7 @@ func (s *SimAPI) StartClockResponse(sclient *sxutil.SXServiceClient, msgId uint6
 		Data:     &SimMsg_StartClockResponse{startClockResponse},
 	}
 
-	s.ResponseSimMsg(sclient, simMsg)
+	s.ResponseSimMsg(sclient, simMsg, targetId)
 
 	return msgId
 }
@@ -668,7 +669,7 @@ func (s *SimAPI) StopClockRequest(sclient *sxutil.SXServiceClient, filters []*Fi
 }
 
 // Agentを取得するSupply
-func (s *SimAPI) StopClockResponse(sclient *sxutil.SXServiceClient, msgId uint64) uint64 {
+func (s *SimAPI) StopClockResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64) uint64 {
 	stopClockResponse := &StopClockResponse{}
 
 	simMsg := &SimMsg{
@@ -678,7 +679,7 @@ func (s *SimAPI) StopClockResponse(sclient *sxutil.SXServiceClient, msgId uint64
 		Data:     &SimMsg_StopClockResponse{stopClockResponse},
 	}
 
-	s.ResponseSimMsg(sclient, simMsg)
+	s.ResponseSimMsg(sclient, simMsg, targetId)
 
 	return msgId
 }
