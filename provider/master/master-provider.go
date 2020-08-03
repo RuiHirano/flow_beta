@@ -114,7 +114,7 @@ func readConfig() (*Config, error) {
 		fmt.Println(err)
 		return config, err
 	}
-	fmt.Printf("yaml is %v\n", config)
+	//fmt.Printf("yaml is %v\n", config)
 	return config, nil
 }
 
@@ -124,7 +124,7 @@ func init() {
 	uid, _ := uuid.NewRandom()
 	myProvider := &api.Provider{
 		Id:   uint64(uid.ID()),
-		Name: "MasterServer",
+		Name: "MasterProvider",
 		Type: api.Provider_MASTER,
 	}
 	simapi = api.NewSimAPI(myProvider)
@@ -179,20 +179,21 @@ func (cb *MyCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg *
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	p := simMsg.GetRegisterProviderRequest().GetProvider()
 	pm.AddProvider(p)
-	fmt.Printf("regist provider! %v %v\n", p.GetId(), p.GetType())
+	//fmt.Printf("regist provider! %v %v\n", p.GetId(), p.GetType())
 
 	// update provider to worker
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_WORKER,
+		api.Provider_VISUALIZATION,
 	})
 	filters := []*api.Filter{}
 	for _, target := range targets {
 		filters = append(filters, &api.Filter{TargetId: target})
 	}
 	sclient := sclientOpts[uint32(api.ChannelType_PROVIDER)].Sclient
-	logger.Info("Send UpdateProvidersRequest %v, %v", targets, simapi.Provider)
+	//logger.Info("Send UpdateProvidersRequest %v, %v", targets, simapi.Provider)
 	simapi.UpdateProvidersRequest(sclient, filters, pm.GetProviders())
-	logger.Info("Success Update Providers! Worker Num: ", len(filters))
+	logger.Success("Update Providers! Worker Num: ", len(filters))
 
 	return simapi.Provider
 }
@@ -250,7 +251,7 @@ func (proc *Processor) setAgents3(agentNum uint64) (bool, error) {
 				NextTransit:   nextTransit,
 			},
 		})
-		fmt.Printf("position %v\n", position)
+		//fmt.Printf("position %v\n", position)
 	}
 
 	// エージェントを設置するリクエスト
@@ -264,7 +265,7 @@ func (proc *Processor) setAgents3(agentNum uint64) (bool, error) {
 	sclient := sclientOpts[uint32(api.ChannelType_AGENT)].Sclient
 	simapi.SetAgentRequest(sclient, filters, agents)
 
-	logger.Info("Finish Setting Agents \n Add: %v", len(agents))
+	logger.Success("Set Agents Add: %v", len(agents))
 	return true, nil
 }
 
@@ -278,8 +279,8 @@ func (proc *Processor) setAgents2(agentNum uint64) (bool, error) {
 
 	agents := make([]*api.Agent, 0)
 	//minLon, maxLon, minLat, maxLat := 136.971626, 136.989379, 35.152210, 35.161499
-	maxLat, maxLon, minLat, minLon := GetCoordRange(proc.Area.ControlArea)
-	fmt.Printf("minLon %v, maxLon %v, minLat %v, maxLat %v\n", minLon, maxLon, minLat, maxLat)
+	//maxLat, maxLon, minLat, minLon := GetCoordRange(proc.Area.ControlArea)
+	//fmt.Printf("minLon %v, maxLon %v, minLat %v, maxLat %v\n", minLon, maxLon, minLat, maxLat)
 	for i := 0; i < int(agentNum); i++ {
 		uid, _ := uuid.NewRandom()
 		routes := GetRoutes()
@@ -302,7 +303,7 @@ func (proc *Processor) setAgents2(agentNum uint64) (bool, error) {
 				NextTransit:   nextTransit,
 			},
 		})
-		fmt.Printf("position %v\n", position)
+		//fmt.Printf("position %v\n", position)
 	}
 
 	// エージェントを設置するリクエスト
@@ -316,7 +317,7 @@ func (proc *Processor) setAgents2(agentNum uint64) (bool, error) {
 	sclient := sclientOpts[uint32(api.ChannelType_AGENT)].Sclient
 	simapi.SetAgentRequest(sclient, filters, agents)
 
-	logger.Info("Finish Setting Agents \n Add: %v", len(agents))
+	logger.Success("Set Agents Add: %v", len(agents))
 	return true, nil
 }
 
@@ -330,7 +331,7 @@ func (proc *Processor) setAgents(agentNum uint64) (bool, error) {
 	agents := make([]*api.Agent, 0)
 	//minLon, maxLon, minLat, maxLat := 136.971626, 136.989379, 35.152210, 35.161499
 	maxLat, maxLon, minLat, minLon := GetCoordRange(proc.Area.ControlArea)
-	fmt.Printf("minLon %v, maxLon %v, minLat %v, maxLat %v\n", minLon, maxLon, minLat, maxLat)
+	//fmt.Printf("minLon %v, maxLon %v, minLat %v, maxLat %v\n", minLon, maxLon, minLat, maxLat)
 	for i := 0; i < int(agentNum); i++ {
 		uid, _ := uuid.NewRandom()
 		position := &api.Coord{
@@ -374,7 +375,7 @@ func (proc *Processor) setAgents(agentNum uint64) (bool, error) {
 	sclient := sclientOpts[uint32(api.ChannelType_AGENT)].Sclient
 	simapi.SetAgentRequest(sclient, filters, agents)
 
-	logger.Info("Finish Setting Agents \n Add: %v", len(agents))
+	logger.Success("Set Agents Add: %v", len(agents))
 	return true, nil
 }
 
@@ -403,16 +404,17 @@ func (proc *Processor) setAreas(areaCoords []*api.Coord) (bool, error) {
 	for _, target := range targets {
 		filters = append(filters, &api.Filter{TargetId: target})
 	}
-	logger.Debug("Send Area Info to Vis! \n%v\n", targets)
+	//logger.Debug("Send Area Info to Vis! \n%v\n", targets)
 	//areas := []*api.Area{proc.Area}
 	sclient := sclientOpts[uint32(api.ChannelType_AREA)].Sclient
 	simapi.SendAreaInfoRequest(sclient, filters, areas)
-
+	logger.Success("Send Area Info to Vis!")
 	return true, nil
 }
 
 // startClock:
 func (proc *Processor) startClock() {
+	//logger.("Next Cycle! \n%v\n", targets)
 	t1 := time.Now()
 
 	targets := pm.GetProviderIds([]api.Provider_Type{
@@ -423,23 +425,21 @@ func (proc *Processor) startClock() {
 	for _, target := range targets {
 		filters = append(filters, &api.Filter{TargetId: target})
 	}
-	logger.Debug("Next Cycle! \n%v\n", targets)
 	sclient := sclientOpts[uint32(api.ChannelType_CLOCK)].Sclient
 	simapi.ForwardClockRequest(sclient, filters)
 
 	// calc next time
 	masterClock++
-	log.Printf("\x1b[30m\x1b[47m \n Finish: Clock forwarded \n Time:  %v \x1b[0m\n", masterClock)
+	//log.Printf("\x1b[30m\x1b[47m \n Finish: Clock forwarded \n Time:  %v \x1b[0m\n", masterClock)
 
 	t2 := time.Now()
 	duration := t2.Sub(t1).Milliseconds()
-	logger.Info("Duration: %v", duration)
 	interval := int64(1000) // 周期ms
 	if duration > interval {
-		logger.Error("time cycle delayed...")
+		logger.Warn("time cycle delayed... Duration: %d", duration)
 	} else {
 		// 待機
-		logger.Info("wait %v ms", interval-duration)
+		logger.Success("Forward Clock! Time %d, Duration: %d ms, Wait: %d ms", masterClock, duration, interval-duration)
 		time.Sleep(time.Duration(interval-duration) * time.Millisecond)
 	}
 
@@ -447,7 +447,7 @@ func (proc *Processor) startClock() {
 	if startFlag {
 		proc.startClock()
 	} else {
-		log.Printf("\x1b[30m\x1b[47m \n Finish: Clock stopped \n GlobalTime:  %v \x1b[0m\n", masterClock)
+		logger.Success("Clock stopped: GlobalTime: %d", masterClock)
 		startFlag = false
 		return
 	}
@@ -463,13 +463,13 @@ func (proc *Processor) setClock(clocktime int) {
 	for _, target := range targets {
 		filters = append(filters, &api.Filter{TargetId: target})
 	}
-	logger.Debug("Set Clock! \n%v\n", targets)
+	//logger.Debug("Set Clock! \n%v\n", targets)
 	sclient := sclientOpts[uint32(api.ChannelType_CLOCK)].Sclient
 	clock := &api.Clock{
 		GlobalTime: uint64(clocktime),
 	}
 	simapi.SetClockRequest(sclient, filters, clock)
-	logger.Debug("Finish Set Clock! \n")
+	logger.Success("Set Clock at %d", clocktime)
 }
 
 // areaをrow、columnに分割する関数
@@ -546,7 +546,7 @@ func (or *Order) SetClock() echo.HandlerFunc {
 		if err := c.Bind(co); err != nil {
 			return err
 		}
-		fmt.Printf("time %d\n", co.Time)
+		//fmt.Printf("time %d\n", co.Time)
 		masterClock = co.Time
 		proc.setClock(masterClock)
 		return c.String(http.StatusOK, "Set Clock")
@@ -563,7 +563,7 @@ func (or *Order) SetAgent() echo.HandlerFunc {
 		if err := c.Bind(ao); err != nil {
 			return err
 		}
-		fmt.Printf("agent num %d\n", ao.Num)
+		//fmt.Printf("agent num %d\n", ao.Num)
 		ok, err := proc.setAgents2(uint64(ao.Num))
 		fmt.Printf("ok %v, err %v", ok, err)
 		return c.String(http.StatusOK, "Set Agent")
@@ -583,7 +583,7 @@ func (or *Order) SetArea() echo.HandlerFunc {
 		if err := c.Bind(ao); err != nil {
 			return err
 		}
-		fmt.Printf("area %d\n", ao)
+		//fmt.Printf("area %d\n", ao)
 		slat, _ := strconv.ParseFloat(ao.SLat, 64)
 		slon, _ := strconv.ParseFloat(ao.SLon, 64)
 		elat, _ := strconv.ParseFloat(ao.ELat, 64)
@@ -603,10 +603,11 @@ func (or *Order) Start() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if startFlag == false {
 			startFlag = true
+			logger.Info("Start Clock")
 			go proc.startClock()
 			return c.String(http.StatusOK, "Start")
 		} else {
-			logger.Warn("Clock is already started.")
+			logger.Info("Clock is already started.")
 			return c.String(http.StatusBadRequest, "Start")
 		}
 	}
@@ -620,7 +621,7 @@ func (or *Order) Stop() echo.HandlerFunc {
 }
 
 func startSimulatorServer() {
-	fmt.Printf("Starting Simulator Server...")
+	logger.Info("Starting Simulator Server...")
 	order := NewOrder()
 
 	e := echo.New()
@@ -635,15 +636,14 @@ func startSimulatorServer() {
 	e.POST("/order/start", order.Start())
 	e.POST("/order/stop", order.Stop())
 
-	log.Printf("Listen Simulator Port at %d", *cliport)
+	logger.Success("Listen Simulator Port at %d", *cliport)
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", *cliport)))
 }
 
 func main() {
-	fmt.Printf("NumCPU=%d\n", runtime.NumCPU())
+	logger.Info("Start Master Provider")
+	logger.Info("NumCPU=%d", runtime.NumCPU())
 	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	fmt.Printf("Start Main Provider")
 
 	// CLI, GUIの受信サーバ
 	go startSimulatorServer()
@@ -660,12 +660,13 @@ func main() {
 	client := util.RegisterSynerexLoop(*servaddr)
 	util.RegisterSXServiceClients(ni, client, sclientOpts)
 
-	logger.Info("Register Synerex Server")
+	logger.Success("Subscribe Mbus")
 
 	wg := sync.WaitGroup{} // for syncing other goroutines
 	wg.Add(1)
 	wg.Wait()
 	sxutil.CallDeferFunctions() // cleanup!
+	logger.Success("Terminate Master Provider")
 
 }
 

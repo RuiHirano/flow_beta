@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"log"
+
 	//"log"
 	"sync"
 
@@ -145,6 +147,7 @@ func (w *Waiter) WaitMsg(simMsgId uint64, filters []*Filter, timeout uint64) ([]
 				if simMsg.GetMsgId() == simMsgId {
 					w.MsgMap[simMsgId] = append(w.MsgMap[simMsgId], simMsg)
 					//log.Printf("\nDone0\n")
+					log.Printf("GetSimMsg\n", filters, simMsg.GetMsgId(), simMsgId)
 					// 同期が終了したかどうか
 					if w.IsFinishWait(simMsgId, filters) {
 						mu.Unlock()
@@ -174,12 +177,14 @@ func (w *Waiter) WaitMsg(simMsgId uint64, filters []*Filter, timeout uint64) ([]
 }
 
 func (w *Waiter) SendMsgToWait(msg *sxapi.MbusMsg) {
-	mu.Lock()
+	//mu.Lock()
 	simMsg := &SimMsg{}
 	proto.Unmarshal(msg.Cdata.Entity, simMsg)
-	waitCh := w.WaitChMap[simMsg.GetMsgId()]
-	mu.Unlock()
-	waitCh <- simMsg
+	waitCh, ok := w.WaitChMap[simMsg.GetMsgId()]
+	if ok {
+		waitCh <- simMsg
+	}
+	//mu.Unlock()
 	//log.Printf("\nSendMsgTowait\n")
 }
 

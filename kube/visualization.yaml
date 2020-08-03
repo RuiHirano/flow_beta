@@ -4,51 +4,88 @@ metadata:
   name: vis-monitor
 spec:
   selector:
-    app: visualization-provider
+    app: visualization
   ports:
   - name: http
     port: 80
     targetPort: 9500
   type: NodePort
 
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: visualization
+spec:
+  selector:
+    app: visualization
+  ports:
+    - name: synerex
+      port: 10000
+      targetPort: 10000
+    - name: nodeid
+      port: 9000
+      targetPort: 9000
+
 ---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: visualization-provider
+  name: visualization
   labels:
-    app: visualization-provider
+    app: visualization
 spec:
   containers:
   - name: nodeid-server
     image: synerex-simulation/nodeid-server:latest
     imagePullPolicy: Never
     env:
-    - name: NODEID_SERVER
-      value: :9000
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_HOST
+      value: "visualization"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
     ports:
     - containerPort: 9000
   - name: synerex-server
     image: synerex-simulation/synerex-server:latest
     imagePullPolicy: Never
     env:
-    - name: NODEID_SERVER
-      value: :9000
-    - name: SYNEREX_SERVER
-      value: :10000
+    - name: SX_NODESERV_HOST
+      value: "visualization"
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: "visualization"
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: "SynerexServer"
+    - name: SX_SERVER_METRICS
+      value: "false"
     ports:
     - containerPort: 10000
   - name: visualization-provider
     image: synerex-simulation/visualization-provider:latest
     imagePullPolicy: Never
     env:
-    - name: NODEID_SERVER
-      value: :9000
-    - name: SYNEREX_SERVER
-      value: :10000
-    - name: VIS_ADDRESS
-      value: :9500
+    - name: SX_NODESERV_ADDRESS
+      value: "visualization:9000"
+    - name: SX_SERVER_ADDRESS
+      value: "visualization:10000"
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: "master:10000"
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: "master:9000"
+    - name: MONITOR_ADDRESS
+      value: "127.0.0.1:9500"
     - name: PROVIDER_NAME
-      value: VisProvider
+      value: "VisProvider"
     ports:
     - containerPort: 9500

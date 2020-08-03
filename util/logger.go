@@ -21,10 +21,16 @@ func (l *Logger) SetPrefix(prefix string) {
 	l.Prefix = prefix
 }
 
+func (l *Logger) Success(format string, args ...interface{}) {
+	//log.SetPrefix(l.Prefix)
+	//log.SetFlags(0)
+	log.Printf("\x1b[32m\x1b[40m [Success] \x1b[0m"+format, args...)
+}
+
 func (l *Logger) Info(format string, args ...interface{}) {
 	//log.SetPrefix(l.Prefix)
 	//log.SetFlags(0)
-	log.Printf("\x1b[32m\x1b[40m [Info] \x1b[0m"+format, args...)
+	log.Printf("\x1b[36m\x1b[40m [Info] \x1b[0m"+format, args...)
 }
 
 func (l *Logger) Error(format string, args ...interface{}) {
@@ -48,5 +54,5 @@ func (l *Logger) Fatal(format string, args ...interface{}) {
 func (l *Logger) Debug(format string, args ...interface{}) {
 	//log.SetPrefix(l.Prefix)
 	//log.SetFlags(0)
-	log.Printf("\x1b[36m\x1b[40m [Debug] \x1b[0m"+format, args...)
+	log.Printf("\x1b[35m\x1b[40m [Debug] \x1b[0m"+format, args...)
 }

@@ -10,10 +10,14 @@ spec:
     image: synerex-simulation/agent-provider:latest
     imagePullPolicy: Never
     env:
-    - name: NODEID_SERVER
-      value: worker:600
-    - name: SYNEREX_SERVER
-      value: worker:700
+    - name: SX_NODESERV_ADDRESS
+      value: "worker:9000"
+    - name: SX_SERVER_ADDRESS
+      value: "worker:10000"
+    - name: SX_VIS_SERVER_ADDRESS
+      value: "visualization:10000"
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: "visualization:9000"
     - name: AREA
       value: '{"id":11, "name":"Unknown", "duplicate_area": [{"latitude":35.15731895,
         "longitude":136.97073834999998},{"latitude":35.151745549999994, "longitude":136.97073834999998},{"latitude":35.151745549999994,

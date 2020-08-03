@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 
 	//"math/rand"
 	"os"
@@ -96,7 +95,7 @@ func init() {
 	}
 	simapi = api.NewSimAPI(myProvider)
 	pm = util.NewProviderManager(myProvider)
-	log.Printf("ProviderID: %d", simapi.Provider.Id)
+	logger.Info("ProviderID: %d", simapi.Provider.Id)
 
 	cb := util.NewCallback()
 	mscb := &MasterCallback{cb} // override
@@ -181,21 +180,19 @@ func (cb *MasterCallback) ForwardClockRequest(clt *sxutil.SXServiceClient, msg *
 
 	t2 := time.Now()
 	duration := t2.Sub(t1).Milliseconds()
-	logger.Info("Duration: %v, PID: %v", duration, simapi.Provider.Id)
-	// response to master
-	//targets = []uint64{simMsg.GetSenderId()}
-	//msgId := simMsg.GetMsgId()
-	//logger.Debug("Response to master pid %v, msgId%v\n", myProvider.Id, msgId)
-	//sclient = sclientOptsMaster[uint32(api.ChannelType_CLOCK)].Sclient
-	//simapi.ForwardClockResponse(sclient, msgId)
-
+	interval := int64(1000) // 周期ms
+	if duration > interval {
+		logger.Warn("time cycle delayed... Duration: %d", duration)
+	} else {
+		logger.Success("Forward Clock! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+	}
 }
 
 func (cb *MasterCallback) UpdateProvidersRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	providers := simMsg.GetUpdateProvidersRequest().GetProviders()
-	logger.Info("Finish: Update Workers num: %v\n", len(providers))
+	logger.Success("Update Workers num: %d\n", len(providers))
 }
 
 func (cb *MasterCallback) SetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
@@ -214,7 +211,7 @@ func (cb *MasterCallback) SetAgentRequest(clt *sxutil.SXServiceClient, msg *sxap
 	sclient := sclientOptsWorker[uint32(api.ChannelType_AGENT)].Sclient
 	simapi.SetAgentRequest(sclient, filters, agents)
 
-	logger.Info("Finish: Set Agent %v\n")
+	logger.Success("Set Agents Add: %v", len(agents))
 }
 
 func (cb *MasterCallback) SetClockRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
@@ -233,7 +230,7 @@ func (cb *MasterCallback) SetClockRequest(clt *sxutil.SXServiceClient, msg *sxap
 	sclient := sclientOptsWorker[uint32(api.ChannelType_CLOCK)].Sclient
 	simapi.SetClockRequest(sclient, filters, clock)
 
-	logger.Info("Finish: Set Clock %v\n")
+	logger.Success("Set Clock at %d", clock.GlobalTime)
 }
 
 ////////////////////////////////////////////////////////////
@@ -248,31 +245,32 @@ func (cb *WorkerCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, m
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	p := simMsg.GetRegisterProviderRequest().GetProvider()
 	pm.AddProvider(p)
-	fmt.Printf("regist provider! %v %v\n", p.GetId(), p.GetType())
+	//fmt.Printf("regist provider! %v %v\n", p.GetId(), p.GetType())
 
 	// update provider to worker
-	targets := pm.GetProviderIds([]api.Provider_Type{})
+	targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_GATEWAY,
+		api.Provider_AGENT,
+	})
 	filters := []*api.Filter{}
 	for _, target := range targets {
 		filters = append(filters, &api.Filter{TargetId: target})
 	}
-	//sclient := sclientOpts[uint32(api.ChannelType_PROVIDER)].Sclient
-	logger.Info("Send UpdateProvidersRequest %v, %v", targets, simapi.Provider)
+	sclient := sclientOptsWorker[uint32(api.ChannelType_PROVIDER)].Sclient
+	//logger.Info("Send UpdateProvidersRequest %v, %v", targets, simapi.Provider)
 	simapi.UpdateProvidersRequest(sclient, filters, pm.GetProviders())
-	logger.Info("Success Update Providers! Worker Num: ", len(targets))
+	logger.Success("Update Providers! Worker Num: ", len(filters))
 
 	return simapi.Provider
 }
 
 func main() {
-	fmt.Printf("NumCPU=%d\n", runtime.NumCPU())
+	logger.Info("Start Worker Provider")
+	logger.Info("NumCPU=%d", runtime.NumCPU())
 	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	fmt.Printf("Start Worker Provider")
 
 	// Connect to Worker Syenrex Node Server
 	// Register Node Server
-
 	channelTypes := []uint32{}
 	for _, opt := range sclientOptsWorker {
 		channelTypes = append(channelTypes, opt.ChType)
@@ -283,7 +281,8 @@ func main() {
 	// Register Synerex Server
 	client := util.RegisterSynerexLoop(*servaddr)
 	util.RegisterSXServiceClients(ni, client, sclientOptsWorker)
-	logger.Info("Register Synerex Server")
+	logger.Success("Subscribe Mbus")
+	//logger.Info("Register Synerex Server")
 
 	// Connect to Master Syenrex Node Server
 	// Register Node Server
@@ -297,16 +296,17 @@ func main() {
 	// Register Synerex Server
 	client = util.RegisterSynerexLoop(*masterServaddr)
 	util.RegisterSXServiceClients(ni, client, sclientOptsMaster)
-	logger.Info("Register Synerex Server")
+	logger.Success("Subscribe Mbus")
 
 	wg := sync.WaitGroup{} // for syncing other goroutines
 	wg.Add(1)
 	sclient := sclientOptsMaster[uint32(api.ChannelType_PROVIDER)].Sclient
 	//logger.Info("Register Master Provider %+v", sclientOptsMaster[uint32(api.ChannelType_PROVIDER)].Sclient)
 	masterProvider = util.RegisterProviderLoop(sclient, simapi)
-	logger.Info("Register Master Provider")
+	logger.Success("Register Provider to Master Provider at %d", masterProvider.Id)
 
 	wg.Wait()
 	sxutil.CallDeferFunctions() // cleanup!
+	logger.Success("Terminate Worker Provider")
 
 }
