@@ -247,11 +247,11 @@ func NewVis() Resource {
 					Env: []Env{
 						{
 							Name:  "SX_NODESERV_ADDRESS",
-							Value: "worker:9000",
+							Value: "visualization:9000",
 						},
 						{
 							Name:  "SX_SERVER_ADDRESS",
-							Value: "worker:10000",
+							Value: "visualization:10000",
 						},
 						{
 							Name:  "SX_MASTER_NODESERV_ADDRESS",
@@ -718,7 +718,7 @@ func convertAreaToJson(area Area) string {
 func main() {
 
 	option := Option{
-		FileName: "test-4-vis2.yaml",
+		FileName: *fileName + ".yaml",
 		AreaCoords: []Coord{
 			{Longitude: 136.971626, Latitude: 35.161499},
 			{Longitude: 136.971626, Latitude: 35.152210},

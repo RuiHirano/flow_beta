@@ -90,11 +90,11 @@ func getProviderName() string {
 }
 
 func init() {
-
+	flag.Parse()
 	uid, _ := uuid.NewRandom()
 	myProvider := &api.Provider{
 		Id:   uint64(uid.ID()),
-		Name: "GatewayProvider",
+		Name: *providerName,
 		Type: api.Provider_GATEWAY,
 	}
 	simapi = api.NewSimAPI(myProvider)
