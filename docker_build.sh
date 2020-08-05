@@ -6,6 +6,8 @@ echo "version is $VERSION"
 echo "prepare submodule"
 git submodule init
 git submodule update
+git submodule foreach git fetch
+git submodule foreach git merge origin/master
 
 echo "start build"
 docker build -t docker.pkg.github.com/ruihirano/flow_beta/synerex-nodeserv:$VERSION -f server/synerex_nodeserv/Dockerfile ./server/synerex_nodeserv

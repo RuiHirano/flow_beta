@@ -22,7 +22,7 @@ func getImageID() string {
 	if env != "" {
 		return env
 	} else {
-		return "docker.pkg.github.com/ruihirano/flow_beta"
+		return "synerex-simulation"
 	}
 }
 

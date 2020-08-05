@@ -20,7 +20,7 @@ metadata:
 spec:
   containers:
   - name: simulator
-    image: docker.pkg.github.com/ruihirano/flow_beta/simulator:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/simulator:1.0.0
     imagePullPolicy: IfNotPresent
     stdin: true
     tty: true
@@ -47,7 +47,7 @@ spec:
     targetPort: 9000
   - name: master-provider
     port: 9900
-    targetPort: 9990
+    targetPort: 9900
 
 ---
 apiVersion: v1
@@ -59,11 +59,11 @@ metadata:
 spec:
   containers:
   - name: synerex-nodeserv
-    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-nodeserv:latest
+    image: synerex-simulation/nodeid-server:latest 
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_HOST
-      value: master
+      value: "master"
     - name: SX_NODESERV_PORT
       value: "9000"
     - name: SX_NODESERV_VERSION
@@ -75,37 +75,37 @@ spec:
     ports:
     - containerPort: 9000
   - name: synerex-server
-    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-server:latest
+    image: synerex-simulation/synerex-server:latest 
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_HOST
-      value: master
+      value: "master"
     - name: SX_NODESERV_PORT
       value: "9000"
     - name: SX_SERVER_HOST
-      value: master
+      value: "master"
     - name: SX_SERVER_PORT
       value: "10000"
     - name: SX_SERVER_NAME
-      value: SynerexServer
+      value: "SynerexServer"
     - name: SX_SERVER_METRICS
       value: "false"
     ports:
     - containerPort: 10000
   - name: master-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/master-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/master-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
-      value: master:9000
+      value: "master:9000"
     - name: SX_SERVER_ADDRESS
-      value: master:10000
+      value: "master:10000"
     - name: CLI_PORT
       value: "9990"
     - name: PROVIDER_NAME
-      value: MasterProvider
+      value: "MasterProvider"
     ports:
-    - containerPort: 9990
+    - containerPort: 9900
 
 ---
 apiVersion: v1
@@ -147,7 +147,7 @@ metadata:
 spec:
   containers:
   - name: synerex-nodeserv
-    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-nodeserv:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-nodeserv:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_HOST
@@ -163,7 +163,7 @@ spec:
     ports:
     - containerPort: 9000
   - name: synerex-server
-    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-server:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-server:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_HOST
@@ -181,7 +181,7 @@ spec:
     ports:
     - containerPort: 10000
   - name: visualization-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/visualization-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/visualization-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
@@ -225,7 +225,7 @@ metadata:
 spec:
   containers:
   - name: synerex-nodeserv
-    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-nodeserv:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-nodeserv:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_HOST
@@ -241,7 +241,7 @@ spec:
     ports:
     - containerPort: 9000
   - name: synerex-server
-    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-server:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-server:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_HOST
@@ -259,7 +259,7 @@ spec:
     ports:
     - containerPort: 10000
   - name: worker-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/worker-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/worker-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
@@ -283,7 +283,7 @@ metadata:
 spec:
   containers:
   - name: agent-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/agent-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/agent-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
@@ -330,7 +330,7 @@ metadata:
 spec:
   containers:
   - name: synerex-nodeserv
-    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-nodeserv:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-nodeserv:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_HOST
@@ -346,7 +346,7 @@ spec:
     ports:
     - containerPort: 9000
   - name: synerex-server
-    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-server:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-server:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_HOST
@@ -364,7 +364,7 @@ spec:
     ports:
     - containerPort: 10000
   - name: worker-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/worker-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/worker-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
@@ -388,7 +388,7 @@ metadata:
 spec:
   containers:
   - name: agent-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/agent-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/agent-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
@@ -435,7 +435,7 @@ metadata:
 spec:
   containers:
   - name: synerex-nodeserv
-    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-nodeserv:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-nodeserv:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_HOST
@@ -451,7 +451,7 @@ spec:
     ports:
     - containerPort: 9000
   - name: synerex-server
-    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-server:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-server:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_HOST
@@ -469,7 +469,7 @@ spec:
     ports:
     - containerPort: 10000
   - name: worker-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/worker-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/worker-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
@@ -493,7 +493,7 @@ metadata:
 spec:
   containers:
   - name: agent-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/agent-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/agent-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
@@ -540,7 +540,7 @@ metadata:
 spec:
   containers:
   - name: synerex-nodeserv
-    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-nodeserv:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-nodeserv:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_HOST
@@ -556,7 +556,7 @@ spec:
     ports:
     - containerPort: 9000
   - name: synerex-server
-    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-server:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/synerex-server:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_HOST
@@ -574,7 +574,7 @@ spec:
     ports:
     - containerPort: 10000
   - name: worker-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/worker-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/worker-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
@@ -598,7 +598,7 @@ metadata:
 spec:
   containers:
   - name: agent-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/agent-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/agent-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
@@ -629,7 +629,7 @@ metadata:
 spec:
   containers:
   - name: gateway-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/gateway-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/gateway-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
@@ -653,7 +653,7 @@ metadata:
 spec:
   containers:
   - name: gateway-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/gateway-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/gateway-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
@@ -677,7 +677,7 @@ metadata:
 spec:
   containers:
   - name: gateway-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/gateway-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/gateway-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
@@ -701,7 +701,7 @@ metadata:
 spec:
   containers:
   - name: gateway-provider
-    image: docker.pkg.github.com/ruihirano/flow_beta/gateway-provider:latest
+    image: docker.pkg.github.com/ruihirano/flow_beta/gateway-provider:1.0.0
     imagePullPolicy: IfNotPresent
     env:
     - name: SX_NODESERV_ADDRESS
