@@ -168,7 +168,7 @@ func init() {
 	}
 
 	//areaJson := os.Getenv("AREA")
-	bytes := []byte(areaJson)
+	bytes := []byte(*areaJson)
 	json.Unmarshal(bytes, &myArea)
 	//fmt.Printf("myArea: %v\n", myArea)
 

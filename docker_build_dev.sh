@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION=1.0.0
+VERSION=latest
 echo "version is $VERSION"
 
 echo "prepare submodule"
