@@ -52,45 +52,9 @@ jobs:
 
       - name: Build Image
         run: |
-          docker build -t $MASTER_IMAGE_NAME -f provider/master/Dockerfile .
-          docker build -t $WORKER_IMAGE_NAME -f provider/worker/Dockerfile .
-          docker build -t $VISUALIZATION_IMAGE_NAME -f provider/visualization/Dockerfile .
-          docker build -t $AGENT_IMAGE_NAME -f provider/agent/Dockerfile .
-          docker build -t $GATEWAY_IMAGE_NAME -f provider/gateway/Dockerfile .
-          docker build -t $SIMULATOR_IMAGE_NAME -f cli/Dockerfile ./cli
+          bash docker_build.sh
 
       - name: Push Image
         run: |
-          IMAGE_ID=docker.pkg.github.com/${{ github.repository }}
-
-          # Change all uppercase to lowercase
-          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
-
-          # Strip git ref prefix from version
-          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-
-          # Strip "v" prefix from tag name
-          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
-
-          # Use Docker `latest` tag convention
-          [ "$VERSION" == "master" ] && VERSION=latest
-
-          echo IMAGE_ID=$IMAGE_ID
-          echo VERSION=$VERSION
-
-          docker tag $MASTER_IMAGE_NAME $IMAGE_ID/$MASTER_IMAGE_NAME:$VERSION
-          docker tag $WORKER_IMAGE_NAME $IMAGE_ID/$WORKER_IMAGE_NAME:$VERSION
-          docker tag $VISUALIZATION_IMAGE_NAME $IMAGE_ID/$VISUALIZATION_IMAGE_NAME:$VERSION
-          docker tag $AGENT_IMAGE_NAME $IMAGE_ID/$AGENT_IMAGE_NAME:$VERSION
-          docker tag $GATEWAY_IMAGE_NAME $IMAGE_ID/$GATEWAY_IMAGE_NAME:$VERSION
-          docker tag $SIMULATOR_IMAGE_NAME $IMAGE_ID/$SIMULATOR_IMAGE_NAME:$VERSION
-          
-          # push
-          docker push $IMAGE_ID/$MASTER_IMAGE_NAME:$VERSION
-          docker push $IMAGE_ID/$WORKER_IMAGE_NAME:$VERSION
-          docker push $IMAGE_ID/$VISUALIZATION_IMAGE_NAME:$VERSION
-          docker push $IMAGE_ID/$AGENT_IMAGE_NAME:$VERSION
-          docker push $IMAGE_ID/$GATEWAY_IMAGE_NAME:$VERSION
-          docker push $IMAGE_ID/$SIMULATOR_IMAGE_NAME:$VERSION
-          
+          bash docker_push.sh
           echo "finished!"
