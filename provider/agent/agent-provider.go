@@ -46,6 +46,7 @@ var (
 	visServaddr  = flag.String("visServaddr", getVisServerAddress(), "Vis Synerex Server Listening Address")
 	visNodeaddr  = flag.String("visNodeaddr", getVisNodeservAddress(), "Vis Node ID Server Address")
 	providerName = flag.String("providerName", getProviderName(), "Provider Name")
+	areaJson     = flag.String("areaJson", getAreaJson(), "Area Information")
 )
 
 func getNodeservAddress() string {
@@ -90,6 +91,15 @@ func getProviderName() string {
 		return env
 	} else {
 		return "AgentProvider"
+	}
+}
+
+func getAreaJson() string {
+	env := os.Getenv("AREA_JSON")
+	if env != "" {
+		return env
+	} else {
+		return ""
 	}
 }
 
@@ -157,7 +167,7 @@ func init() {
 		},
 	}
 
-	areaJson := os.Getenv("AREA")
+	//areaJson := os.Getenv("AREA")
 	bytes := []byte(areaJson)
 	json.Unmarshal(bytes, &myArea)
 	//fmt.Printf("myArea: %v\n", myArea)
