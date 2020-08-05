@@ -3,6 +3,10 @@
 VERSION=1.0.0
 echo "version is $VERSION"
 
+echo "prepare submodule"
+git submodule init
+git submodule update
+
 echo "start build"
 docker build -t docker.pkg.github.com/ruihirano/flow_beta/synerex-nodeserv:$VERSION -f server/synerex_nodeserv/Dockerfile ./server/synerex_nodeserv
 docker build -t docker.pkg.github.com/ruihirano/flow_beta/synerex-server:$VERSION -f server/synerex_server/Dockerfile ./server/synerex_server
