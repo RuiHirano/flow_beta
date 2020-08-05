@@ -22,7 +22,7 @@ func getImageID() string {
 	if env != "" {
 		return env
 	} else {
-		return "synerex-simulation"
+		return "flow_beta"
 	}
 }
 
@@ -371,7 +371,7 @@ func NewWorker(area Area) Resource {
 					Env: []Env{
 						{
 							Name:  "SX_NODESERV_HOST",
-							Value: "worker",
+							Value: name,
 						},
 						{
 							Name:  "SX_NODESERV_PORT",
@@ -399,7 +399,7 @@ func NewWorker(area Area) Resource {
 					Env: []Env{
 						{
 							Name:  "SX_NODESERV_HOST",
-							Value: "worker",
+							Value: name,
 						},
 						{
 							Name:  "SX_NODESERV_PORT",
@@ -407,7 +407,7 @@ func NewWorker(area Area) Resource {
 						},
 						{
 							Name:  "SX_SERVER_HOST",
-							Value: "worker",
+							Value: name,
 						},
 						{
 							Name:  "SX_SERVER_PORT",
@@ -431,11 +431,11 @@ func NewWorker(area Area) Resource {
 					Env: []Env{
 						{
 							Name:  "SX_NODESERV_ADDRESS",
-							Value: "worker:9000",
+							Value: name + ":9000",
 						},
 						{
 							Name:  "SX_SERVER_ADDRESS",
-							Value: "worker:10000",
+							Value: name + ":10000",
 						},
 						{
 							Name:  "SX_MASTER_NODESERV_ADDRESS",
@@ -572,7 +572,7 @@ func NewMaster() Resource {
 						},
 						{
 							Name:  "CLI_PORT",
-							Value: "9990",
+							Value: "9900",
 						},
 						{
 							Name:  "PROVIDER_NAME",

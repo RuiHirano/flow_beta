@@ -361,7 +361,7 @@ func NewMaster() Resource {
 						},
 						{
 							Name:  "PORT",
-							Value: "9990",
+							Value: "9900",
 						},
 					},
 					Ports: []Port{{ContainerPort: 9990}},
