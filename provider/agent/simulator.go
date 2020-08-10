@@ -9,18 +9,20 @@ import (
 
 // SynerexSimulator :
 type Simulator struct {
-	Agents    []*api.Agent
-	Area      *api.Area
-	AgentType api.AgentType
+	DiffAgents []*api.Agent //　同じエリアの異種エージェント
+	Agents     []*api.Agent
+	Area       *api.Area
+	AgentType  api.AgentType
 }
 
 // NewSenerexSimulator:
 func NewSimulator(areaInfo *api.Area, agentType api.AgentType) *Simulator {
 
 	sim := &Simulator{
-		Agents:    make([]*api.Agent, 0),
-		Area:      areaInfo,
-		AgentType: agentType,
+		DiffAgents: make([]*api.Agent, 0),
+		Agents:     make([]*api.Agent, 0),
+		Area:       areaInfo,
+		AgentType:  agentType,
 	}
 
 	return sim
@@ -41,6 +43,20 @@ func (sim *Simulator) AddAgents(agentsInfo []*api.Agent) int {
 	sim.Agents = append(sim.Agents, newAgents...)
 
 	return len(sim.Agents)
+}
+
+// SetAgents :　Agentsをセットする関数
+func (sim *Simulator) SetDiffAgents(agentsInfo []*api.Agent) {
+	newAgents := make([]*api.Agent, 0)
+	for _, agentInfo := range agentsInfo {
+		if agentInfo.Type == sim.AgentType {
+			position := agentInfo.Route.Position
+			if IsAgentInArea(position, sim.Area.DuplicateArea) {
+				newAgents = append(newAgents, agentInfo)
+			}
+		}
+	}
+	sim.DiffAgents = newAgents
 }
 
 // SetAgents :　Agentsをセットする関数
@@ -69,12 +85,12 @@ func (sim *Simulator) GetAgents() []*api.Agent {
 }
 
 // UpdateDuplicateAgents :　重複エリアのエージェントを更新する関数
-func (sim *Simulator) UpdateDuplicateAgents(nextControlAgents []*api.Agent, neighborAgents []*api.Agent) []*api.Agent {
-	nextAgents := nextControlAgents
+func (sim *Simulator) UpdateDuplicateAgents(neighborAgents []*api.Agent) []*api.Agent {
+	nextAgents := sim.Agents
 	for _, neighborAgent := range neighborAgents {
 		isAppendAgent := true
 		position := neighborAgent.Route.Position
-		for _, sameAreaAgent := range nextControlAgents {
+		for _, sameAreaAgent := range sim.Agents {
 			// 自分の管理しているエージェントではなく重複エリアに入っていた場合更新する
 			//FIX Duplicateじゃない？
 			if neighborAgent.Id == sameAreaAgent.Id {
@@ -85,16 +101,19 @@ func (sim *Simulator) UpdateDuplicateAgents(nextControlAgents []*api.Agent, neig
 			nextAgents = append(nextAgents, neighborAgent)
 		}
 	}
+	sim.Agents = nextAgents
 	return nextAgents
 }
 
 // ForwardStep :　次の時刻のエージェントを計算する関数
-func (sim *Simulator) ForwardStep(sameAgents []*api.Agent) []*api.Agent {
+func (sim *Simulator) ForwardStep() []*api.Agent {
 
-	nextAgents := sim.GetAgents()
+	//nextAgents := sim.GetAgents()
 	// Agent計算
+	//sameAgents := sim.DiffAgents
 	rvo2route := algo.NewRVO2Route(sim.Agents, sim.Area)
-	nextAgents = rvo2route.CalcNextAgents()
+	nextAgents := rvo2route.CalcNextAgents()
+	sim.Agents = nextAgents
 
 	//simpleroute := algo.NewSimpleRoute2(sim.Agents)
 	//nextAgents = simpleroute.CalcNextAgents()

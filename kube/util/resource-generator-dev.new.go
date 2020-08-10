@@ -91,6 +91,7 @@ type Port struct {
 	Name          string `yaml:"name,omitempty"`
 	Port          int    `yaml:"port,omitempty"`
 	TargetPort    int    `yaml:"targetPort,omitempty"`
+	NodePort      int    `yaml:"nodePort,omitempty"`
 	ContainerPort int    `yaml:"containerPort,omitempty"`
 }
 
@@ -136,6 +137,7 @@ func NewVisMonitorService() Resource {
 					Name:       "http",
 					Port:       80,
 					TargetPort: 9500,
+					NodePort:   30000,
 				},
 			},
 			Type: "NodePort",

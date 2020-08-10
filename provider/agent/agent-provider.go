@@ -119,7 +119,7 @@ func init() {
 	log.Printf("ProviderID: %d", simapi.Provider.Id)
 
 	cb := util.NewCallback()
-	vicb := &WorkerCallback{cb} // override
+	vicb := &VisCallback{cb} // override
 	sclientOptsVis = map[uint32]*util.SclientOpt{
 		uint32(api.ChannelType_CLOCK): &util.SclientOpt{
 			ChType:       uint32(api.ChannelType_CLOCK),
@@ -203,6 +203,107 @@ func (m *Message) Get() []*api.Agent {
 	return m.agents
 }
 
+func getSameAreaAgents() {
+	logger.Debug("getSameAreaAgents 0")
+	t1 := time.Now()
+	//logger.Debug("1: 同エリアエージェント取得")
+	targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_AGENT,
+	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
+	sclient := sclientOptsWorker[uint32(api.ChannelType_AGENT)].Sclient
+	sameAgents := []*api.Agent{}
+	//if len(targets) != 0 {
+	logger.Debug("geeAgentRequest %v", filters)
+	simMsgs, _ := simapi.GetAgentRequest(sclient, filters)
+	logger.Debug("getSameAreaAgents 1")
+	////logger.Debug("1: targets %v\n", targets)
+	for _, simMsg := range simMsgs {
+		agents := simMsg.GetGetAgentResponse().GetAgents()
+		sameAgents = append(sameAgents, agents...)
+	}
+	sim.SetDiffAgents(sameAgents)
+	logger.Debug("getSameAreaAgents 2")
+	t2 := time.Now()
+	duration := t2.Sub(t1).Milliseconds()
+	interval := int64(1000) // 周期ms
+	if duration > interval {
+		logger.Warn("time cycle delayed... Duration: %d", duration)
+	} else {
+		logger.Success("GetSameAreaAgents! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+	}
+}
+
+func calcNextAgents() {
+	logger.Debug("calcNextAgents 0")
+	t1 := time.Now()
+	sim.ForwardStep() // agents in control area
+	//agentsMessage.Set(nextControlAgents)
+
+	// visに保存
+	/*targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_VISUALIZATION,
+	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
+	logger.Debug("SetAgentRequest %v", filters)
+	sclient := sclientOptsVis[uint32(api.ChannelType_AGENT)].Sclient
+	simapi.SetAgentRequest(sclient, filters, nextControlAgents)*/
+
+	logger.Debug("calcNextAgents 2")
+	t2 := time.Now()
+	duration := t2.Sub(t1).Milliseconds()
+	interval := int64(1000) // 周期ms
+	if duration > interval {
+		logger.Warn("time cycle delayed... Duration: %d", duration)
+	} else {
+		logger.Success("CalcNextAgents! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+	}
+}
+
+func updateNextAgents() {
+	logger.Debug("updateNextAgents 0")
+	t1 := time.Now()
+	targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_GATEWAY,
+	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
+	sclient := sclientOptsWorker[uint32(api.ChannelType_AGENT)].Sclient
+	logger.Debug("updateNextAgents 1")
+	neighborAgents := []*api.Agent{}
+	simMsgs, _ := simapi.GetAgentRequest(sclient, filters)
+
+	for _, simMsg := range simMsgs {
+		agents := simMsg.GetGetAgentResponse().GetAgents()
+		neighborAgents = append(neighborAgents, agents...)
+	}
+	logger.Debug("updateNextAgents 2")
+
+	// [4. Update Agents]重複エリアのエージェントを更新する
+	//nextControlAgents := []*api.Agent{}
+	nextAgents := sim.UpdateDuplicateAgents(neighborAgents)
+	// Agentsをセットする
+	sim.SetAgents(nextAgents)
+
+	logger.Debug("updateNextAgents 3")
+	t2 := time.Now()
+	duration := t2.Sub(t1).Milliseconds()
+	interval := int64(1000) // 周期ms
+	if duration > interval {
+		logger.Warn("time cycle delayed... Duration: %d", duration)
+	} else {
+		logger.Success("UpdateNextAgents! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+	}
+}
+
 func forwardClock() {
 	//senderId := myProvider.Id
 	t1 := time.Now()
@@ -227,7 +328,7 @@ func forwardClock() {
 
 	// [2. Calculation]次の時間のエージェントを計算する
 	//logger.Debug("2: エージェント計算を行う")
-	nextControlAgents := sim.ForwardStep(sameAgents) // agents in control area
+	nextControlAgents := sim.ForwardStep() // agents in control area
 	//logger.Debug("2: Set")
 	agentsMessage.Set(nextControlAgents)
 
@@ -238,7 +339,7 @@ func forwardClock() {
 	simapi.SetAgentRequest(myProvider.Id, targets, nextControlAgents)*/
 
 	// visに保存
-	targets = pm.GetProviderIds([]api.Provider_Type{
+	/*targets = pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_VISUALIZATION,
 	})
 	filters = []*api.Filter{}
@@ -246,11 +347,11 @@ func forwardClock() {
 		filters = append(filters, &api.Filter{TargetId: target})
 	}
 	sclient = sclientOptsVis[uint32(api.ChannelType_AGENT)].Sclient
-	simapi.SetAgentRequest(sclient, filters, nextControlAgents)
+	simapi.SetAgentRequest(sclient, filters, nextControlAgents)*/
 
 	//logger.Debug("3: 隣接エージェントを取得")
 	targets = pm.GetProviderIds([]api.Provider_Type{
-		api.Provider_GATEWAY,
+		//api.Provider_GATEWAY,
 	})
 	filters = []*api.Filter{}
 	for _, target := range targets {
@@ -269,7 +370,7 @@ func forwardClock() {
 	//}
 
 	// [4. Update Agents]重複エリアのエージェントを更新する
-	nextAgents := sim.UpdateDuplicateAgents(nextControlAgents, neighborAgents)
+	nextAgents := sim.UpdateDuplicateAgents(neighborAgents)
 	// Agentsをセットする
 	sim.SetAgents(nextAgents)
 
@@ -295,7 +396,8 @@ func (cb *WorkerCallback) ForwardClockInitRequest(clt *sxutil.SXServiceClient, m
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	//logger.Debug("Got Forward Clock Init Request")
 	// 同じエリアからエージェント情報を取得
-	agentsMessage = NewMessage()
+	//agentsMessage = NewMessage()
+	getSameAreaAgents()
 	logger.Success("Forward Clock Init")
 }
 
@@ -304,13 +406,16 @@ func (cb *WorkerCallback) ForwardClockMainRequest(clt *sxutil.SXServiceClient, m
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	//logger.Debug("Got Forward Clock Main Request")
 	// エージェント情報を計算する
-	forwardClock()
-	logger.Success("Forward Clock Main")
+	//forwardClock()
+	calcNextAgents()
+	logger.Success("Forward Clock Main Agents: %d", len(sim.Agents))
 }
 
 func (cb *WorkerCallback) ForwardClockTerminateRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+
+	updateNextAgents()
 	logger.Success("Forward Clock Terminate")
 }
 
@@ -330,8 +435,8 @@ func (cb *WorkerCallback) SetAgentRequest(clt *sxutil.SXServiceClient, msg *sxap
 	agents := simMsg.GetSetAgentRequest().GetAgents()
 
 	// Agent情報を追加する
-	sim.AddAgents(agents)
-	logger.Success("Set Agent %d", len(agents))
+	num := sim.AddAgents(agents)
+	logger.Success("Set Agent %d", num)
 }
 
 func (cb *WorkerCallback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) []*api.Agent {
@@ -387,7 +492,7 @@ func main() {
 		channelTypes = append(channelTypes, opt.ChType)
 	}
 	ni = sxutil.NewNodeServInfo()
-	util.RegisterNodeLoop(ni, *visNodeaddr, "WorkerProvider", channelTypes)
+	util.RegisterNodeLoop(ni, *visNodeaddr, "AgentProvider", channelTypes)
 
 	// Register Synerex Server
 	client = util.RegisterSynerexLoop(*visServaddr)

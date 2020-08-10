@@ -166,7 +166,11 @@ func init() {
 	}
 
 	logger = util.NewLogger()
-
+	// 初期化
+	targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_AGENT,
+	})
+	agentsMessage = NewMessage(targets)
 }
 
 ////////////////////////////////////////////////////////////
@@ -388,13 +392,32 @@ func forwardClock() {
 		allAgents = append(allAgents, agents...)
 	}*/
 
+	targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_AGENT,
+	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
+	//uid, _ := uuid.NewRandom()
+	//senderId := myProvider.Id
+	sclient := sclientOptsVis[uint32(api.ChannelType_AGENT)].Sclient
+	simMsgs, _ := simapi.GetAgentRequest(sclient, filters)
+	//simMsgs, _ := waiter.WaitSp(msgId, targets, 1000)
+
+	allAgents := []*api.Agent{}
+	for _, simMsg := range simMsgs {
+		agents := simMsg.GetGetAgentResponse().GetAgents()
+		allAgents = append(allAgents, agents...)
+	}
+
 	//agents := agentsMessage.Get()
-	agents := []*api.Agent{}
+	//agents := []*api.Agent{}
 
 	// Harmowareに送る
-	sendAgentToHarmowareVis(agents)
+	sendAgentToHarmowareVis(allAgents)
 
-	logger.Info("Send Agents %d\n", len(agents))
+	logger.Info("Send Agents %d\n", len(allAgents))
 }
 
 ////////////////////////////////////////////////////////////
@@ -412,7 +435,9 @@ func (cb *VisCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg 
 	//fmt.Printf("regist provider! %v %v\n", p.GetId(), p.GetType())
 
 	// update provider to Vis
-	targets := pm.GetProviderIds([]api.Provider_Type{})
+	targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_AGENT,
+	})
 	filters := []*api.Filter{}
 	for _, target := range targets {
 		filters = append(filters, &api.Filter{TargetId: target})
@@ -420,7 +445,7 @@ func (cb *VisCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg 
 	sclient := sclientOptsVis[uint32(api.ChannelType_PROVIDER)].Sclient
 	//logger.Info("Send UpdateProvidersRequest %v, %v", targets, simapi.Provider)
 	simapi.UpdateProvidersRequest(sclient, filters, pm.GetProviders())
-	logger.Success("Update Providers! Worker Num: ", len(filters))
+	logger.Success("Update Providers! Worker Num: %d", len(filters))
 
 	return simapi.Provider
 }
@@ -429,10 +454,11 @@ func (cb *VisCallback) SetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.M
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	agents := simMsg.GetSetAgentRequest().GetAgents()
+	//agentsMessage.Set(agents, simMsg.SenderId)
 	//sendAgentToHarmowareVis(agents)
 	//go agentsMessage.Set(agents, simMsg.GetSenderId())
 	//db.Push(agents)
-	logger.Success("Set Agents: %d\n", len(agents))
+	logger.Success("Set Agents: %d", len(agents))
 
 }
 
@@ -443,7 +469,7 @@ type MasterCallback struct {
 	*util.Callback
 }
 
-func (cb *MasterCallback) ForwardClockRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+/*func (cb *MasterCallback) ForwardClockRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	t1 := time.Now()
@@ -457,10 +483,10 @@ func (cb *MasterCallback) ForwardClockRequest(clt *sxutil.SXServiceClient, msg *
 	//simapi.ForwardClockResponse(sclient, msgId)
 
 	// 初期化
-	//targets := pm.GetProviderIds([]api.Provider_Type{
-	//	api.Provider_AGENT,
-	//})
-	//agentsMessage = NewMessage(targets)
+	targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_AGENT,
+	})
+	agentsMessage = NewMessage(targets)
 
 	t2 := time.Now()
 	duration := t2.Sub(t1).Milliseconds()
@@ -469,6 +495,49 @@ func (cb *MasterCallback) ForwardClockRequest(clt *sxutil.SXServiceClient, msg *
 		logger.Warn("time cycle delayed... Duration: %d", duration)
 	} else {
 		logger.Success("Forward Clock! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+	}
+}*/
+
+func (cb *MasterCallback) ForwardClockInitRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	t1 := time.Now()
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	t2 := time.Now()
+	duration := t2.Sub(t1).Milliseconds()
+	interval := int64(1000) // 周期ms
+	if duration > interval {
+		logger.Warn("time cycle delayed... Duration: %d", duration)
+	} else {
+		logger.Success("Forward Clock Init! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+	}
+}
+
+func (cb *MasterCallback) ForwardClockMainRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	t1 := time.Now()
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	t2 := time.Now()
+	duration := t2.Sub(t1).Milliseconds()
+	interval := int64(1000) // 周期ms
+	if duration > interval {
+		logger.Warn("time cycle delayed... Duration: %d", duration)
+	} else {
+		logger.Success("Forward Clock Main! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+	}
+}
+
+func (cb *MasterCallback) ForwardClockTerminateRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	t1 := time.Now()
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	forwardClock()
+	t2 := time.Now()
+	duration := t2.Sub(t1).Milliseconds()
+	interval := int64(1000) // 周期ms
+	if duration > interval {
+		logger.Warn("time cycle delayed... Duration: %d", duration)
+	} else {
+		logger.Success("Forward Clock Terminate! Duration: %v ms, Wait: %d ms", duration, interval-duration)
 	}
 }
 

@@ -159,24 +159,28 @@ type MasterCallback struct {
 	*util.Callback
 }
 
-func (cb *MasterCallback) ForwardClockRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+/*func (cb *MasterCallback) ForwardClockRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	t1 := time.Now()
 
 	// request to worker providers
-	/*targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
 	sclient := sclientOptsWorker[uint32(api.ChannelType_CLOCK)].Sclient
 	// init
-	simapi.ForwardClockInitRequest(sclient, targets)
+	simapi.ForwardClockInitRequest(sclient, filters)
 
 	// main
-	simapi.ForwardClockRequest(sclient, targets)
+	simapi.ForwardClockMainRequest(sclient, filters)
 
 	// terminate
-	simapi.ForwardClockTerminateRequest(sclient, targets)*/
+	simapi.ForwardClockTerminateRequest(sclient, filters)
 
 	t2 := time.Now()
 	duration := t2.Sub(t1).Milliseconds()
@@ -185,6 +189,78 @@ func (cb *MasterCallback) ForwardClockRequest(clt *sxutil.SXServiceClient, msg *
 		logger.Warn("time cycle delayed... Duration: %d", duration)
 	} else {
 		logger.Success("Forward Clock! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+	}
+}*/
+
+func (cb *MasterCallback) ForwardClockInitRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	t1 := time.Now()
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_AGENT,
+	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
+	sclient := sclientOptsWorker[uint32(api.ChannelType_CLOCK)].Sclient
+	// init
+	simapi.ForwardClockInitRequest(sclient, filters)
+	t2 := time.Now()
+	duration := t2.Sub(t1).Milliseconds()
+	interval := int64(1000) // 周期ms
+	if duration > interval {
+		logger.Warn("time cycle delayed... Duration: %d", duration)
+	} else {
+		logger.Success("Forward Clock Init! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+	}
+}
+
+func (cb *MasterCallback) ForwardClockMainRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	t1 := time.Now()
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_AGENT,
+	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
+	sclient := sclientOptsWorker[uint32(api.ChannelType_CLOCK)].Sclient
+	// init
+	simapi.ForwardClockMainRequest(sclient, filters)
+	t2 := time.Now()
+	duration := t2.Sub(t1).Milliseconds()
+	interval := int64(1000) // 周期ms
+	if duration > interval {
+		logger.Warn("time cycle delayed... Duration: %d", duration)
+	} else {
+		logger.Success("Forward Clock Main! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+	}
+}
+
+func (cb *MasterCallback) ForwardClockTerminateRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	t1 := time.Now()
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	targets := pm.GetProviderIds([]api.Provider_Type{
+		api.Provider_AGENT,
+	})
+	filters := []*api.Filter{}
+	for _, target := range targets {
+		filters = append(filters, &api.Filter{TargetId: target})
+	}
+	sclient := sclientOptsWorker[uint32(api.ChannelType_CLOCK)].Sclient
+	// init
+	simapi.ForwardClockTerminateRequest(sclient, filters)
+	t2 := time.Now()
+	duration := t2.Sub(t1).Milliseconds()
+	interval := int64(1000) // 周期ms
+	if duration > interval {
+		logger.Warn("time cycle delayed... Duration: %d", duration)
+	} else {
+		logger.Success("Forward Clock Terminate! Duration: %v ms, Wait: %d ms", duration, interval-duration)
 	}
 }
 
@@ -259,7 +335,7 @@ func (cb *WorkerCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, m
 	sclient := sclientOptsWorker[uint32(api.ChannelType_PROVIDER)].Sclient
 	//logger.Info("Send UpdateProvidersRequest %v, %v", targets, simapi.Provider)
 	simapi.UpdateProvidersRequest(sclient, filters, pm.GetProviders())
-	logger.Success("Update Providers! Worker Num: ", len(filters))
+	logger.Success("Update Providers! Worker Num: %d", len(filters))
 
 	return simapi.Provider
 }

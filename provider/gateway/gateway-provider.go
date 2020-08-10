@@ -225,31 +225,35 @@ func (cb *Worker1Callback) UpdateProvidersRequest(clt *sxutil.SXServiceClient, m
 func (cb *Worker1Callback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) []*api.Agent {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
-	logger.Debug("get agent request\n")
-	// 隣接エリアがない場合はそのまま返す
-	t1 := time.Now()
-
 	agents := []*api.Agent{}
-	// worker2のagent-providerから取得
-	targets := []uint64{agentProvider2.Id}
-	filters := []*api.Filter{}
-	for _, target := range targets {
-		filters = append(filters, &api.Filter{TargetId: target})
-	}
-	sclient := sclientOptsWorker2[uint32(api.ChannelType_AGENT)].Sclient
-	msgs, _ := simapi.GetAgentRequest(sclient, filters)
+	if simMsg.GetSenderId() == agentProvider1.Id {
+		//logger.Debug("get agent request 0\n")
+		// 隣接エリアがない場合はそのまま返す
+		t1 := time.Now()
 
-	for _, msg := range msgs {
-		ags := msg.GetGetAgentResponse().GetAgents()
-		agents = append(agents, ags...)
-	}
-	t2 := time.Now()
-	duration := t2.Sub(t1).Milliseconds()
-	interval := int64(1000) // 周期ms
-	if duration > interval {
-		logger.Warn("time cycle delayed... Duration: %d", duration)
-	} else {
-		logger.Success("Get Agent! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+		// worker2のagent-providerから取得
+		targets := []uint64{agentProvider2.Id}
+		filters := []*api.Filter{}
+		for _, target := range targets {
+			filters = append(filters, &api.Filter{TargetId: target})
+		}
+		//logger.Debug("get agent request 1\n")
+		sclient := sclientOptsWorker2[uint32(api.ChannelType_AGENT)].Sclient
+		msgs, _ := simapi.GetAgentRequest(sclient, filters)
+		//logger.Debug("get agent request 2\n")
+		for _, msg := range msgs {
+			ags := msg.GetGetAgentResponse().GetAgents()
+			agents = append(agents, ags...)
+		}
+		//logger.Debug("get agent request 3\n")
+		t2 := time.Now()
+		duration := t2.Sub(t1).Milliseconds()
+		interval := int64(1000) // 周期ms
+		if duration > interval {
+			logger.Warn("time cycle delayed... Duration: %d", duration)
+		} else {
+			logger.Success("Get Agent! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+		}
 	}
 	return agents
 }
@@ -281,31 +285,36 @@ func (cb *Worker2Callback) UpdateProvidersRequest(clt *sxutil.SXServiceClient, m
 func (cb *Worker2Callback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) []*api.Agent {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
-	// 隣接エリアがない場合はそのまま返す
-	t1 := time.Now()
-
 	agents := []*api.Agent{}
-	// worker2のagent-providerから取得
-	targets := []uint64{agentProvider2.Id}
-	filters := []*api.Filter{}
-	for _, target := range targets {
-		filters = append(filters, &api.Filter{TargetId: target})
-	}
-	sclient := sclientOptsWorker1[uint32(api.ChannelType_AGENT)].Sclient
-	msgs, _ := simapi.GetAgentRequest(sclient, filters)
+	if simMsg.GetSenderId() == agentProvider2.Id {
+		//logger.Warn("get agent request 0\n")
+		// 隣接エリアがない場合はそのまま返す
+		t1 := time.Now()
 
-	for _, msg := range msgs {
-		ags := msg.GetGetAgentResponse().GetAgents()
-		agents = append(agents, ags...)
-	}
+		// worker2のagent-providerから取得
+		targets := []uint64{agentProvider1.Id}
+		filters := []*api.Filter{}
+		for _, target := range targets {
+			filters = append(filters, &api.Filter{TargetId: target})
+		}
+		//logger.Warn("get agent request 1\n")
+		sclient := sclientOptsWorker1[uint32(api.ChannelType_AGENT)].Sclient
+		msgs, _ := simapi.GetAgentRequest(sclient, filters)
+		//logger.Warn("get agent request 2\n")
 
-	t2 := time.Now()
-	duration := t2.Sub(t1).Milliseconds()
-	interval := int64(1000) // 周期ms
-	if duration > interval {
-		logger.Warn("time cycle delayed... Duration: %d", duration)
-	} else {
-		logger.Success("Get Agent! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+		for _, msg := range msgs {
+			ags := msg.GetGetAgentResponse().GetAgents()
+			agents = append(agents, ags...)
+		}
+		//logger.Warn("get agent request 3\n")
+		t2 := time.Now()
+		duration := t2.Sub(t1).Milliseconds()
+		interval := int64(1000) // 周期ms
+		if duration > interval {
+			logger.Warn("time cycle delayed... Duration: %d", duration)
+		} else {
+			logger.Success("Get Agent! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+		}
 	}
 	return agents
 }

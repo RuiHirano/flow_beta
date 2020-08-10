@@ -324,13 +324,13 @@ func (proc *Processor) setAgents2(agentNum uint64) (bool, error) {
 // setAgents: agentをセットするDemandを出す関数
 func (proc *Processor) setAgents(agentNum uint64) (bool, error) {
 
-	if proc.Area == nil {
-		return false, fmt.Errorf("area is nil")
-	}
+	//if proc.Area == nil {
+	//	return false, fmt.Errorf("area is nil")
+	//}
 
 	agents := make([]*api.Agent, 0)
-	//minLon, maxLon, minLat, maxLat := 136.971626, 136.989379, 35.152210, 35.161499
-	maxLat, maxLon, minLat, minLon := GetCoordRange(proc.Area.ControlArea)
+	minLon, maxLon, minLat, maxLat := 136.971626, 136.989379, 35.152210, 35.161499
+	//maxLat, maxLon, minLat, minLon := GetCoordRange(proc.Area.ControlArea)
 	//fmt.Printf("minLon %v, maxLon %v, minLat %v, maxLat %v\n", minLon, maxLon, minLat, maxLat)
 	for i := 0; i < int(agentNum); i++ {
 		uid, _ := uuid.NewRandom()
@@ -426,7 +426,10 @@ func (proc *Processor) startClock() {
 		filters = append(filters, &api.Filter{TargetId: target})
 	}
 	sclient := sclientOpts[uint32(api.ChannelType_CLOCK)].Sclient
-	simapi.ForwardClockRequest(sclient, filters)
+	//simapi.ForwardClockRequest(sclient, filters)
+	simapi.ForwardClockInitRequest(sclient, filters)      // init
+	simapi.ForwardClockMainRequest(sclient, filters)      // main
+	simapi.ForwardClockTerminateRequest(sclient, filters) // terminate
 
 	// calc next time
 	masterClock++
@@ -564,7 +567,7 @@ func (or *Order) SetAgent() echo.HandlerFunc {
 			return err
 		}
 		//fmt.Printf("agent num %d\n", ao.Num)
-		ok, err := proc.setAgents2(uint64(ao.Num))
+		ok, err := proc.setAgents(uint64(ao.Num))
 		fmt.Printf("ok %v, err %v", ok, err)
 		return c.String(http.StatusOK, "Set Agent")
 	}
