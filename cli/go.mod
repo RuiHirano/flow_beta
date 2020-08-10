@@ -1,6 +1,7 @@
 module github.com/synerex/synerex_alpha/cli/simulation/simulator
 
 require (
+	github.com/RuiHirano/flow_beta/cli/proto v0.0.0-00010101000000-000000000000
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/go-yaml/yaml v2.1.0+incompatible
@@ -15,7 +16,10 @@ require (
 	github.com/sirupsen/logrus v1.1.1 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.1
+	google.golang.org/grpc v1.31.0
 	gopkg.in/go-playground/validator.v9 v9.31.0
 )
+
+replace github.com/RuiHirano/flow_beta/cli/proto => ./proto
 
 go 1.13

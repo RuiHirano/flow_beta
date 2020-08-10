@@ -2,6 +2,7 @@ module github.com/synerex/synerex_alpha/provider/scenario-provider
 
 require (
 	github.com/RuiHirano/flow_beta/api v0.0.0-00010101000000-000000000000 // indirect
+	github.com/RuiHirano/flow_beta/provider/master/proto v0.0.0-00010101000000-000000000000 // indirect
 	github.com/RuiHirano/flow_beta/util v0.0.0-00010101000000-000000000000 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/go-yaml/yaml v2.1.0+incompatible // indirect
@@ -16,6 +17,7 @@ require (
 
 replace (
 	github.com/RuiHirano/flow_beta/api => ./../../api
+	github.com/RuiHirano/flow_beta/provider/master/proto => ./proto
 	github.com/RuiHirano/flow_beta/util => ./../../util
 )
 

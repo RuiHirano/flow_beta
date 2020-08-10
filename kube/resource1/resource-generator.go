@@ -628,7 +628,7 @@ func NewSimulator() Resource {
 					Env: []Env{
 						{
 							Name:  "MASTER_ADDRESS",
-							Value: "http://master:9900",
+							Value: "master:9900",
 						},
 					},
 					Ports: []Port{{ContainerPort: 8000}},

@@ -12,7 +12,9 @@ import (
 	"os"
 	"time"
 
+	pb "github.com/RuiHirano/flow_beta/cli/proto"
 	gosocketio "github.com/mtfelian/golang-socketio"
+	"google.golang.org/grpc"
 
 	"github.com/spf13/cobra"
 )
@@ -24,6 +26,7 @@ var Providers []string
 
 var (
 	sender *Sender
+	client pb.MasterClient
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -109,7 +112,14 @@ func init() {
 		masterProviderAddr = "http://localhost:9900"
 	}
 	log.Printf("Master Address is %d", masterProviderAddr)
-	sender = NewSender(masterProviderAddr)
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithInsecure())
+	conn, err := grpc.Dial(masterProviderAddr, opts...)
+	if err != nil {
+		log.Fatalf("fail to dial: %v", err)
+	}
+	client = pb.NewMasterClient(conn)
+	//sender = NewSender(masterProviderAddr)
 
 	time.Sleep(200 * time.Millisecond)
 }

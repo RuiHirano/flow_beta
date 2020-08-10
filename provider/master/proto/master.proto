@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package master;
+option go_package="master";
+
+service Master {
+    rpc SetClock(SetClockRequest) returns (Response){}
+    rpc StartClock(StartClockRequest) returns (Response){}  
+    rpc StopClock(StopClockRequest) returns (Response){}  
+    rpc SetArea(SetAreaRequest) returns (Response){}  
+    rpc SetAgent(SetAgentRequest) returns (Response){} 
+    rpc SetConfig(SetConfigRequest) returns (Response){} 
+}
+
+message SetClockRequest {
+    uint64 time = 1;
+}
+
+message StartClockRequest {
+}
+
+message StopClockRequest {
+}
+
+message SetAreaRequest {
+    string area=1;
+}
+
+message SetAgentRequest {
+    uint64 num=1;
+}
+
+message SetConfigRequest {
+    string config_name=1;
+}
+
+message Response {
+    uint64 request_id = 1;
+    uint64 timestamp = 2;
+    Status status = 3;
+}
+
+// Status
+message Status{
+    StatusType type = 1;
+    string log = 2;
+    string message = 3;
+}
+
+enum StatusType{
+    ERROR = 0;
+    FINISHED = 1;
+    CANCELLED = 2;
+    RUNNING = 3;
+    NONE = 4;
+}

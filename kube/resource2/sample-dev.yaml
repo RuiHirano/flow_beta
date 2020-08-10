@@ -26,7 +26,7 @@ spec:
     tty: true
     env:
     - name: MASTER_ADDRESS
-      value: http://master:9900
+      value: master:9900
     ports:
     - containerPort: 8000
 

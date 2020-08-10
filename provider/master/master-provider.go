@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"math"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"runtime"
@@ -14,9 +16,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"google.golang.org/grpc"
 
 	"io/ioutil"
 	"os/exec"
+
+	pb "github.com/RuiHirano/flow_beta/provider/master/proto"
 
 	api "github.com/RuiHirano/flow_beta/api"
 	util "github.com/RuiHirano/flow_beta/util"
@@ -643,13 +648,150 @@ func startSimulatorServer() {
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", *cliport)))
 }
 
+type MasterService struct{}
+
+func getUid() uint64 {
+	uid, _ := uuid.NewRandom()
+	return uint64(uid.ID())
+}
+
+func (b *MasterService) SetClock(ctx context.Context, request *pb.SetClockRequest) (*pb.Response, error) {
+	fmt.Printf("Got SetClock Request %v\n", request)
+	masterClock = int(request.GetTime())
+	proc.setClock(masterClock)
+	// Response
+	requestId := getUid()
+	response := &pb.Response{
+		RequestId: requestId,
+		Timestamp: uint64(time.Now().Unix()),
+		Status: &pb.Status{
+			Type:    pb.StatusType_FINISHED,
+			Log:     "",
+			Message: "",
+		},
+	}
+	return response, nil
+}
+
+func (b *MasterService) StartClock(ctx context.Context, request *pb.StartClockRequest) (*pb.Response, error) {
+	fmt.Printf("Got StartClock Request %v\n", request)
+	if startFlag == false {
+		startFlag = true
+		logger.Info("Start Clock")
+		go proc.startClock()
+	} else {
+		logger.Info("Clock is already started.")
+	}
+	// Response
+	requestId := getUid()
+	response := &pb.Response{
+		RequestId: requestId,
+		Timestamp: uint64(time.Now().Unix()),
+		Status: &pb.Status{
+			Type:    pb.StatusType_FINISHED,
+			Log:     "",
+			Message: "",
+		},
+	}
+	return response, nil
+}
+
+func (b *MasterService) StopClock(ctx context.Context, request *pb.StopClockRequest) (*pb.Response, error) {
+	fmt.Printf("Got StopClock Request %v\n", request)
+	startFlag = false
+	// Response
+	requestId := getUid()
+	response := &pb.Response{
+		RequestId: requestId,
+		Timestamp: uint64(time.Now().Unix()),
+		Status: &pb.Status{
+			Type:    pb.StatusType_FINISHED,
+			Log:     "",
+			Message: "",
+		},
+	}
+	return response, nil
+}
+
+func (b *MasterService) SetAgent(ctx context.Context, request *pb.SetAgentRequest) (*pb.Response, error) {
+	fmt.Printf("Got SetAgent Request %v\n", request)
+	num := int(request.GetNum())
+	proc.setAgents(uint64(num))
+	// Response
+	requestId := getUid()
+	response := &pb.Response{
+		RequestId: requestId,
+		Timestamp: uint64(time.Now().Unix()),
+		Status: &pb.Status{
+			Type:    pb.StatusType_FINISHED,
+			Log:     "",
+			Message: "",
+		},
+	}
+	return response, nil
+}
+
+func (b *MasterService) SetArea(ctx context.Context, request *pb.SetAreaRequest) (*pb.Response, error) {
+	fmt.Printf("Got SetArea Request %v\n", request)
+
+	// Response
+	requestId := getUid()
+	response := &pb.Response{
+		RequestId: requestId,
+		Timestamp: uint64(time.Now().Unix()),
+		Status: &pb.Status{
+			Type:    pb.StatusType_FINISHED,
+			Log:     "",
+			Message: "",
+		},
+	}
+	return response, nil
+}
+
+func (b *MasterService) SetConfig(ctx context.Context, request *pb.SetConfigRequest) (*pb.Response, error) {
+	fmt.Printf("Got SetConfig Request %v\n", request)
+	configName := request.GetConfigName()
+	logger.Info("configName %s", configName)
+
+	// Response
+	requestId := getUid()
+	response := &pb.Response{
+		RequestId: requestId,
+		Timestamp: uint64(time.Now().Unix()),
+		Status: &pb.Status{
+			Type:    pb.StatusType_FINISHED,
+			Log:     "",
+			Message: "",
+		},
+	}
+	return response, nil
+}
+
+func startSimulatorServer2() {
+	logger.Info("Starting Simulator Server... %s", *cliport)
+
+	server := grpc.NewServer()
+	svc := &MasterService{}
+	// 実行したい実処理をseverに登録する
+	pb.RegisterMasterServer(server, svc)
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *cliport))
+	defer lis.Close()
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	fmt.Printf("Served at %s\n", *cliport)
+	server.Serve(lis)
+}
+
 func main() {
 	logger.Info("Start Master Provider")
 	logger.Info("NumCPU=%d", runtime.NumCPU())
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	// CLI, GUIの受信サーバ
-	go startSimulatorServer()
+	go startSimulatorServer2()
 
 	// Register Node Server
 	channelTypes := []uint32{}

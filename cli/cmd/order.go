@@ -1,19 +1,22 @@
 package cmd
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	"github.com/go-yaml/yaml"
 
+	pb "github.com/RuiHirano/flow_beta/cli/proto"
 	"github.com/spf13/cobra"
 	"gopkg.in/go-playground/validator.v9"
 )
 
 var (
 	//geoInfo *geojson.FeatureCollection
+
 	config *Config
 )
 
@@ -63,7 +66,13 @@ var stopCmd = &cobra.Command{
 	Short: "Stop Simulation",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("stop\n")
-		sender.Post(nil, "/order/stop")
+		request := &pb.StopClockRequest{}
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		//response, err := client.RunProcess(ctx, request)
+		client.StopClock(ctx, request)
+		//sender.Post(nil, "/order/start")
+		//sender.Post(nil, "/order/stop")
 
 	},
 }
@@ -81,13 +90,19 @@ var startCmd = &cobra.Command{
 	Short: "Start Simulation",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("start\n")
-		sender.Post(nil, "/order/start")
+		request := &pb.StartClockRequest{}
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		//response, err := client.RunProcess(ctx, request)
+		client.StartClock(ctx, request)
+		//sender.Post(nil, "/order/start")
 
 	},
 }
 
 func init() {
 	orderCmd.AddCommand(startCmd)
+
 }
 
 /////////////////////////////////////////////////
@@ -109,10 +124,15 @@ type ClockOptions struct {
 	Time int `validate:"required,min=0" json:"time"`
 }
 
+type ConfigOptions struct {
+	ConfigName string `validate:"required" json:"config_name"`
+}
+
 var (
 	ao  = &AgentOptions{}
 	aro = &AreaOptions{}
 	co  = &ClockOptions{}
+	coo = &ConfigOptions{}
 )
 
 var setCmd = &cobra.Command{
@@ -125,8 +145,15 @@ var agentCmd = &cobra.Command{
 	Short: "Set agent",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("set agent\n")
-		aojson, _ := json.Marshal(ao)
-		sender.Post(aojson, "/order/set/agent")
+		//aojson, _ := json.Marshal(ao)
+		request := &pb.SetAgentRequest{
+			Num: uint64(ao.Num),
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		//response, err := client.RunProcess(ctx, request)
+		client.SetAgent(ctx, request)
+		//sender.Post(aojson, "/order/set/agent")
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return validateParams(*ao)
@@ -138,8 +165,13 @@ var areaCmd = &cobra.Command{
 	Short: "Set area",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("set area %v\n", aro)
-		arojson, _ := json.Marshal(aro)
-		sender.Post(arojson, "/order/set/area")
+		request := &pb.SetAreaRequest{}
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		//response, err := client.RunProcess(ctx, request)
+		client.SetArea(ctx, request)
+		//arojson, _ := json.Marshal(aro)
+		//sender.Post(arojson, "/order/set/area")
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return validateParams(*aro)
@@ -151,11 +183,34 @@ var clockCmd = &cobra.Command{
 	Short: "Set clock",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("set clock %v\n", co.Time)
-		cojson, _ := json.Marshal(co)
-		sender.Post(cojson, "/order/set/clock")
+		request := &pb.SetClockRequest{
+			Time: uint64(co.Time),
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		//response, err := client.RunProcess(ctx, request)
+		client.SetClock(ctx, request)
+		//cojson, _ := json.Marshal(co)
+		//sender.Post(cojson, "/order/set/clock")
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return validateParams(*co)
+	},
+}
+var configCmd = &cobra.Command{
+	Use:   "config",
+	Short: "Set config",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("set config %v\n", coo.ConfigName)
+		request := &pb.SetConfigRequest{
+			ConfigName: coo.ConfigName,
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		client.SetConfig(ctx, request)
+	},
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return validateParams(*coo)
 	},
 }
 
@@ -166,9 +221,11 @@ func init() {
 	areaCmd.Flags().StringVarP(&aro.ELon, "elon", "c", "136.989860", "area end lonitude (required)")
 	areaCmd.Flags().StringVarP(&aro.SLon, "slon", "d", "136.971762", "area start lonitude (required)")
 	clockCmd.Flags().IntVarP(&co.Time, "time", "t", 0, "clcok time (required)")
+	configCmd.Flags().StringVarP(&coo.ConfigName, "name", "n", "", "config fine name (required)")
 	setCmd.AddCommand(agentCmd)
 	setCmd.AddCommand(clockCmd)
 	setCmd.AddCommand(areaCmd)
+	setCmd.AddCommand(configCmd)
 	orderCmd.AddCommand(setCmd)
 }
 
