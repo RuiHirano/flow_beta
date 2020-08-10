@@ -204,7 +204,7 @@ func (m *Message) Get() []*api.Agent {
 }
 
 func getSameAreaAgents() {
-	logger.Debug("getSameAreaAgents 0")
+	//logger.Debug("getSameAreaAgents 0")
 	t1 := time.Now()
 	//logger.Debug("1: 同エリアエージェント取得")
 	targets := pm.GetProviderIds([]api.Provider_Type{
@@ -217,16 +217,16 @@ func getSameAreaAgents() {
 	sclient := sclientOptsWorker[uint32(api.ChannelType_AGENT)].Sclient
 	sameAgents := []*api.Agent{}
 	//if len(targets) != 0 {
-	logger.Debug("geeAgentRequest %v", filters)
+	//logger.Debug("geeAgentRequest %v", filters)
 	simMsgs, _ := simapi.GetAgentRequest(sclient, filters)
-	logger.Debug("getSameAreaAgents 1")
+	//logger.Debug("getSameAreaAgents 1")
 	////logger.Debug("1: targets %v\n", targets)
 	for _, simMsg := range simMsgs {
 		agents := simMsg.GetGetAgentResponse().GetAgents()
 		sameAgents = append(sameAgents, agents...)
 	}
 	sim.SetDiffAgents(sameAgents)
-	logger.Debug("getSameAreaAgents 2")
+	//logger.Debug("getSameAreaAgents 2")
 	t2 := time.Now()
 	duration := t2.Sub(t1).Milliseconds()
 	interval := int64(1000) // 周期ms
@@ -238,7 +238,7 @@ func getSameAreaAgents() {
 }
 
 func calcNextAgents() {
-	logger.Debug("calcNextAgents 0")
+	//logger.Debug("calcNextAgents 0")
 	t1 := time.Now()
 	sim.ForwardStep() // agents in control area
 	//agentsMessage.Set(nextControlAgents)
@@ -255,7 +255,7 @@ func calcNextAgents() {
 	sclient := sclientOptsVis[uint32(api.ChannelType_AGENT)].Sclient
 	simapi.SetAgentRequest(sclient, filters, nextControlAgents)*/
 
-	logger.Debug("calcNextAgents 2")
+	//logger.Debug("calcNextAgents 2")
 	t2 := time.Now()
 	duration := t2.Sub(t1).Milliseconds()
 	interval := int64(1000) // 周期ms
@@ -267,7 +267,7 @@ func calcNextAgents() {
 }
 
 func updateNextAgents() {
-	logger.Debug("updateNextAgents 0")
+	//logger.Debug("updateNextAgents 0")
 	t1 := time.Now()
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_GATEWAY,
@@ -277,7 +277,7 @@ func updateNextAgents() {
 		filters = append(filters, &api.Filter{TargetId: target})
 	}
 	sclient := sclientOptsWorker[uint32(api.ChannelType_AGENT)].Sclient
-	logger.Debug("updateNextAgents 1")
+	//logger.Debug("updateNextAgents 1")
 	neighborAgents := []*api.Agent{}
 	simMsgs, _ := simapi.GetAgentRequest(sclient, filters)
 
@@ -285,7 +285,7 @@ func updateNextAgents() {
 		agents := simMsg.GetGetAgentResponse().GetAgents()
 		neighborAgents = append(neighborAgents, agents...)
 	}
-	logger.Debug("updateNextAgents 2")
+	//logger.Debug("updateNextAgents 2")
 
 	// [4. Update Agents]重複エリアのエージェントを更新する
 	//nextControlAgents := []*api.Agent{}
@@ -293,7 +293,7 @@ func updateNextAgents() {
 	// Agentsをセットする
 	sim.SetAgents(nextAgents)
 
-	logger.Debug("updateNextAgents 3")
+	//logger.Debug("updateNextAgents 3")
 	t2 := time.Now()
 	duration := t2.Sub(t1).Milliseconds()
 	interval := int64(1000) // 周期ms
