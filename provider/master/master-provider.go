@@ -5,10 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"math"
 	"math/rand"
 	"net"
-	"net/http"
+
+	//"net/http"
 	"os"
 	"runtime"
 	"strconv"
@@ -19,7 +19,6 @@ import (
 	"google.golang.org/grpc"
 
 	"io/ioutil"
-	"os/exec"
 
 	pb "github.com/RuiHirano/flow_beta/provider/master/proto"
 
@@ -27,8 +26,9 @@ import (
 	util "github.com/RuiHirano/flow_beta/util"
 	"github.com/go-yaml/yaml"
 	"github.com/golang/protobuf/proto"
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
+
+	//"github.com/labstack/echo"
+	//"github.com/labstack/echo/middleware"
 	sxapi "github.com/synerex/synerex_api"
 	sxutil "github.com/synerex/synerex_sxutil"
 )
@@ -161,7 +161,6 @@ func init() {
 		},
 	}
 
-	podgen = NewPodGenerator()
 	proc = NewProcessor()
 	startFlag = false
 	masterClock = 0
@@ -395,6 +394,8 @@ func (proc *Processor) setAreas(areaCoords []*api.Coord) (bool, error) {
 	//id := "test"
 
 	areas, neighborsMap := proc.divideArea(areaCoords, config.Area)
+
+	podgen = NewPodGenerator("flow_beta", "latest")
 	for _, area := range areas {
 		neighbors := neighborsMap[int(area.Id)]
 		go podgen.applyWorker(area, neighbors)
@@ -536,7 +537,7 @@ func (proc *Processor) divideArea(areaCoords []*api.Coord, areaConfig Config_Are
 ////////////  Order  //////////////////////
 ///////////////////////////////////////////////
 
-type Order struct {
+/*type Order struct {
 }
 
 func NewOrder() *Order {
@@ -646,7 +647,7 @@ func startSimulatorServer() {
 
 	logger.Success("Listen Simulator Port at %d", *cliport)
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", *cliport)))
-}
+}*/
 
 type MasterService struct{}
 
@@ -733,7 +734,17 @@ func (b *MasterService) SetAgent(ctx context.Context, request *pb.SetAgentReques
 
 func (b *MasterService) SetArea(ctx context.Context, request *pb.SetAreaRequest) (*pb.Response, error) {
 	fmt.Printf("Got SetArea Request %v\n", request)
-
+	/*slat, _ := strconv.ParseFloat(ao.SLat, 64)
+	slon, _ := strconv.ParseFloat(ao.SLon, 64)
+	elat, _ := strconv.ParseFloat(ao.ELat, 64)
+	elon, _ := strconv.ParseFloat(ao.ELon, 64)
+	area := []*api.Coord{
+		{Latitude: slat, Longitude: slon},
+		{Latitude: slat, Longitude: elon},
+		{Latitude: elat, Longitude: elon},
+		{Latitude: elat, Longitude: slon},
+	}
+	proc.setAreas(area)*/
 	// Response
 	requestId := getUid()
 	response := &pb.Response{
@@ -819,7 +830,7 @@ func main() {
 ////////// Pod Generator ////////
 //////////////////////////////////
 
-type PodGenerator struct {
+/*type PodGenerator struct {
 	RsrcMap map[string][]Resource
 }
 
@@ -861,10 +872,10 @@ func (pg *PodGenerator) applyWorker(area *api.Area, neighbors []string) error {
 	}
 
 	// delete yaml
-	/*if err := os.Remove(fileName); err != nil {
-		fmt.Println(err)
-		return err
-	}*/
+	//if err := os.Remove(fileName); err != nil {
+	//	fmt.Println(err)
+	//	return err
+	//}
 	fmt.Printf("out: %v\n", string(out))
 
 	// regist resource
@@ -1506,3 +1517,4 @@ func GetAmongPosition(pos1 *api.Coord, pos2 *api.Coord) *api.Coord {
 	}
 	return position
 }
+*/

@@ -1,0 +1,18 @@
+
+image:
+  id: flow_beta           # 使用するimageのID
+  version: latest         # 使用するimageのバージョン
+area:
+  coords:
+    startLat: 35.152371   # 緯度の始値
+    endLat: 35.161544     # 緯度の終値
+    startLon: 136.971762  # 経度の始値
+    endLon: 136.989860    # 経度の終値
+  sideRange: 0.10         # 
+  duplicateRange: 0.0005  # 重複エリアの幅
+  defaultAreaNum: 
+    column: 3             # 
+    row: 2                # 
+
+agent:
+  

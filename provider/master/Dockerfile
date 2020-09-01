@@ -28,6 +28,7 @@ WORKDIR /synerex_simulation
 COPY /provider/master ./provider/master
 COPY /util ./util
 COPY /api ./api
+COPY /config ./config
 RUN cd provider/master && \
     sed -i 's/\r//' ./entrypoint.sh && \
     chmod +x ./entrypoint.sh
@@ -35,5 +36,5 @@ RUN cd provider/master && \
 # expose port
 #EXPOSE 10000
 WORKDIR /synerex_simulation/provider/master
-RUN go build master-provider.go
+RUN go build master-provider.go pod-generator.go
 ENTRYPOINT [ "./entrypoint.sh" ]
