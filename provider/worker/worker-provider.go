@@ -94,16 +94,12 @@ func init() {
 type WorkerProvider struct {
 	MasterAPI *util.MasterAPI
 	WorkerAPI *util.WorkerAPI
-	GlobalTime int
-	Status string
 }
 
 func NewWorkerProvider(masterapi *util.MasterAPI, workerapi *util.WorkerAPI) *WorkerProvider {
 	ap := &WorkerProvider{
 		MasterAPI: masterapi,
 		WorkerAPI: workerapi,
-		GlobalTime: 0,
-		Status: "STOP",
 	}
 	return ap
 }
@@ -300,7 +296,7 @@ func main() {
 
 	// Master Server
 	macb := &MasterCallback{cb} // override
-	masterAPI := util.NewMasterAPI(simapi, *servaddr, *nodeaddr, macb)
+	masterAPI := util.NewMasterAPI(simapi, *masterServaddr, *masterNodeaddr, macb)
 	masterAPI.ConnectServer()
 	masterAPI.RegisterProvider()
 
