@@ -87,16 +87,14 @@ func RegisterSynerexLoop(sxServerAddress string) sxapi.SynerexClient {
 // WorkerやMasterにProviderを登録する
 func RegisterProviderLoop(sclient *sxutil.SXServiceClient, simapi *api.SimAPI) *api.Provider {
 	// masterへ登録
-	filters := []*api.Filter{&api.Filter{
-		TargetId: 0, // allow any msg
-	}}
+	targets := []uint64{0}
 	//bc.simapi.RegisterProviderRequest(sclient, targets, bc.simapi.Provider)
 	var provider *api.Provider
 	ch := make(chan struct{})
 	go func() {
 		for {
 			log.Printf("RegistProviderRequst %v", simapi.Provider.Id)
-			msgs, err := simapi.RegisterProviderRequest(sclient, filters, simapi.Provider)
+			msgs, err := simapi.RegisterProviderRequest(sclient, targets, simapi.Provider)
 			if err != nil {
 				//logger.Debug("Couldn't Regist Master...Retry...")
 				logger.Error("Error: no response! recconect now... %v", err)

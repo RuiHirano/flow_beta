@@ -3,13 +3,13 @@ package util
 import (
 	//"log"
 
-	"sync"
+	//"sync"
 
 	api "github.com/RuiHirano/flow_beta/api"
 )
 
 var (
-	mu sync.Mutex
+	//mu sync.Mutex
 )
 
 ////////////////////////////////////////////////////////////
