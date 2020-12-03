@@ -233,7 +233,6 @@ func readConfig() (*Config, error) {
 func init() {
 	flag.Parse()
 
-	pm = util.NewProviderManager(myProvider)
 	//log.Printf("ProviderID: %d", simapi.Provider.Id)
 
 	//proc = NewProcessor()
@@ -689,6 +688,7 @@ func main() {
 		Type: api.Provider_MASTER,
 	}
 	simapi = api.NewSimAPI(myProvider)
+	pm = util.NewProviderManager(myProvider)
 	cb := util.NewCallback()
 
 	// Master Server

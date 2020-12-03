@@ -80,6 +80,12 @@ func (ap *WorkerAPI) RegisterProvider() error {
 	return nil
 }
 
+func (ap *WorkerAPI) UpdateProviders(targets []uint64, providers []*api.Provider) {
+	sclient := ap.SclientOpts[uint32(api.ChannelType_PROVIDER)].Sclient
+	//logger.Info("Send UpdateProvidersRequest %v, %v", targets, simapi.Provider)
+	ap.SimAPI.UpdateProvidersRequest(sclient, targets, providers)
+}
+
 func (ap *WorkerAPI) GetAgents(targets []uint64) []*api.Agent{
 	sclient := ap.SclientOpts[uint32(api.ChannelType_AGENT)].Sclient
 	agents := []*api.Agent{}
@@ -89,6 +95,31 @@ func (ap *WorkerAPI) GetAgents(targets []uint64) []*api.Agent{
 		agents = append(agents, agents...)
 	}
 	return agents
+}
+
+func (ap *WorkerAPI) SetAgents(targets []uint64, agents []*api.Agent) {
+	sclient := ap.SclientOpts[uint32(api.ChannelType_AGENT)].Sclient
+	ap.SimAPI.SetAgentRequest(sclient, targets, agents)
+}
+
+func (ap *WorkerAPI) ForwardClockInit(targets []uint64) {
+	sclient := ap.SclientOpts[uint32(api.ChannelType_CLOCK)].Sclient
+	ap.SimAPI.ForwardClockInitRequest(sclient, targets)
+}
+
+func (ap *WorkerAPI) ForwardClockMain(targets []uint64) {
+	sclient := ap.SclientOpts[uint32(api.ChannelType_CLOCK)].Sclient
+	ap.SimAPI.ForwardClockMainRequest(sclient, targets)
+}
+
+func (ap *WorkerAPI) ForwardClockTerminate(targets []uint64) {
+	sclient := ap.SclientOpts[uint32(api.ChannelType_CLOCK)].Sclient
+	ap.SimAPI.ForwardClockTerminateRequest(sclient, targets)
+}
+
+func (ap *WorkerAPI) SetClock(targets []uint64, clock *api.Clock) {
+	sclient := ap.SclientOpts[uint32(api.ChannelType_CLOCK)].Sclient
+	ap.SimAPI.SetClockRequest(sclient, targets, clock)
 }
 
 type MasterAPI struct {

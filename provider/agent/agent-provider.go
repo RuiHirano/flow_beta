@@ -37,8 +37,6 @@ var (
 	agentType      api.AgentType
 	agentProvider  *AgentProvider
 
-	sclientOptsVis    map[uint32]*util.SclientOpt
-	sclientOptsWorker map[uint32]*util.SclientOpt
 	simapi            *api.SimAPI
 
 	servaddr     = flag.String("servaddr", getServerAddress(), "The Synerex Server Listening Address")
