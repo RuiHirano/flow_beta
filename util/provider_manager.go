@@ -53,11 +53,7 @@ func (pm *ProviderManager) SetProviders(ps []*api.Provider) {
 }
 
 func (pm *ProviderManager) GetProviders() []*api.Provider {
-	mu.Lock()
-	providers := pm.Providers
-	mu.Unlock()
-	return providers
-	//log.Printf("Providers: %v\n", pm.Providers)
+	return pm.Providers
 }
 
 func (pm *ProviderManager) DeleteProvider(id uint64) {

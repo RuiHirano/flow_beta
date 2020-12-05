@@ -126,12 +126,21 @@ func NewVisualizationProvider(masterapi *util.MasterAPI, workerapi *util.WorkerA
 	return ap
 }
 
+func (ap *VisualizationProvider) Connect() error {
+	ap.WorkerAPI.ConnectServer()
+	//ap.WorkerAPI.RegisterProvider()
+	ap.MasterAPI.ConnectServer()
+	ap.MasterAPI.RegisterProvider()
+	return nil
+}
+
 // 
 func (ap *VisualizationProvider) RegisterProvider(provider *api.Provider) error {
 	//logger.Debug("calcNextAgents 0")
 	pm.AddProvider(provider)
 	//fmt.Printf("regist provider! %v %v\n", p.GetId(), p.GetType())
 
+	logger.Debug("RegisterProvider: %v", provider)
 	// update provider to worker
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_AGENT,
@@ -147,6 +156,7 @@ func (ap *VisualizationProvider) GetAgents() []*api.Agent {
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
+	logger.Debug("targets: %v", targets)
 	agents := ap.WorkerAPI.GetAgents(targets)
 	logger.Success("Get Agents : %s", len(agents))
 	return agents
@@ -360,6 +370,8 @@ func main() {
 	wg := sync.WaitGroup{} // for syncing other goroutines
 	wg.Add(1)
 
+	go runVisMonitor()
+
 	// Vis
 	uid, _ := uuid.NewRandom()
 	myProvider := &api.Provider{
@@ -374,19 +386,19 @@ func main() {
 	// Worker Server
 	wocb := &WorkerCallback{cb} // override
 	workerAPI := util.NewWorkerAPI(simapi, *servaddr, *nodeaddr, wocb)
-	workerAPI.ConnectServer()
-	workerAPI.RegisterProvider()
+	//workerAPI.ConnectServer()
+	//workerAPI.RegisterProvider()
 
 	// Master Server
 	macb := &MasterCallback{cb} // override
 	masterAPI := util.NewMasterAPI(simapi, *masterServaddr, *masterNodeaddr, macb)
-	masterAPI.ConnectServer()
-	masterAPI.RegisterProvider()
+	//masterAPI.ConnectServer()
+	//masterAPI.RegisterProvider()
 
 	// VisualizationProvider
 	visProvider = NewVisualizationProvider(masterAPI, workerAPI)
+	visProvider.Connect()
 
-	runVisMonitor()
 
 	wg.Wait()
 	sxutil.CallDeferFunctions() // cleanup!

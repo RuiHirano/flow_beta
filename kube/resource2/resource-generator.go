@@ -705,7 +705,7 @@ func main() {
 	// write yaml
 	fileName := option.FileName
 	for _, rsrc := range rsrcs {
-		err := WriteOnFile(fileName, rsrc)
+		err := WriteOnFile("./kube/resource2/"+fileName, rsrc)
 		if err != nil {
 			fmt.Println(err)
 			return

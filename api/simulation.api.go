@@ -4,7 +4,7 @@ import (
 	"context"
 	//"log"
 
-	//"log"
+	"log"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -342,14 +342,15 @@ func (s *SimAPI) GetAgentResponse(sclient *sxutil.SXServiceClient, msgId uint64,
 //////////////////////////////////////////
 
 // Providerを登録するDemand
-func (s *SimAPI) RegisterProviderRequest(sclient *sxutil.SXServiceClient, targets []uint64, providerInfo *Provider) ([]*SimMsg, error) {
+func (s *SimAPI) RegisterProviderRequest(sclient *sxutil.SXServiceClient, targets []uint64, provider *Provider) ([]*SimMsg, error) {
 	if len(targets) == 0 {
 		return []*SimMsg{}, nil
 	}
 	registerProviderRequest := &RegisterProviderRequest{
-		Provider: providerInfo,
+		Provider: provider,
 	}
 
+	log.Printf("provider %v %v\n", provider)
 	uid, _ := uuid.NewRandom()
 	msgId := uint64(uid.ID())
 	simMsg := &SimMsg{

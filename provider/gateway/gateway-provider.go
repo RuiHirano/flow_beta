@@ -110,6 +110,14 @@ func NewGatewayProvider(worker1api *util.WorkerAPI, worker2api *util.WorkerAPI) 
 	return ap
 }
 
+func (ap *GatewayProvider) Connect() error {
+	ap.Worker1API.ConnectServer()
+	ap.Worker1API.RegisterProvider()
+	ap.Worker2API.ConnectServer()
+	ap.Worker2API.RegisterProvider()
+	return nil
+}
+
 // 
 func (ap *GatewayProvider) UpdateProviders(providers []*api.Provider, name string) error {
 	if name == "WORKER1" {
@@ -227,17 +235,18 @@ func main() {
 	// Worker Server Main
 	wocb := &Worker1Callback{cb} // override
 	worker1API := util.NewWorkerAPI(simapi, *worker1Servaddr, *worker1Nodeaddr, wocb)
-	worker1API.ConnectServer()
-	worker1API.RegisterProvider()
+	//worker1API.ConnectServer()
+	//worker1API.RegisterProvider()
 
 	// Worker Server Sub
 	wocb2 := &Worker2Callback{cb} // override
 	worker2API := util.NewWorkerAPI(simapi, *worker2Servaddr, *worker2Nodeaddr, wocb2)
-	worker2API.ConnectServer()
-	worker2API.RegisterProvider()
+	//worker2API.ConnectServer()
+	//worker2API.RegisterProvider()
 
 	// GatewayProvider
 	gatewayProvider = NewGatewayProvider(worker1API, worker2API)
+	gatewayProvider.Connect()
 
 	wg.Wait()
 	sxutil.CallDeferFunctions() // cleanup!

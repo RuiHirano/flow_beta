@@ -263,6 +263,12 @@ func NewMasterProvider(api *util.MasterAPI) *MasterProvider {
 	return ap
 }
 
+func (ap *MasterProvider) Connect() error {
+	ap.API.ConnectServer()
+	//ap.API.RegisterProvider()
+	return nil
+}
+
 // 
 func (ap *MasterProvider) RegisterProvider(provider *api.Provider) error {
 	//logger.Debug("calcNextAgents 0")
@@ -302,7 +308,8 @@ func (ap *MasterProvider) SetClock(globalTime int) error {
 
 // 
 func (ap *MasterProvider) StartClock() {
-
+	ap.Status = "START"
+	logger.Info("Start Clock")
 	//logger.("Next Cycle! \n%v\n", targets)
 	t1 := time.Now()
 
@@ -329,13 +336,10 @@ func (ap *MasterProvider) StartClock() {
 		time.Sleep(time.Duration(interval-duration) * time.Millisecond)
 	}
 
-	if ap.Status == "STOP" {
-		logger.Info("Start Clock")
-		ap.Status = "START"
-		// FIX? memoly leak
+	if ap.Status == "START" {
 		ap.StartClock()
 	} else {
-		logger.Info("Clock is already started.")
+		logger.Info("Clock is stoped")
 	}
 }
 // 
@@ -409,8 +413,8 @@ type MasterCallback struct {
 
 func (cb *MasterCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) *api.Provider {
 	simMsg := &api.SimMsg{}
-	provider := simMsg.GetRegisterProviderRequest().GetProvider()
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	provider := simMsg.GetRegisterProviderRequest().GetProvider()
 	masterProvider.RegisterProvider(provider)
 
 	return masterProvider.API.SimAPI.Provider
@@ -553,8 +557,11 @@ func (b *MasterService) SetClock(ctx context.Context, request *pb.SetClockReques
 
 func (b *MasterService) StartClock(ctx context.Context, request *pb.StartClockRequest) (*pb.Response, error) {
 	fmt.Printf("Got StartClock Request %v\n", request)
-	go masterProvider.StartClock()
-
+	if masterProvider.Status == "START"{
+		logger.Warn("clock is already started")
+	}else{
+		go masterProvider.StartClock()
+	}
 	// Response
 	requestId := getUid()
 	response := &pb.Response{
@@ -694,11 +701,12 @@ func main() {
 	// Master Server
 	macb := &MasterCallback{cb} // override
 	masterAPI := util.NewMasterAPI(simapi, *servaddr, *nodeaddr, macb)
-	masterAPI.ConnectServer()
-	masterAPI.RegisterProvider()
+	//masterAPI.ConnectServer()
+	//masterAPI.RegisterProvider()
 
 	// MasterProvider
 	masterProvider = NewMasterProvider(masterAPI)
+	masterProvider.Connect()
 
 	wg.Wait()
 	sxutil.CallDeferFunctions() // cleanup!

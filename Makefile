@@ -16,13 +16,13 @@ simulator:
 		kubectl exec -it simulator -c simulator bash
 
 worker:
-		kubectl logs -f workertest -c worker-provider
+		kubectl logs -f worker${arg} -c worker-provider
 
 database:
 		kubectl logs -f database${arg} -c database-provider
 
 agent:
-		kubectl logs -f agent11 -c agent-provider
+		kubectl logs -f worker${arg} -c agent-provider
 
 vis:
 		kubectl logs -f visualization -c visualization-provider
@@ -35,6 +35,10 @@ apply:
 
 delete:
 		kubectl delete -f ./kube/resource2/sample.yaml
+
+
+apply-dev:
+		kubectl apply -f ./kube/resource2/sample-dev.yaml
 
 app:
 		kubectl apply -f ./kube/util/master-simulator.yaml
@@ -65,3 +69,6 @@ exec:
 
 del2: 
 		kubectl delete pod agent11 agent12 agent21 agent22 agent31 agent32 worker11 worker12 worker21 worker22 worker31 worker32 gateway1111 gateway1112 gateway1121 gateway1212 gateway1222 gateway2121 gateway2122 gateway2131 gateway2222 gateway2232 gateway3131 gateway3132
+
+gen-dev:
+		go run ./kube/resource2/resource-generator-dev.go --fileName sample-dev2.yaml --imageID flow_beta --imageVer latest

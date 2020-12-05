@@ -220,7 +220,7 @@ func (bc *BaseCallback) ProviderCallback(clt *sxutil.SXServiceClient, msg *sxapi
 		//targets := []uint64{simMsg.GetSenderId()}
 		msgId := simMsg.GetMsgId()
 
-		log.Printf("get Provider Callback %v\n", simMsg)
+		//log.Printf("get Provider Callback %v\n", simMsg)
 		switch simMsg.GetType() {
 		case api.MsgType_REGISTER_PROVIDER_REQUEST:
 
@@ -256,7 +256,7 @@ func (bc *BaseCallback) ClockCallback(clt *sxutil.SXServiceClient, msg *sxapi.Mb
 		simMsg := &api.SimMsg{}
 		proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 		//targets := []uint64{simMsg.GetSenderId()}
-		log.Printf("get Clock Callback %v\n", simMsg)
+		//log.Printf("get Clock Callback %v\n", simMsg)
 		msgId := simMsg.GetMsgId()
 		switch simMsg.GetType() {
 		case api.MsgType_SET_CLOCK_REQUEST:
@@ -325,7 +325,7 @@ func (bc *BaseCallback) AreaCallback(clt *sxutil.SXServiceClient, msg *sxapi.Mbu
 		simMsg := &api.SimMsg{}
 		//targets := []uint64{simMsg.GetSenderId()}
 		msgId := simMsg.GetMsgId()
-		log.Printf("get Area Callback %v\n", simMsg)
+		//log.Printf("get Area Callback %v\n", simMsg)
 		proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 		switch simMsg.GetType() {
 		case api.MsgType_SEND_AREA_INFO_REQUEST:

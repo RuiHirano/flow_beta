@@ -119,15 +119,25 @@ func init() {
 ///////////////////////////////////////////////////////////
 type AgentProvider struct {
 	Simulator *Simulator
-	API *util.WorkerAPI
+	WorkerAPI *util.WorkerAPI
+	VisAPI *util.WorkerAPI
 }
 
-func NewAgentProvider(simulator *Simulator, api *util.WorkerAPI) *AgentProvider {
+func NewAgentProvider(simulator *Simulator, workerapi *util.WorkerAPI, visapi *util.WorkerAPI) *AgentProvider {
 	ap := &AgentProvider{
 		Simulator: simulator,
-		API: api,
+		WorkerAPI: workerapi,
+		VisAPI: visapi,
 	}
 	return ap
+}
+
+func (ap *AgentProvider) Connect() error {
+	ap.WorkerAPI.ConnectServer()
+	ap.WorkerAPI.RegisterProvider()
+	ap.VisAPI.ConnectServer()
+	ap.VisAPI.RegisterProvider()
+	return nil
 }
 
 // Connect: Worker Nodeに接続する
@@ -135,19 +145,6 @@ func (ap *AgentProvider) ForwardClock() error {
 	//logger.Debug("calcNextAgents 0")
 	t1 := time.Now()
 	ap.Simulator.ForwardStep() // agents in control area
-	//agentsMessage.Set(nextControlAgents)
-
-	// visに保存
-	/*targets := pm.GetProviderIds([]api.Provider_Type{
-		api.Provider_VISUALIZATION,
-	})
-	filters := []*api.Filter{}
-	for _, target := range targets {
-		filters = append(filters, &api.Filter{TargetId: target})
-	}
-	logger.Debug("SetAgentRequest %v", filters)
-	sclient := sclientOptsVis[uint32(api.ChannelType_AGENT)].Sclient
-	simapi.SetAgentRequest(sclient, filters, nextControlAgents)*/
 
 	//logger.Debug("calcNextAgents 2")
 	t2 := time.Now()
@@ -168,7 +165,7 @@ func (ap *AgentProvider) GetSameAreaAgents() []*api.Agent {
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
-	sameAgents := ap.API.GetAgents(targets)
+	sameAgents := ap.WorkerAPI.GetAgents(targets)
 	sim.SetDiffAgents(sameAgents)
 	
 	t2 := time.Now()
@@ -190,7 +187,7 @@ func (ap *AgentProvider) GetNeighborAreaAgents() []*api.Agent {
 	targets := pm.GetProviderIds([]api.Provider_Type{
 		api.Provider_GATEWAY,
 	})
-	neighborAgents := ap.API.GetAgents(targets)
+	neighborAgents := ap.WorkerAPI.GetAgents(targets)
 	sim.SetDiffAgents(neighborAgents)
 	
 	t2 := time.Now()
@@ -224,6 +221,7 @@ func (ap *AgentProvider) UpdateAgents(agents []*api.Agent) error {
 }
 
 func (ap *AgentProvider) GetAgents() []*api.Agent {
+
 	return ap.Simulator.Agents
 }
 
@@ -284,6 +282,7 @@ func (cb *WorkerCallback) SetAgentRequest(clt *sxutil.SXServiceClient, msg *sxap
 func (cb *WorkerCallback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) []*api.Agent {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	logger.Debug("GetAgents Worker: %v")
 	agents := agentProvider.GetAgents()
 	logger.Success("Send %d Agent to %d", len(agents), simMsg.SenderId)
 	return agents
@@ -299,7 +298,9 @@ type VisCallback struct {
 func (cb *VisCallback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) []*api.Agent {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	logger.Debug("GetAgents VIS: %v")
 	agents := sim.Agents
+	logger.Success("Send %d Agent to VIS %d", len(agents), simMsg.SenderId)
 	return agents
 }
 
@@ -321,23 +322,26 @@ func main() {
 		Name: "AgentProvider",
 		Type: api.Provider_AGENT,
 	}
-	simapi = api.NewSimAPI(myProvider)
+	pm = util.NewProviderManager(myProvider)
+	simapi := api.NewSimAPI(myProvider)
 	cb := util.NewCallback()
 
 	// Worker Server
 	wocb := &WorkerCallback{cb} // override
 	workerAPI := util.NewWorkerAPI(simapi, *servaddr, *nodeaddr, wocb)
-	workerAPI.ConnectServer()
-	workerAPI.RegisterProvider()
+	//workerAPI.ConnectServer()
+	//workerAPI.RegisterProvider()
 
 	// Vis Server
+	simapi2 := api.NewSimAPI(myProvider)
 	vicb := &VisCallback{cb} // override
-	visAPI := util.NewWorkerAPI(simapi, *servaddr, *nodeaddr, vicb)
-	visAPI.ConnectServer()
-	visAPI.RegisterProvider()
+	visAPI := util.NewWorkerAPI(simapi2, *visServaddr, *visNodeaddr, vicb)
+	//visAPI.ConnectServer()
+	//visAPI.RegisterProvider()
 
 	// AgentProvider
-	agentProvider = NewAgentProvider(sim, workerAPI)
+	agentProvider = NewAgentProvider(sim, workerAPI, visAPI)
+	agentProvider.Connect()
 
 	wg.Wait()
 	sxutil.CallDeferFunctions() // cleanup!

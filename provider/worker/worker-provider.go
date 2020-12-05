@@ -103,6 +103,13 @@ func NewWorkerProvider(masterapi *util.MasterAPI, workerapi *util.WorkerAPI) *Wo
 	}
 	return ap
 }
+func (ap *WorkerProvider) Connect() error {
+	ap.WorkerAPI.ConnectServer()
+	//ap.WorkerAPI.RegisterProvider()
+	ap.MasterAPI.ConnectServer()
+	ap.MasterAPI.RegisterProvider()
+	return nil
+}
 
 // 
 func (ap *WorkerProvider) RegisterProvider(provider *api.Provider) error {
@@ -116,6 +123,7 @@ func (ap *WorkerProvider) RegisterProvider(provider *api.Provider) error {
 		api.Provider_AGENT,
 	})
 	providers := pm.GetProviders()
+	logger.Debug("targets %v, providers %v", targets, providers, provider, ap)
 	ap.WorkerAPI.UpdateProviders(targets, providers)
 	logger.Success("Update Providers! Worker Num: ", len(targets))
 	return nil
@@ -262,8 +270,8 @@ type WorkerCallback struct {
 
 func (cb *WorkerCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) *api.Provider {
 	simMsg := &api.SimMsg{}
-	provider := simMsg.GetRegisterProviderRequest().GetProvider()
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	provider := simMsg.GetRegisterProviderRequest().GetProvider()
 	workerProvider.RegisterProvider(provider)
 
 	return workerProvider.WorkerAPI.SimAPI.Provider
@@ -291,17 +299,19 @@ func main() {
 	// Worker Server
 	wocb := &WorkerCallback{cb} // override
 	workerAPI := util.NewWorkerAPI(simapi, *servaddr, *nodeaddr, wocb)
-	workerAPI.ConnectServer()
-	workerAPI.RegisterProvider()
+	//workerAPI.ConnectServer()
+	//workerAPI.RegisterProvider()
 
 	// Master Server
+	simapi2 := api.NewSimAPI(myProvider)
 	macb := &MasterCallback{cb} // override
-	masterAPI := util.NewMasterAPI(simapi, *masterServaddr, *masterNodeaddr, macb)
-	masterAPI.ConnectServer()
-	masterAPI.RegisterProvider()
+	masterAPI := util.NewMasterAPI(simapi2, *masterServaddr, *masterNodeaddr, macb)
+	//masterAPI.ConnectServer()
+	//masterAPI.RegisterProvider()
 
 	// WorkerProvider
 	workerProvider = NewWorkerProvider(masterAPI, workerAPI)
+	workerProvider.Connect()
 
 	wg.Wait()
 	sxutil.CallDeferFunctions() // cleanup!

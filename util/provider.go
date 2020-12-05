@@ -182,7 +182,7 @@ func (ap *MasterAPI) ConnectServer() error {
 func (ap *MasterAPI) RegisterProvider() error {
 	sclient := ap.SclientOpts[uint32(api.ChannelType_PROVIDER)].Sclient
 	masterProvider := RegisterProviderLoop(sclient, ap.SimAPI)
-	logger.Success("Register Provider to Worker Provider at %d", masterProvider.Id)
+	logger.Success("Register Provider to Master Provider at %d", masterProvider.Id)
 	return nil
 }
 
