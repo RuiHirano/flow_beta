@@ -1,0 +1,5800 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: simulator
+spec:
+  selector:
+    app: simulator
+  ports:
+  - name: http
+    port: 8000
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simulator
+  labels:
+    app: simulator
+spec:
+  containers:
+  - name: simulator
+    image: flow_beta/simulator:latest
+    imagePullPolicy: IfNotPresent
+    stdin: true
+    tty: true
+    env:
+    - name: MASTER_ADDRESS
+      value: master:9900
+    ports:
+    - containerPort: 8000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: master
+spec:
+  selector:
+    app: master
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+  - name: master-provider
+    port: 9900
+    targetPort: 9900
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: master
+  labels:
+    app: master
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: master
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: master
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: master
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: master-provider
+    image: flow_beta/master-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_SERVER_ADDRESS
+      value: master:10000
+    - name: CLI_PORT
+      value: "9900"
+    - name: PROVIDER_NAME
+      value: MasterProvider
+    ports:
+    - containerPort: 9900
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker11
+spec:
+  selector:
+    app: worker11
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker11
+  labels:
+    app: worker11
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker11
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker11
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker11
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker11:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker11:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider11
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker11:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker11:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":11, "name":"Unknown", "duplicate_area": [{"latitude":55, "longitude":-20},{"latitude":-5, "longitude":-20},{"latitude":-5, "longitude":220},{"latitude":55, "longitude":220}], "control_area": [{"latitude":50, "longitude":0},{"latitude":0, "longitude":0},{"latitude":0, "longitude":200},{"latitude":50, "longitude":200}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider11
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker11:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker11:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker21:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker21:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1121
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker11:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker11:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker12:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker12:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1112
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker12
+spec:
+  selector:
+    app: worker12
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker12
+  labels:
+    app: worker12
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker12
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker12
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker12
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker12:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker12:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider12
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker12:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker12:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":12, "name":"Unknown", "duplicate_area": [{"latitude":105, "longitude":-20},{"latitude":45, "longitude":-20},{"latitude":45, "longitude":220},{"latitude":105, "longitude":220}], "control_area": [{"latitude":100, "longitude":0},{"latitude":50, "longitude":0},{"latitude":50, "longitude":200},{"latitude":100, "longitude":200}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider12
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker12:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker12:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker22:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker22:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1222
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker12:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker12:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker13:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker13:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1213
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker13
+spec:
+  selector:
+    app: worker13
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker13
+  labels:
+    app: worker13
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker13
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker13
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker13
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker13:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker13:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider13
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker13:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker13:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":13, "name":"Unknown", "duplicate_area": [{"latitude":155, "longitude":-20},{"latitude":95, "longitude":-20},{"latitude":95, "longitude":220},{"latitude":155, "longitude":220}], "control_area": [{"latitude":150, "longitude":0},{"latitude":100, "longitude":0},{"latitude":100, "longitude":200},{"latitude":150, "longitude":200}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider13
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker13:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker13:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker23:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker23:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1323
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker13:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker13:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker14:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker14:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1314
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker14
+spec:
+  selector:
+    app: worker14
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker14
+  labels:
+    app: worker14
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker14
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker14
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker14
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker14:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker14:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider14
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker14:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker14:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":14, "name":"Unknown", "duplicate_area": [{"latitude":205, "longitude":-20},{"latitude":145, "longitude":-20},{"latitude":145, "longitude":220},{"latitude":205, "longitude":220}], "control_area": [{"latitude":200, "longitude":0},{"latitude":150, "longitude":0},{"latitude":150, "longitude":200},{"latitude":200, "longitude":200}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider14
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker14:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker14:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker24:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker24:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1424
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker14:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker14:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker15:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker15:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1415
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker15
+spec:
+  selector:
+    app: worker15
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker15
+  labels:
+    app: worker15
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker15
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker15
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker15
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker15:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker15:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider15
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker15:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker15:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":15, "name":"Unknown", "duplicate_area": [{"latitude":255, "longitude":-20},{"latitude":195, "longitude":-20},{"latitude":195, "longitude":220},{"latitude":255, "longitude":220}], "control_area": [{"latitude":250, "longitude":0},{"latitude":200, "longitude":0},{"latitude":200, "longitude":200},{"latitude":250, "longitude":200}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider15
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker15:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker15:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker25:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker25:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1525
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker15:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker15:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker16:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker16:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1516
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker16
+spec:
+  selector:
+    app: worker16
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker16
+  labels:
+    app: worker16
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker16
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker16
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker16
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker16:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker16:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider16
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker16:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker16:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":16, "name":"Unknown", "duplicate_area": [{"latitude":305, "longitude":-20},{"latitude":245, "longitude":-20},{"latitude":245, "longitude":220},{"latitude":305, "longitude":220}], "control_area": [{"latitude":300, "longitude":0},{"latitude":250, "longitude":0},{"latitude":250, "longitude":200},{"latitude":300, "longitude":200}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider16
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker16:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker16:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker26:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker26:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1626
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker16:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker16:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker17:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker17:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1617
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker17
+spec:
+  selector:
+    app: worker17
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker17
+  labels:
+    app: worker17
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker17
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker17
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker17
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker17:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker17:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider17
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker17:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker17:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":17, "name":"Unknown", "duplicate_area": [{"latitude":355, "longitude":-20},{"latitude":295, "longitude":-20},{"latitude":295, "longitude":220},{"latitude":355, "longitude":220}], "control_area": [{"latitude":350, "longitude":0},{"latitude":300, "longitude":0},{"latitude":300, "longitude":200},{"latitude":350, "longitude":200}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider17
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker17:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker17:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker27:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker27:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1727
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker17:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker17:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker18:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker18:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1718
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker18
+spec:
+  selector:
+    app: worker18
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker18
+  labels:
+    app: worker18
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker18
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker18
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker18
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker18:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker18:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider18
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker18:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker18:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":18, "name":"Unknown", "duplicate_area": [{"latitude":405, "longitude":-20},{"latitude":345, "longitude":-20},{"latitude":345, "longitude":220},{"latitude":405, "longitude":220}], "control_area": [{"latitude":400, "longitude":0},{"latitude":350, "longitude":0},{"latitude":350, "longitude":200},{"latitude":400, "longitude":200}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider18
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker18:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker18:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker28:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker28:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1828
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker18:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker18:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker19:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker19:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1819
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker19
+spec:
+  selector:
+    app: worker19
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker19
+  labels:
+    app: worker19
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker19
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker19
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker19
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker19:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker19:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider19
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker19:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker19:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":19, "name":"Unknown", "duplicate_area": [{"latitude":455, "longitude":-20},{"latitude":395, "longitude":-20},{"latitude":395, "longitude":220},{"latitude":455, "longitude":220}], "control_area": [{"latitude":450, "longitude":0},{"latitude":400, "longitude":0},{"latitude":400, "longitude":200},{"latitude":450, "longitude":200}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider19
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker19:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker19:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker29:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker29:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1929
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker19:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker19:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker110:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker110:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider19110
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker110
+spec:
+  selector:
+    app: worker110
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker110
+  labels:
+    app: worker110
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker110
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker110
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker110
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker110:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker110:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider110
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker110:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker110:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":110, "name":"Unknown", "duplicate_area": [{"latitude":505, "longitude":-20},{"latitude":445, "longitude":-20},{"latitude":445, "longitude":220},{"latitude":505, "longitude":220}], "control_area": [{"latitude":500, "longitude":0},{"latitude":450, "longitude":0},{"latitude":450, "longitude":200},{"latitude":500, "longitude":200}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider110
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker110:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker110:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker210:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker210:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider110210
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker21
+spec:
+  selector:
+    app: worker21
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker21
+  labels:
+    app: worker21
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker21
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker21
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker21
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker21:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker21:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider21
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker21:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker21:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":21, "name":"Unknown", "duplicate_area": [{"latitude":55, "longitude":180},{"latitude":-5, "longitude":180},{"latitude":-5, "longitude":420},{"latitude":55, "longitude":420}], "control_area": [{"latitude":50, "longitude":200},{"latitude":0, "longitude":200},{"latitude":0, "longitude":400},{"latitude":50, "longitude":400}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider21
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker21:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker21:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker31:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker31:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2131
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker21:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker21:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker22:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker22:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2122
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker22
+spec:
+  selector:
+    app: worker22
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker22
+  labels:
+    app: worker22
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker22
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker22
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker22
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker22:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker22:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider22
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker22:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker22:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":22, "name":"Unknown", "duplicate_area": [{"latitude":105, "longitude":180},{"latitude":45, "longitude":180},{"latitude":45, "longitude":420},{"latitude":105, "longitude":420}], "control_area": [{"latitude":100, "longitude":200},{"latitude":50, "longitude":200},{"latitude":50, "longitude":400},{"latitude":100, "longitude":400}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider22
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker22:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker22:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker32:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker32:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2232
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker22:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker22:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker23:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker23:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2223
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker23
+spec:
+  selector:
+    app: worker23
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker23
+  labels:
+    app: worker23
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker23
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker23
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker23
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker23:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker23:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider23
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker23:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker23:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":23, "name":"Unknown", "duplicate_area": [{"latitude":155, "longitude":180},{"latitude":95, "longitude":180},{"latitude":95, "longitude":420},{"latitude":155, "longitude":420}], "control_area": [{"latitude":150, "longitude":200},{"latitude":100, "longitude":200},{"latitude":100, "longitude":400},{"latitude":150, "longitude":400}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider23
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker23:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker23:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker33:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker33:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2333
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker23:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker23:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker24:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker24:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2324
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker24
+spec:
+  selector:
+    app: worker24
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker24
+  labels:
+    app: worker24
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker24
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker24
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker24
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker24:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker24:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider24
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker24:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker24:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":24, "name":"Unknown", "duplicate_area": [{"latitude":205, "longitude":180},{"latitude":145, "longitude":180},{"latitude":145, "longitude":420},{"latitude":205, "longitude":420}], "control_area": [{"latitude":200, "longitude":200},{"latitude":150, "longitude":200},{"latitude":150, "longitude":400},{"latitude":200, "longitude":400}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider24
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker24:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker24:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker34:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker34:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2434
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker24:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker24:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker25:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker25:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2425
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker25
+spec:
+  selector:
+    app: worker25
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker25
+  labels:
+    app: worker25
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker25
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker25
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker25
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker25:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker25:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider25
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker25:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker25:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":25, "name":"Unknown", "duplicate_area": [{"latitude":255, "longitude":180},{"latitude":195, "longitude":180},{"latitude":195, "longitude":420},{"latitude":255, "longitude":420}], "control_area": [{"latitude":250, "longitude":200},{"latitude":200, "longitude":200},{"latitude":200, "longitude":400},{"latitude":250, "longitude":400}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider25
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker25:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker25:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker35:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker35:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2535
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker25:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker25:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker26:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker26:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2526
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker26
+spec:
+  selector:
+    app: worker26
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker26
+  labels:
+    app: worker26
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker26
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker26
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker26
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker26:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker26:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider26
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker26:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker26:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":26, "name":"Unknown", "duplicate_area": [{"latitude":305, "longitude":180},{"latitude":245, "longitude":180},{"latitude":245, "longitude":420},{"latitude":305, "longitude":420}], "control_area": [{"latitude":300, "longitude":200},{"latitude":250, "longitude":200},{"latitude":250, "longitude":400},{"latitude":300, "longitude":400}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider26
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker26:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker26:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker36:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker36:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2636
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker26:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker26:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker27:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker27:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2627
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker27
+spec:
+  selector:
+    app: worker27
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker27
+  labels:
+    app: worker27
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker27
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker27
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker27
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker27:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker27:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider27
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker27:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker27:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":27, "name":"Unknown", "duplicate_area": [{"latitude":355, "longitude":180},{"latitude":295, "longitude":180},{"latitude":295, "longitude":420},{"latitude":355, "longitude":420}], "control_area": [{"latitude":350, "longitude":200},{"latitude":300, "longitude":200},{"latitude":300, "longitude":400},{"latitude":350, "longitude":400}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider27
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker27:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker27:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker37:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker37:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2737
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker27:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker27:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker28:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker28:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2728
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker28
+spec:
+  selector:
+    app: worker28
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker28
+  labels:
+    app: worker28
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker28
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker28
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker28
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker28:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker28:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider28
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker28:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker28:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":28, "name":"Unknown", "duplicate_area": [{"latitude":405, "longitude":180},{"latitude":345, "longitude":180},{"latitude":345, "longitude":420},{"latitude":405, "longitude":420}], "control_area": [{"latitude":400, "longitude":200},{"latitude":350, "longitude":200},{"latitude":350, "longitude":400},{"latitude":400, "longitude":400}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider28
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker28:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker28:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker38:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker38:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2838
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker28:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker28:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker29:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker29:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2829
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker29
+spec:
+  selector:
+    app: worker29
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker29
+  labels:
+    app: worker29
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker29
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker29
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker29
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker29:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker29:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider29
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker29:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker29:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":29, "name":"Unknown", "duplicate_area": [{"latitude":455, "longitude":180},{"latitude":395, "longitude":180},{"latitude":395, "longitude":420},{"latitude":455, "longitude":420}], "control_area": [{"latitude":450, "longitude":200},{"latitude":400, "longitude":200},{"latitude":400, "longitude":400},{"latitude":450, "longitude":400}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider29
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker29:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker29:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker39:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker39:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2939
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker29:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker29:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker210:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker210:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider29210
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker210
+spec:
+  selector:
+    app: worker210
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker210
+  labels:
+    app: worker210
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker210
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker210
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker210
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker210:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker210:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider210
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker210:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker210:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":210, "name":"Unknown", "duplicate_area": [{"latitude":505, "longitude":180},{"latitude":445, "longitude":180},{"latitude":445, "longitude":420},{"latitude":505, "longitude":420}], "control_area": [{"latitude":500, "longitude":200},{"latitude":450, "longitude":200},{"latitude":450, "longitude":400},{"latitude":500, "longitude":400}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider210
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker210:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker210:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker310:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker310:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider210310
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker31
+spec:
+  selector:
+    app: worker31
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker31
+  labels:
+    app: worker31
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker31
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker31
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker31
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker31:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker31:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider31
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker31:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker31:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":31, "name":"Unknown", "duplicate_area": [{"latitude":55, "longitude":380},{"latitude":-5, "longitude":380},{"latitude":-5, "longitude":620},{"latitude":55, "longitude":620}], "control_area": [{"latitude":50, "longitude":400},{"latitude":0, "longitude":400},{"latitude":0, "longitude":600},{"latitude":50, "longitude":600}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider31
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker31:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker31:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker41:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker41:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3141
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker31:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker31:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker32:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker32:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3132
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker32
+spec:
+  selector:
+    app: worker32
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker32
+  labels:
+    app: worker32
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker32
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker32
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker32
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker32:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker32:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider32
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker32:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker32:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":32, "name":"Unknown", "duplicate_area": [{"latitude":105, "longitude":380},{"latitude":45, "longitude":380},{"latitude":45, "longitude":620},{"latitude":105, "longitude":620}], "control_area": [{"latitude":100, "longitude":400},{"latitude":50, "longitude":400},{"latitude":50, "longitude":600},{"latitude":100, "longitude":600}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider32
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker32:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker32:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker42:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker42:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3242
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker32:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker32:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker33:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker33:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3233
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker33
+spec:
+  selector:
+    app: worker33
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker33
+  labels:
+    app: worker33
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker33
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker33
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker33
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker33:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker33:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider33
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker33:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker33:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":33, "name":"Unknown", "duplicate_area": [{"latitude":155, "longitude":380},{"latitude":95, "longitude":380},{"latitude":95, "longitude":620},{"latitude":155, "longitude":620}], "control_area": [{"latitude":150, "longitude":400},{"latitude":100, "longitude":400},{"latitude":100, "longitude":600},{"latitude":150, "longitude":600}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider33
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker33:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker33:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker43:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker43:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3343
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker33:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker33:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker34:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker34:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3334
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker34
+spec:
+  selector:
+    app: worker34
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker34
+  labels:
+    app: worker34
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker34
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker34
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker34
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker34:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker34:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider34
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker34:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker34:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":34, "name":"Unknown", "duplicate_area": [{"latitude":205, "longitude":380},{"latitude":145, "longitude":380},{"latitude":145, "longitude":620},{"latitude":205, "longitude":620}], "control_area": [{"latitude":200, "longitude":400},{"latitude":150, "longitude":400},{"latitude":150, "longitude":600},{"latitude":200, "longitude":600}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider34
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker34:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker34:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker44:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker44:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3444
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker34:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker34:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker35:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker35:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3435
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker35
+spec:
+  selector:
+    app: worker35
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker35
+  labels:
+    app: worker35
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker35
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker35
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker35
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker35:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker35:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider35
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker35:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker35:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":35, "name":"Unknown", "duplicate_area": [{"latitude":255, "longitude":380},{"latitude":195, "longitude":380},{"latitude":195, "longitude":620},{"latitude":255, "longitude":620}], "control_area": [{"latitude":250, "longitude":400},{"latitude":200, "longitude":400},{"latitude":200, "longitude":600},{"latitude":250, "longitude":600}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider35
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker35:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker35:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker45:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker45:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3545
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker35:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker35:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker36:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker36:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3536
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker36
+spec:
+  selector:
+    app: worker36
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker36
+  labels:
+    app: worker36
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker36
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker36
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker36
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker36:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker36:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider36
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker36:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker36:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":36, "name":"Unknown", "duplicate_area": [{"latitude":305, "longitude":380},{"latitude":245, "longitude":380},{"latitude":245, "longitude":620},{"latitude":305, "longitude":620}], "control_area": [{"latitude":300, "longitude":400},{"latitude":250, "longitude":400},{"latitude":250, "longitude":600},{"latitude":300, "longitude":600}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider36
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker36:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker36:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker46:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker46:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3646
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker36:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker36:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker37:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker37:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3637
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker37
+spec:
+  selector:
+    app: worker37
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker37
+  labels:
+    app: worker37
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker37
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker37
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker37
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker37:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker37:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider37
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker37:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker37:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":37, "name":"Unknown", "duplicate_area": [{"latitude":355, "longitude":380},{"latitude":295, "longitude":380},{"latitude":295, "longitude":620},{"latitude":355, "longitude":620}], "control_area": [{"latitude":350, "longitude":400},{"latitude":300, "longitude":400},{"latitude":300, "longitude":600},{"latitude":350, "longitude":600}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider37
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker37:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker37:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker47:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker47:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3747
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker37:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker37:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker38:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker38:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3738
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker38
+spec:
+  selector:
+    app: worker38
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker38
+  labels:
+    app: worker38
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker38
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker38
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker38
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker38:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker38:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider38
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker38:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker38:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":38, "name":"Unknown", "duplicate_area": [{"latitude":405, "longitude":380},{"latitude":345, "longitude":380},{"latitude":345, "longitude":620},{"latitude":405, "longitude":620}], "control_area": [{"latitude":400, "longitude":400},{"latitude":350, "longitude":400},{"latitude":350, "longitude":600},{"latitude":400, "longitude":600}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider38
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker38:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker38:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker48:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker48:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3848
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker38:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker38:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker39:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker39:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3839
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker39
+spec:
+  selector:
+    app: worker39
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker39
+  labels:
+    app: worker39
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker39
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker39
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker39
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker39:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker39:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider39
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker39:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker39:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":39, "name":"Unknown", "duplicate_area": [{"latitude":455, "longitude":380},{"latitude":395, "longitude":380},{"latitude":395, "longitude":620},{"latitude":455, "longitude":620}], "control_area": [{"latitude":450, "longitude":400},{"latitude":400, "longitude":400},{"latitude":400, "longitude":600},{"latitude":450, "longitude":600}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider39
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker39:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker39:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker49:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker49:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3949
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker39:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker39:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker310:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker310:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider39310
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker310
+spec:
+  selector:
+    app: worker310
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker310
+  labels:
+    app: worker310
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker310
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker310
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker310
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker310:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker310:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider310
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker310:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker310:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":310, "name":"Unknown", "duplicate_area": [{"latitude":505, "longitude":380},{"latitude":445, "longitude":380},{"latitude":445, "longitude":620},{"latitude":505, "longitude":620}], "control_area": [{"latitude":500, "longitude":400},{"latitude":450, "longitude":400},{"latitude":450, "longitude":600},{"latitude":500, "longitude":600}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider310
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker310:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker310:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker410:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker410:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider310410
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker41
+spec:
+  selector:
+    app: worker41
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker41
+  labels:
+    app: worker41
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker41
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker41
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker41
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker41:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker41:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider41
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker41:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker41:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":41, "name":"Unknown", "duplicate_area": [{"latitude":55, "longitude":580},{"latitude":-5, "longitude":580},{"latitude":-5, "longitude":820},{"latitude":55, "longitude":820}], "control_area": [{"latitude":50, "longitude":600},{"latitude":0, "longitude":600},{"latitude":0, "longitude":800},{"latitude":50, "longitude":800}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider41
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker41:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker41:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker51:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker51:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4151
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker41:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker41:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker42:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker42:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4142
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker42
+spec:
+  selector:
+    app: worker42
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker42
+  labels:
+    app: worker42
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker42
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker42
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker42
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker42:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker42:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider42
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker42:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker42:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":42, "name":"Unknown", "duplicate_area": [{"latitude":105, "longitude":580},{"latitude":45, "longitude":580},{"latitude":45, "longitude":820},{"latitude":105, "longitude":820}], "control_area": [{"latitude":100, "longitude":600},{"latitude":50, "longitude":600},{"latitude":50, "longitude":800},{"latitude":100, "longitude":800}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider42
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker42:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker42:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker52:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker52:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4252
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker42:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker42:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker43:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker43:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4243
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker43
+spec:
+  selector:
+    app: worker43
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker43
+  labels:
+    app: worker43
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker43
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker43
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker43
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker43:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker43:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider43
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker43:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker43:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":43, "name":"Unknown", "duplicate_area": [{"latitude":155, "longitude":580},{"latitude":95, "longitude":580},{"latitude":95, "longitude":820},{"latitude":155, "longitude":820}], "control_area": [{"latitude":150, "longitude":600},{"latitude":100, "longitude":600},{"latitude":100, "longitude":800},{"latitude":150, "longitude":800}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider43
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker43:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker43:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker53:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker53:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4353
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker43:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker43:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker44:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker44:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4344
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker44
+spec:
+  selector:
+    app: worker44
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker44
+  labels:
+    app: worker44
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker44
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker44
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker44
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker44:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker44:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider44
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker44:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker44:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":44, "name":"Unknown", "duplicate_area": [{"latitude":205, "longitude":580},{"latitude":145, "longitude":580},{"latitude":145, "longitude":820},{"latitude":205, "longitude":820}], "control_area": [{"latitude":200, "longitude":600},{"latitude":150, "longitude":600},{"latitude":150, "longitude":800},{"latitude":200, "longitude":800}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider44
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker44:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker44:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker54:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker54:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4454
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker44:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker44:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker45:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker45:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4445
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker45
+spec:
+  selector:
+    app: worker45
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker45
+  labels:
+    app: worker45
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker45
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker45
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker45
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker45:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker45:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider45
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker45:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker45:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":45, "name":"Unknown", "duplicate_area": [{"latitude":255, "longitude":580},{"latitude":195, "longitude":580},{"latitude":195, "longitude":820},{"latitude":255, "longitude":820}], "control_area": [{"latitude":250, "longitude":600},{"latitude":200, "longitude":600},{"latitude":200, "longitude":800},{"latitude":250, "longitude":800}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider45
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker45:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker45:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker55:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker55:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4555
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker45:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker45:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker46:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker46:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4546
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker46
+spec:
+  selector:
+    app: worker46
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker46
+  labels:
+    app: worker46
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker46
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker46
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker46
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker46:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker46:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider46
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker46:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker46:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":46, "name":"Unknown", "duplicate_area": [{"latitude":305, "longitude":580},{"latitude":245, "longitude":580},{"latitude":245, "longitude":820},{"latitude":305, "longitude":820}], "control_area": [{"latitude":300, "longitude":600},{"latitude":250, "longitude":600},{"latitude":250, "longitude":800},{"latitude":300, "longitude":800}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider46
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker46:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker46:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker56:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker56:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4656
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker46:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker46:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker47:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker47:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4647
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker47
+spec:
+  selector:
+    app: worker47
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker47
+  labels:
+    app: worker47
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker47
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker47
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker47
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker47:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker47:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider47
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker47:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker47:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":47, "name":"Unknown", "duplicate_area": [{"latitude":355, "longitude":580},{"latitude":295, "longitude":580},{"latitude":295, "longitude":820},{"latitude":355, "longitude":820}], "control_area": [{"latitude":350, "longitude":600},{"latitude":300, "longitude":600},{"latitude":300, "longitude":800},{"latitude":350, "longitude":800}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider47
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker47:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker47:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker57:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker57:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4757
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker47:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker47:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker48:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker48:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4748
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker48
+spec:
+  selector:
+    app: worker48
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker48
+  labels:
+    app: worker48
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker48
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker48
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker48
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker48:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker48:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider48
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker48:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker48:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":48, "name":"Unknown", "duplicate_area": [{"latitude":405, "longitude":580},{"latitude":345, "longitude":580},{"latitude":345, "longitude":820},{"latitude":405, "longitude":820}], "control_area": [{"latitude":400, "longitude":600},{"latitude":350, "longitude":600},{"latitude":350, "longitude":800},{"latitude":400, "longitude":800}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider48
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker48:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker48:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker58:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker58:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4858
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker48:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker48:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker49:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker49:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4849
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker49
+spec:
+  selector:
+    app: worker49
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker49
+  labels:
+    app: worker49
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker49
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker49
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker49
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker49:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker49:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider49
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker49:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker49:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":49, "name":"Unknown", "duplicate_area": [{"latitude":455, "longitude":580},{"latitude":395, "longitude":580},{"latitude":395, "longitude":820},{"latitude":455, "longitude":820}], "control_area": [{"latitude":450, "longitude":600},{"latitude":400, "longitude":600},{"latitude":400, "longitude":800},{"latitude":450, "longitude":800}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider49
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker49:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker49:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker59:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker59:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4959
+  - name: gateway-provider1
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker49:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker49:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker410:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker410:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider49410
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker410
+spec:
+  selector:
+    app: worker410
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker410
+  labels:
+    app: worker410
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker410
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker410
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker410
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker410:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker410:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider410
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker410:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker410:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":410, "name":"Unknown", "duplicate_area": [{"latitude":505, "longitude":580},{"latitude":445, "longitude":580},{"latitude":445, "longitude":820},{"latitude":505, "longitude":820}], "control_area": [{"latitude":500, "longitude":600},{"latitude":450, "longitude":600},{"latitude":450, "longitude":800},{"latitude":500, "longitude":800}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider410
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker410:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker410:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker510:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker510:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider410510
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker51
+spec:
+  selector:
+    app: worker51
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker51
+  labels:
+    app: worker51
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker51
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker51
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker51
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker51:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker51:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider51
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker51:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker51:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":51, "name":"Unknown", "duplicate_area": [{"latitude":55, "longitude":780},{"latitude":-5, "longitude":780},{"latitude":-5, "longitude":1020},{"latitude":55, "longitude":1020}], "control_area": [{"latitude":50, "longitude":800},{"latitude":0, "longitude":800},{"latitude":0, "longitude":1000},{"latitude":50, "longitude":1000}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider51
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker51:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker51:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker52:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker52:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5152
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker52
+spec:
+  selector:
+    app: worker52
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker52
+  labels:
+    app: worker52
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker52
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker52
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker52
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker52:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker52:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider52
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker52:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker52:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":52, "name":"Unknown", "duplicate_area": [{"latitude":105, "longitude":780},{"latitude":45, "longitude":780},{"latitude":45, "longitude":1020},{"latitude":105, "longitude":1020}], "control_area": [{"latitude":100, "longitude":800},{"latitude":50, "longitude":800},{"latitude":50, "longitude":1000},{"latitude":100, "longitude":1000}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider52
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker52:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker52:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker53:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker53:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5253
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker53
+spec:
+  selector:
+    app: worker53
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker53
+  labels:
+    app: worker53
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker53
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker53
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker53
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker53:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker53:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider53
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker53:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker53:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":53, "name":"Unknown", "duplicate_area": [{"latitude":155, "longitude":780},{"latitude":95, "longitude":780},{"latitude":95, "longitude":1020},{"latitude":155, "longitude":1020}], "control_area": [{"latitude":150, "longitude":800},{"latitude":100, "longitude":800},{"latitude":100, "longitude":1000},{"latitude":150, "longitude":1000}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider53
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker53:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker53:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker54:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker54:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5354
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker54
+spec:
+  selector:
+    app: worker54
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker54
+  labels:
+    app: worker54
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker54
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker54
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker54
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker54:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker54:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider54
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker54:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker54:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":54, "name":"Unknown", "duplicate_area": [{"latitude":205, "longitude":780},{"latitude":145, "longitude":780},{"latitude":145, "longitude":1020},{"latitude":205, "longitude":1020}], "control_area": [{"latitude":200, "longitude":800},{"latitude":150, "longitude":800},{"latitude":150, "longitude":1000},{"latitude":200, "longitude":1000}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider54
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker54:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker54:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker55:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker55:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5455
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker55
+spec:
+  selector:
+    app: worker55
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker55
+  labels:
+    app: worker55
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker55
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker55
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker55
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker55:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker55:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider55
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker55:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker55:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":55, "name":"Unknown", "duplicate_area": [{"latitude":255, "longitude":780},{"latitude":195, "longitude":780},{"latitude":195, "longitude":1020},{"latitude":255, "longitude":1020}], "control_area": [{"latitude":250, "longitude":800},{"latitude":200, "longitude":800},{"latitude":200, "longitude":1000},{"latitude":250, "longitude":1000}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider55
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker55:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker55:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker56:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker56:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5556
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker56
+spec:
+  selector:
+    app: worker56
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker56
+  labels:
+    app: worker56
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker56
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker56
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker56
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker56:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker56:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider56
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker56:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker56:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":56, "name":"Unknown", "duplicate_area": [{"latitude":305, "longitude":780},{"latitude":245, "longitude":780},{"latitude":245, "longitude":1020},{"latitude":305, "longitude":1020}], "control_area": [{"latitude":300, "longitude":800},{"latitude":250, "longitude":800},{"latitude":250, "longitude":1000},{"latitude":300, "longitude":1000}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider56
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker56:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker56:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker57:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker57:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5657
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker57
+spec:
+  selector:
+    app: worker57
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker57
+  labels:
+    app: worker57
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker57
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker57
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker57
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker57:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker57:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider57
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker57:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker57:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":57, "name":"Unknown", "duplicate_area": [{"latitude":355, "longitude":780},{"latitude":295, "longitude":780},{"latitude":295, "longitude":1020},{"latitude":355, "longitude":1020}], "control_area": [{"latitude":350, "longitude":800},{"latitude":300, "longitude":800},{"latitude":300, "longitude":1000},{"latitude":350, "longitude":1000}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider57
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker57:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker57:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker58:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker58:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5758
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker58
+spec:
+  selector:
+    app: worker58
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker58
+  labels:
+    app: worker58
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker58
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker58
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker58
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker58:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker58:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider58
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker58:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker58:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":58, "name":"Unknown", "duplicate_area": [{"latitude":405, "longitude":780},{"latitude":345, "longitude":780},{"latitude":345, "longitude":1020},{"latitude":405, "longitude":1020}], "control_area": [{"latitude":400, "longitude":800},{"latitude":350, "longitude":800},{"latitude":350, "longitude":1000},{"latitude":400, "longitude":1000}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider58
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker58:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker58:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker59:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker59:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5859
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker59
+spec:
+  selector:
+    app: worker59
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker59
+  labels:
+    app: worker59
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker59
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker59
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker59
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker59:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker59:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider59
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker59:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker59:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":59, "name":"Unknown", "duplicate_area": [{"latitude":455, "longitude":780},{"latitude":395, "longitude":780},{"latitude":395, "longitude":1020},{"latitude":455, "longitude":1020}], "control_area": [{"latitude":450, "longitude":800},{"latitude":400, "longitude":800},{"latitude":400, "longitude":1000},{"latitude":450, "longitude":1000}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider59
+  - name: gateway-provider0
+    image: flow_beta/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker59:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker59:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker510:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker510:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider59510
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker510
+spec:
+  selector:
+    app: worker510
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker510
+  labels:
+    app: worker510
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: flow_beta/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker510
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: flow_beta/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker510
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker510
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: flow_beta/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker510:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker510:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider510
+  - name: agent-provider
+    image: flow_beta/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker510:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker510:10000
+    - name: SX_VIS_SERVER_ADDRESS
+      value: visualization:10000
+    - name: SX_VIS_NODESERV_ADDRESS
+      value: visualization:9000
+    - name: AREA_JSON
+      value: '{"id":510, "name":"Unknown", "duplicate_area": [{"latitude":505, "longitude":780},{"latitude":445, "longitude":780},{"latitude":445, "longitude":1020},{"latitude":505, "longitude":1020}], "control_area": [{"latitude":500, "longitude":800},{"latitude":450, "longitude":800},{"latitude":450, "longitude":1000},{"latitude":500, "longitude":1000}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider510
+
+---

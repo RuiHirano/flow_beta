@@ -4,6 +4,7 @@ import (
 	//"context"
 
 	"flag"
+
 	//"fmt"
 	//"log"
 
@@ -11,6 +12,7 @@ import (
 	"os"
 	"sync"
 
+	"math/rand"
 	"time"
 
 	//"runtime"
@@ -165,7 +167,7 @@ func (ap *AgentProvider) GetSameAreaAgents() []*api.Agent {
 	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
-	sameAgents := ap.WorkerAPI.GetAgents(targets)
+	sameAgents, _ := ap.WorkerAPI.GetAgents(targets)
 	sim.SetDiffAgents(sameAgents)
 	
 	t2 := time.Now()
@@ -187,7 +189,7 @@ func (ap *AgentProvider) GetNeighborAreaAgents() []*api.Agent {
 	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_GATEWAY,
 	})
-	neighborAgents := ap.WorkerAPI.GetAgents(targets)
+	neighborAgents, _ := ap.WorkerAPI.GetAgents(targets)
 	sim.SetDiffAgents(neighborAgents)
 	
 	t2 := time.Now()
@@ -271,13 +273,30 @@ func (cb *WorkerCallback) UpdateProvidersRequest(clt *sxutil.SXServiceClient, ms
 func (cb *WorkerCallback) SetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+
 	// Agentをセットする
 	agents := simMsg.GetSetAgentRequest().GetAgents()
 
+	// for experiment
+	expAgents := CreateExperimentAgents(agents)
+
 	// Agent情報を追加する
-	num := agentProvider.AddAgents(agents)
+	num := agentProvider.AddAgents(expAgents)
 	logger.Success("Set Agent %d", num)
 }
+
+// for experiment
+func CreateExperimentAgents(agents []*api.Agent)[]*api.Agent{
+	expAgents := []*api.Agent{}
+	for _, agent := range agents{
+		maxLat, maxLon, minLat, minLon := GetCoordRange(myArea.ControlArea)
+		agent.Route.Position.Latitude = (maxLat - minLat) * rand.Float64()
+		agent.Route.Position.Longitude = (maxLon - minLon) * rand.Float64()
+		expAgents = append(expAgents, agent)
+	}
+	return expAgents
+}
+
 
 func (cb *WorkerCallback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) []*api.Agent {
 	simMsg := &api.SimMsg{}
