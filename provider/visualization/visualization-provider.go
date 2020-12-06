@@ -33,16 +33,13 @@ import (
 var (
 	myProvider     *api.Provider
 	masterProvider *api.Provider
-	pm             *util.ProviderManager
+	pm             *api.ProviderManager
 	mu             sync.Mutex
 	assetsDir      http.FileSystem
 	ioserv         *gosocketio.Server
 	logger         *util.Logger
 	visProvider *VisualizationProvider
 
-	sclientOptsMaster map[uint32]*util.SclientOpt
-	sclientOptsVis    map[uint32]*util.SclientOpt
-	simapi            *api.SimAPI
 	servaddr          = flag.String("servaddr", getServerAddress(), "The Synerex Server Listening Address")
 	nodeaddr          = flag.String("nodeaddr", getNodeservAddress(), "Node ID Server Address")
 	masterServaddr    = flag.String("masterServaddr", getMasterServerAddress(), "Master Synerex Server Listening Address")
@@ -114,11 +111,11 @@ func init() {
 ////////////     Visualization Provider     ////////////////
 ///////////////////////////////////////////////////////////
 type VisualizationProvider struct {
-	MasterAPI *util.MasterAPI
-	WorkerAPI *util.WorkerAPI
+	MasterAPI *api.ProviderAPI
+	WorkerAPI *api.ProviderAPI
 }
 
-func NewVisualizationProvider(masterapi *util.MasterAPI, workerapi *util.WorkerAPI) *VisualizationProvider {
+func NewVisualizationProvider(masterapi *api.ProviderAPI, workerapi *api.ProviderAPI) *VisualizationProvider {
 	ap := &VisualizationProvider{
 		MasterAPI: masterapi,
 		WorkerAPI: workerapi,
@@ -142,7 +139,7 @@ func (ap *VisualizationProvider) RegisterProvider(provider *api.Provider) error 
 
 	logger.Debug("RegisterProvider: %v", provider)
 	// update provider to worker
-	targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
 	providers := pm.GetProviders()
@@ -153,7 +150,7 @@ func (ap *VisualizationProvider) RegisterProvider(provider *api.Provider) error 
 
 // 
 func (ap *VisualizationProvider) GetAgents() []*api.Agent {
-	targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
 	logger.Debug("targets: %v", targets)
@@ -311,7 +308,7 @@ func runVisMonitor() {
 ////////////           Worker   Callback       ////////////////
 ///////////////////////////////////////////////////////////
 type WorkerCallback struct {
-	*util.Callback
+	*api.Callback
 }
 
 func (cb *WorkerCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) *api.Provider {
@@ -327,7 +324,7 @@ func (cb *WorkerCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, m
 ////////////           Master   Callback       ////////////////
 ///////////////////////////////////////////////////////////
 type MasterCallback struct {
-	*util.Callback
+	*api.Callback
 }
 
 func (cb *MasterCallback) ForwardClockTerminateRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
@@ -379,19 +376,18 @@ func main() {
 		Name: "VisProvider",
 		Type: api.Provider_VISUALIZATION,
 	}
-	pm = util.NewProviderManager(myProvider)
-	simapi := api.NewSimAPI(myProvider)
-	cb := util.NewCallback()
+	pm = api.NewProviderManager(myProvider)
+	cb := api.NewCallback()
 
 	// Worker Server
 	wocb := &WorkerCallback{cb} // override
-	workerAPI := util.NewWorkerAPI(simapi, *servaddr, *nodeaddr, wocb)
+	workerAPI := api.NewProviderAPI(myProvider, *servaddr, *nodeaddr, wocb)
 	//workerAPI.ConnectServer()
 	//workerAPI.RegisterProvider()
 
 	// Master Server
 	macb := &MasterCallback{cb} // override
-	masterAPI := util.NewMasterAPI(simapi, *masterServaddr, *masterNodeaddr, macb)
+	masterAPI := api.NewProviderAPI(myProvider, *masterServaddr, *masterNodeaddr, macb)
 	//masterAPI.ConnectServer()
 	//masterAPI.RegisterProvider()
 

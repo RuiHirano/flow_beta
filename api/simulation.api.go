@@ -2,6 +2,9 @@ package api
 
 import (
 	"context"
+	fmt "fmt"
+	"time"
+
 	//"log"
 
 	"log"
@@ -20,9 +23,235 @@ var (
 func init() {
 }
 
+////////////////////////////////////////////////////////////
+//////////////       Provider Manager Class      //////////
+///////////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////////////////
+type ProviderManager struct {
+	MyProvider   *Provider
+	Providers    []*Provider
+	ProvidersMap map[Provider_Type][]*Provider
+}
 
+func NewProviderManager(myProvider *Provider) *ProviderManager {
+	pm := &ProviderManager{
+		MyProvider:   myProvider,
+		Providers:    []*Provider{},
+		ProvidersMap: make(map[Provider_Type][]*Provider),
+	}
+	return pm
+}
+
+func (pm *ProviderManager) AddProvider(p *Provider) {
+	for _, pv := range pm.Providers {
+		if pv.Id == p.Id {
+			return
+		}
+	}
+	mu.Lock()
+	pm.Providers = append(pm.Providers, p)
+	pm.CreateProvidersMap()
+	mu.Unlock()
+	//log.Printf("Providers: %v\n", pm.Providers)
+}
+
+func (pm *ProviderManager) SetProviders(ps []*Provider) {
+	mu.Lock()
+	pm.Providers = ps
+	pm.CreateProvidersMap()
+	mu.Unlock()
+	//log.Printf("Providers: %v\n", pm.Providers)
+}
+
+func (pm *ProviderManager) GetProviders() []*Provider {
+	return pm.Providers
+}
+
+func (pm *ProviderManager) DeleteProvider(id uint64) {
+	newProviders := make([]*Provider, 0)
+	for _, provider := range pm.Providers {
+		if provider.Id == id {
+			continue
+		}
+		newProviders = append(newProviders, provider)
+	}
+	pm.Providers = newProviders
+	pm.CreateProvidersMap()
+}
+
+func (pm *ProviderManager) GetTargets(typeList []Provider_Type) []uint64 {
+	idList := make([]uint64, 0)
+	for _, tp := range typeList {
+		for _, p := range pm.ProvidersMap[tp] {
+			id := p.GetId()
+			idList = append(idList, id)
+		}
+	}
+	return idList
+}
+
+func (pm *ProviderManager) CreateProvidersMap() {
+	providersMap := make(map[Provider_Type][]*Provider)
+
+	for _, p := range pm.Providers {
+		if p.GetId() != pm.MyProvider.GetId() { // 自分は含まない
+			switch p.GetType() {
+			case Provider_MASTER:
+				providersMap[Provider_MASTER] = append(providersMap[Provider_MASTER], p)
+			case Provider_WORKER:
+				providersMap[Provider_WORKER] = append(providersMap[Provider_WORKER], p)
+			case Provider_GATEWAY:
+				providersMap[Provider_GATEWAY] = append(providersMap[Provider_GATEWAY], p)
+			case Provider_VISUALIZATION:
+				providersMap[Provider_VISUALIZATION] = append(providersMap[Provider_VISUALIZATION], p)
+			case Provider_DATABASE:
+				providersMap[Provider_DATABASE] = append(providersMap[Provider_DATABASE], p)
+			case Provider_AGENT:
+				providersMap[Provider_AGENT] = append(providersMap[Provider_AGENT], p)
+			}
+		}
+	}
+	pm.ProvidersMap = providersMap
+
+}
+
+////////////////////////////////////////////////////////////
+////////////                   Provider API           ///////////
+///////////////////////////////////////////////////////////
+// Callbackと
+
+type SclientOpt struct {
+	Sclient      *sxutil.SXServiceClient
+	ChType       uint32
+	MBusCallback func(*sxutil.SXServiceClient, *sxapi.MbusMsg)
+	ArgJson      string
+	Providers    []*Provider
+}
+
+type ProviderAPI struct {
+	Provider *Provider
+	SimAPI *SimAPI
+	ServerAddr string
+	NodeAddr string
+	SclientOpts map[uint32]*SclientOpt
+}
+
+
+func NewProviderAPI(provider *Provider, servAddr string, nodeAddr string, cb CallbackInterface ) *ProviderAPI {
+	simapi := NewSimAPI(provider)
+	api := &ProviderAPI{
+		Provider: provider,
+		SimAPI: simapi,
+		ServerAddr: servAddr,
+		NodeAddr: nodeAddr,
+		SclientOpts: map[uint32]*SclientOpt{
+			uint32(ChannelType_CLOCK): &SclientOpt{
+				ChType:       uint32(ChannelType_CLOCK),
+				MBusCallback: GetClockCallback(simapi, cb),
+				ArgJson:      fmt.Sprintf("{Client:%s_Clock}", provider.Name),
+			},
+			uint32(ChannelType_PROVIDER): &SclientOpt{
+				ChType:       uint32(ChannelType_PROVIDER),
+				MBusCallback: GetProviderCallback(simapi, cb),
+				ArgJson:      fmt.Sprintf("{Client:%s_Provider}", provider.Name),
+			},
+			uint32(ChannelType_AGENT): &SclientOpt{
+				ChType:       uint32(ChannelType_AGENT),
+				MBusCallback: GetAgentCallback(simapi, cb),
+				ArgJson:      fmt.Sprintf("{Client:%s_Agent}", provider.Name),
+			},
+			uint32(ChannelType_AREA): &SclientOpt{
+				ChType:       uint32(ChannelType_AREA),
+				MBusCallback: GetAreaCallback(simapi, cb),
+				ArgJson:      fmt.Sprintf("{Client:%s_Clock}", provider.Name),
+			},
+		},
+	}
+	return api
+}
+
+// Connect: Worker Nodeに接続する
+func (ap *ProviderAPI) ConnectServer() error {
+	channelTypes := []uint32{}
+	for _, opt := range ap.SclientOpts {
+		channelTypes = append(channelTypes, opt.ChType)
+	}
+	ni := sxutil.GetDefaultNodeServInfo()
+	ap.SimAPI.RegisterNodeLoop(ni, ap.NodeAddr, ap.Provider.Name, channelTypes)
+
+	// Register Synerex Server
+	client := ap.SimAPI.RegisterSynerexLoop(ap.ServerAddr)
+
+	// Register Callback
+	ap.SimAPI.RegisterSXServiceClients(ni, client, ap.SclientOpts)
+	return nil
+}
+
+func (ap *ProviderAPI) RegisterProvider() error {
+	sclient := ap.SclientOpts[uint32(ChannelType_PROVIDER)].Sclient
+	ap.SimAPI.RegisterProviderLoop(sclient, ap.SimAPI)
+	return nil
+}
+
+func (ap *ProviderAPI) UpdateProviders(targets []uint64, providers []*Provider) error{
+	sclient := ap.SclientOpts[uint32(ChannelType_PROVIDER)].Sclient
+	_, err := ap.SimAPI.UpdateProvidersRequest(sclient, targets, providers)
+	return err
+}
+
+func (ap *ProviderAPI) GetAgents(targets []uint64) ([]*Agent, error){
+	sclient := ap.SclientOpts[uint32(ChannelType_AGENT)].Sclient
+	agents := []*Agent{}
+	simMsgs, err := ap.SimAPI.GetAgentRequest(sclient, targets)
+	for _, simMsg := range simMsgs {
+		agents := simMsg.GetGetAgentResponse().GetAgents()
+		agents = append(agents, agents...)
+	}
+	return agents, err
+}
+
+func (ap *ProviderAPI) SetAgents(targets []uint64, agents []*Agent) error{
+	sclient := ap.SclientOpts[uint32(ChannelType_AGENT)].Sclient
+	_, err := ap.SimAPI.SetAgentRequest(sclient, targets, agents)
+	return err
+}
+
+func (ap *ProviderAPI) ForwardClockInit(targets []uint64) error{
+	sclient := ap.SclientOpts[uint32(ChannelType_CLOCK)].Sclient
+	_, err := ap.SimAPI.ForwardClockInitRequest(sclient, targets)
+	return err
+}
+
+func (ap *ProviderAPI) ForwardClockMain(targets []uint64) error{
+	sclient := ap.SclientOpts[uint32(ChannelType_CLOCK)].Sclient
+	_, err := ap.SimAPI.ForwardClockMainRequest(sclient, targets)
+	return err
+}
+
+func (ap *ProviderAPI) ForwardClockTerminate(targets []uint64) error{
+	sclient := ap.SclientOpts[uint32(ChannelType_CLOCK)].Sclient
+	_, err := ap.SimAPI.ForwardClockTerminateRequest(sclient, targets)
+	return err
+}
+
+func (ap *ProviderAPI) SetClock(targets []uint64, clock *Clock) error{
+	sclient := ap.SclientOpts[uint32(ChannelType_CLOCK)].Sclient
+	_, err := ap.SimAPI.SetClockRequest(sclient, targets, clock)
+	return err
+}
+
+func (ap *ProviderAPI) SetArea(targets []uint64) {
+	//sclient := ap.SclientOpts[uint32(ChannelType_AGENT)].Sclient
+	//ap.SimAPI.SetAreaRequest(sclient, targets, clock)
+}
+
+
+
+
+////////////////////////////////////////////////////////////
+////////////                   SimAPI           ///////////
+///////////////////////////////////////////////////////////
+// Synerexへのデータ送受信+Waiterによる待機処理
 
 type SimAPI struct {
 	Waiter   *Waiter
@@ -683,3 +912,352 @@ func (s *SimAPI) StopClockResponse(sclient *sxutil.SXServiceClient, msgId uint64
 
 	return msgId
 }
+
+// NodeServに繋がるまで繰り返す
+func (s *SimAPI) RegisterNodeLoop(ni *sxutil.NodeServInfo, nodesrv string, name string, chTypes []uint32) *sxutil.NodeServInfo {
+	go sxutil.HandleSigInt() // Ctl+cを認識させる
+	for {
+		_, err := ni.RegisterNodeWithCmd(nodesrv, name, chTypes, nil, nil)
+		if err != nil {
+			time.Sleep(1 * time.Second)
+		} else {
+			sxutil.RegisterDeferFunction(sxutil.UnRegisterNode)
+			//ni := sxutil.GetDefaultNodeServInfo()
+			return ni
+		}
+	}
+}
+
+func (s *SimAPI) RegisterSXServiceClients(ni *sxutil.NodeServInfo, client sxapi.SynerexClient, opts map[uint32]*SclientOpt) map[uint32]*SclientOpt {
+	for key, opt := range opts {
+		sclient := ni.NewSXServiceClient(client, opt.ChType, opt.ArgJson) // service client
+		sclient.MbusID = sxutil.IDType(opt.ChType)                        // MbusIDをChTypeに変更
+		//log.Printf("debug MbusID: %d", sclient.MbusID)
+		opts[key].Sclient = sclient
+		go s.SubscribeMbusLoop(sclient, opt.MBusCallback)
+	}
+	return opts
+}
+
+func (s *SimAPI) SubscribeMbusLoop(sclient *sxutil.SXServiceClient, mbcb func(*sxutil.SXServiceClient, *sxapi.MbusMsg)) {
+	//called as goroutine
+	ctx := context.Background() // should check proper context
+	sxutil.RegisterDeferFunction(func() {
+		sclient.CloseMbus(ctx)
+	})
+	for {
+		sclient.SubscribeMbus(ctx, mbcb)
+		// comes here if channel closed
+		time.Sleep(1 * time.Second)
+	}
+}
+
+// Synerexに繋がるまで繰り返す
+func (s *SimAPI) RegisterSynerexLoop(sxServerAddress string) sxapi.SynerexClient {
+	for {
+		client := sxutil.GrpcConnectServer(sxServerAddress)
+		if client == nil {
+			time.Sleep(1 * time.Second)
+		} else {
+			return client
+		}
+	}
+}
+
+// WorkerやMasterにProviderを登録する
+func (s *SimAPI) RegisterProviderLoop(sclient *sxutil.SXServiceClient, simapi *SimAPI) *Provider {
+	// masterへ登録
+	targets := []uint64{0}
+	//bc.simapi.RegisterProviderRequest(sclient, targets, bc.simapi.Provider)
+	var provider *Provider
+	ch := make(chan struct{})
+	go func() {
+		for {
+			log.Printf("RegistProviderRequst %v", simapi.Provider.Id)
+			msgs, err := simapi.RegisterProviderRequest(sclient, targets, simapi.Provider)
+			if err != nil {
+				time.Sleep(2 * time.Second)
+
+			} else {
+				provider = msgs[0].GetRegisterProviderResponse().GetProvider()
+				ch <- struct{}{}
+				return
+			}
+		}
+		return
+	}()
+
+	<-ch
+	log.Printf("finish!")
+	return provider
+}
+
+
+///////////////////////////////
+// callback
+/////////////////////////////
+
+func GetAgentCallback(simapi *SimAPI, callback CallbackInterface) func(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	newCb := NewBaseCallback(simapi, callback)
+	return newCb.AgentCallback
+}
+
+func GetProviderCallback(simapi *SimAPI, callback CallbackInterface) func(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	newCb := NewBaseCallback(simapi, callback)
+	return newCb.ProviderCallback
+}
+
+func GetClockCallback(simapi *SimAPI, callback CallbackInterface) func(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	newCb := NewBaseCallback(simapi, callback)
+	return newCb.ClockCallback
+}
+
+func GetAreaCallback(simapi *SimAPI, callback CallbackInterface) func(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	newCb := NewBaseCallback(simapi, callback)
+	return newCb.ProviderCallback
+}
+
+type CallbackInterface interface {
+	SetAgentRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	SetAgentResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	GetAgentRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg) []*Agent
+	GetAgentResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	RegisterProviderRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg) *Provider
+	RegisterProviderResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	UpdateProvidersRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	UpdateProvidersResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	SetClockRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	SetClockResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	StopClockRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	StopClockResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	StartClockRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	StartClockResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	ForwardClockRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	ForwardClockResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	ForwardClockInitRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	ForwardClockInitResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	ForwardClockMainRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	ForwardClockMainResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	ForwardClockTerminateRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	ForwardClockTerminateResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	SendAreaInfoRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	SendAreaInfoResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+}
+
+type BaseCallback struct {
+	simapi *SimAPI
+	CallbackInterface
+}
+
+func NewBaseCallback(simapi *SimAPI, cbif CallbackInterface) *BaseCallback {
+	bc := &BaseCallback{
+		CallbackInterface: cbif,
+		simapi:            simapi,
+	}
+	return bc
+}
+
+func (bc *BaseCallback) AgentCallback(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	go func() {
+		simMsg := &SimMsg{}
+		proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+		//targets := []uint64{simMsg.GetSenderId()}
+		//log.Printf("get Agent Callback %v\n", simMsg)
+		msgId := simMsg.GetMsgId()
+		switch simMsg.GetType() {
+		case MsgType_SET_AGENT_REQUEST:
+			bc.SetAgentRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.SetAgentResponse(clt, msgId, targetId)
+		case MsgType_GET_AGENT_REQUEST:
+
+			agents := bc.GetAgentRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.GetAgentResponse(clt, msgId, targetId, agents)
+
+		case MsgType_SET_AGENT_RESPONSE:
+			bc.SetAgentResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+		case MsgType_GET_AGENT_RESPONSE:
+
+			bc.GetAgentResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+
+		}
+		return
+	}()
+}
+
+func (bc *BaseCallback) ProviderCallback(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	go func() {
+		simMsg := &SimMsg{}
+		proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+		//targets := []uint64{simMsg.GetSenderId()}
+		msgId := simMsg.GetMsgId()
+
+		//log.Printf("get Provider Callback %v\n", simMsg)
+		switch simMsg.GetType() {
+		case MsgType_REGISTER_PROVIDER_REQUEST:
+
+			provider := bc.RegisterProviderRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.RegisterProviderResponse(clt, msgId, targetId, provider)
+
+		case MsgType_UPDATE_PROVIDERS_REQUEST:
+
+			bc.UpdateProvidersRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.UpdateProvidersResponse(clt, msgId, targetId)
+
+		case MsgType_REGISTER_PROVIDER_RESPONSE:
+
+			bc.RegisterProviderResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+
+		case MsgType_UPDATE_PROVIDERS_RESPONSE:
+
+			bc.UpdateProvidersResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+
+		}
+		return
+	}()
+}
+
+func (bc *BaseCallback) ClockCallback(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	go func() {
+		simMsg := &SimMsg{}
+		proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+		//targets := []uint64{simMsg.GetSenderId()}
+		//log.Printf("get Clock Callback %v\n", simMsg)
+		msgId := simMsg.GetMsgId()
+		switch simMsg.GetType() {
+		case MsgType_SET_CLOCK_REQUEST:
+			bc.SetClockRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.SetClockResponse(clt, msgId, targetId)
+		case MsgType_STOP_CLOCK_REQUEST:
+			bc.StopClockRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.StopClockResponse(clt, msgId, targetId)
+		case MsgType_START_CLOCK_REQUEST:
+			bc.StartClockRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.StartClockResponse(clt, msgId, targetId)
+		case MsgType_FORWARD_CLOCK_REQUEST:
+			bc.ForwardClockRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.ForwardClockResponse(clt, msgId, targetId)
+		case MsgType_FORWARD_CLOCK_INIT_REQUEST:
+			bc.ForwardClockInitRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.ForwardClockInitResponse(clt, msgId, targetId)
+		case MsgType_FORWARD_CLOCK_MAIN_REQUEST:
+			bc.ForwardClockMainRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.ForwardClockMainResponse(clt, msgId, targetId)
+		case MsgType_FORWARD_CLOCK_TERMINATE_REQUEST:
+			bc.ForwardClockTerminateRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.ForwardClockTerminateResponse(clt, msgId, targetId)
+		case MsgType_SET_CLOCK_RESPONSE:
+			bc.SetClockResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+		case MsgType_START_CLOCK_RESPONSE:
+			bc.StartClockResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+		case MsgType_STOP_CLOCK_RESPONSE:
+			bc.StopClockResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+		case MsgType_FORWARD_CLOCK_RESPONSE:
+			bc.ForwardClockResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+		case MsgType_FORWARD_CLOCK_INIT_RESPONSE:
+			bc.ForwardClockInitResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+		case MsgType_FORWARD_CLOCK_MAIN_RESPONSE:
+			bc.ForwardClockMainResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+		case MsgType_FORWARD_CLOCK_TERMINATE_RESPONSE:
+			bc.ForwardClockTerminateResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+		}
+		return
+	}()
+}
+
+func (bc *BaseCallback) AreaCallback(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	go func() {
+		simMsg := &SimMsg{}
+		//targets := []uint64{simMsg.GetSenderId()}
+		msgId := simMsg.GetMsgId()
+		//log.Printf("get Area Callback %v\n", simMsg)
+		proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+		switch simMsg.GetType() {
+		case MsgType_SEND_AREA_INFO_REQUEST:
+			bc.SendAreaInfoRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.SendAreaInfoResponse(clt, msgId, targetId)
+		case MsgType_SEND_AREA_INFO_RESPONSE:
+			bc.SendAreaInfoResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+		}
+		return
+	}()
+}
+
+type Callback struct {
+}
+
+func NewCallback() *Callback {
+	cb := &Callback{}
+	return cb
+}
+
+// Agent
+func (cb Callback) SetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)  {}
+func (cb Callback) SetAgentResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {}
+func (cb Callback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) []*Agent {
+	return []*Agent{}
+}
+func (cb Callback) GetAgentResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {}
+
+// Provider
+func (cb Callback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) *Provider {
+	return &Provider{}
+}
+func (cb Callback) RegisterProviderResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {}
+func (cb Callback) UpdateProvidersRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)   {}
+func (cb Callback) UpdateProvidersResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)  {}
+
+// Clock
+func (cb Callback) SetClockRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)               {}
+func (cb Callback) SetClockResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)              {}
+func (cb Callback) StopClockRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)              {}
+func (cb Callback) StopClockResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)             {}
+func (cb Callback) StartClockRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)             {}
+func (cb Callback) StartClockResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)            {}
+func (cb Callback) ForwardClockRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)           {}
+func (cb Callback) ForwardClockResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)          {}
+func (cb Callback) ForwardClockInitRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)       {}
+func (cb Callback) ForwardClockInitResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)      {}
+func (cb Callback) ForwardClockMainRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)       {}
+func (cb Callback) ForwardClockMainResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)      {}
+func (cb Callback) ForwardClockTerminateRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)  {}
+func (cb Callback) ForwardClockTerminateResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {}
+
+// Area
+func (cb Callback) SendAreaInfoRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)  {}
+func (cb Callback) SendAreaInfoResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {}

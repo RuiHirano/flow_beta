@@ -22,7 +22,7 @@ var (
 	myProvider     *api.Provider
 	mu             sync.Mutex
 	logger         *util.Logger
-	pm             *util.ProviderManager
+	pm             *api.ProviderManager
 	workerProvider  *WorkerProvider
 
 	servaddr          = flag.String("servaddr", getServerAddress(), "The Synerex Server Listening Address")
@@ -92,90 +92,109 @@ func init() {
 ////////////     Worker Provider           ////////////////
 ///////////////////////////////////////////////////////////
 type WorkerProvider struct {
-	MasterAPI *util.MasterAPI
-	WorkerAPI *util.WorkerAPI
+	MasterAPI *api.ProviderAPI
+	WorkerAPI *api.ProviderAPI
 }
 
-func NewWorkerProvider(masterapi *util.MasterAPI, workerapi *util.WorkerAPI) *WorkerProvider {
+func NewWorkerProvider(masterapi *api.ProviderAPI, workerapi *api.ProviderAPI) *WorkerProvider {
 	ap := &WorkerProvider{
 		MasterAPI: masterapi,
 		WorkerAPI: workerapi,
 	}
 	return ap
 }
-func (ap *WorkerProvider) Connect() error {
-	ap.WorkerAPI.ConnectServer()
-	//ap.WorkerAPI.RegisterProvider()
-	ap.MasterAPI.ConnectServer()
-	ap.MasterAPI.RegisterProvider()
-	return nil
+func (ap *WorkerProvider) Connect(){
+	if err := ap.WorkerAPI.ConnectServer(); err != nil{
+		logger.Error("error on Connect: WorkerServer", err)
+	}else if err := ap.MasterAPI.ConnectServer(); err != nil{
+		logger.Error("error on Connect MasterServer: ", err)
+	}else if err := ap.MasterAPI.RegisterProvider(); err != nil{
+		logger.Error("error on Connect RegisterProvider: ", err)
+	}
+		logger.Success("Success Connect: ")
+
 }
 
 // 
-func (ap *WorkerProvider) RegisterProvider(provider *api.Provider) error {
+func (ap *WorkerProvider) RegisterProvider(provider *api.Provider) {
 	//logger.Debug("calcNextAgents 0")
 	pm.AddProvider(provider)
 	//fmt.Printf("regist provider! %v %v\n", p.GetId(), p.GetType())
 
 	// update provider to worker
-	targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_GATEWAY,
 		api.Provider_AGENT,
 	})
 	providers := pm.GetProviders()
-	logger.Debug("targets %v, providers %v", targets, providers, provider, ap)
-	ap.WorkerAPI.UpdateProviders(targets, providers)
-	logger.Success("Update Providers! Worker Num: ", len(targets))
-	return nil
+	if err := ap.WorkerAPI.UpdateProviders(targets, providers); err != nil{
+		logger.Error("error on Connect RegisterProvider: ", err)
+	}else{
+		logger.Success("Success RegisterProvider: ")
+	}
 }
 
 // 
-func (ap *WorkerProvider) SetClock(clock *api.Clock) error {
-	targets := pm.GetProviderIds([]api.Provider_Type{
+func (ap *WorkerProvider) SetClock(clock *api.Clock) {
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
-	ap.WorkerAPI.SetClock(targets, clock)
-	logger.Success("Set Clock at %d", clock.GlobalTime)
-	return nil
+	if err := ap.WorkerAPI.SetClock(targets, clock); err != nil{
+		logger.Error("error on Connect RegisterProvider: ", err)
+	}else{
+		logger.Success("Success Set Clock: ")
+	}
 }
 
 // 
-func (ap *WorkerProvider) SetAgents(agents []*api.Agent) error {
+func (ap *WorkerProvider) SetAgents(agents []*api.Agent) {
 	//agents := make([]*api.Agent, 0)
 
-	targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
-	ap.WorkerAPI.SetAgents(targets, agents)
-	return nil
+	if err := ap.WorkerAPI.SetAgents(targets, agents); err != nil{
+		logger.Error("error on Connect RegisterProvider: ", err)
+	}else{
+		logger.Success("Success Set Agents: ")
+	}
 }
 
 // 
-func (ap *WorkerProvider) ForwardClockInit() error {
+func (ap *WorkerProvider) ForwardClockInit(){
 	
-	targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
-	ap.WorkerAPI.ForwardClockInit(targets)
-	return nil
+	if err := ap.WorkerAPI.ForwardClockInit(targets); err != nil{
+		logger.Error("error on Clock Init: ", err)
+	}else{
+		logger.Success("Success Forward Clock Init: ")
+	}
 }
 
 // 
-func (ap *WorkerProvider) ForwardClockMain() error {
-	targets := pm.GetProviderIds([]api.Provider_Type{
+func (ap *WorkerProvider) ForwardClockMain() {
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
-	ap.WorkerAPI.ForwardClockMain(targets)
-	return nil
+	if err := ap.WorkerAPI.ForwardClockMain(targets); err != nil{
+		logger.Error("error on Clock Main: ", err)
+	}else{
+		logger.Success("Success Forward Clock Main: ")
+	}
 }
 
 // 
-func (ap *WorkerProvider) ForwardClockTerminate() error {
-	targets := pm.GetProviderIds([]api.Provider_Type{
+func (ap *WorkerProvider) ForwardClockTerminate() {
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
-	ap.WorkerAPI.ForwardClockTerminate(targets)
-	return nil
+	if err := ap.WorkerAPI.ForwardClockTerminate(targets); err != nil{
+		logger.Error("error on ClockTerminate: ", err)
+	}else{
+		logger.Success("Success Forward Clock Terminate: ")
+	}
 }
 
 
@@ -183,7 +202,7 @@ func (ap *WorkerProvider) ForwardClockTerminate() error {
 ////////////         Master Callback       ////////////////
 ///////////////////////////////////////////////////////////
 type MasterCallback struct {
-	*util.Callback
+	*api.Callback
 }
 
 func (cb *MasterCallback) ForwardClockInitRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
@@ -265,7 +284,7 @@ func (cb *MasterCallback) SetClockRequest(clt *sxutil.SXServiceClient, msg *sxap
 ////////////         Worker Callback       ////////////////
 ///////////////////////////////////////////////////////////
 type WorkerCallback struct {
-	*util.Callback
+	*api.Callback
 }
 
 func (cb *WorkerCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) *api.Provider {
@@ -292,20 +311,18 @@ func main() {
 		Name: "WorkerProvider",
 		Type: api.Provider_WORKER,
 	}
-	pm = util.NewProviderManager(myProvider)
-	simapi := api.NewSimAPI(myProvider)
-	cb := util.NewCallback()
+	pm = api.NewProviderManager(myProvider)
+	cb := api.NewCallback()
 
 	// Worker Server
 	wocb := &WorkerCallback{cb} // override
-	workerAPI := util.NewWorkerAPI(simapi, *servaddr, *nodeaddr, wocb)
+	workerAPI := api.NewProviderAPI(myProvider, *servaddr, *nodeaddr, wocb)
 	//workerAPI.ConnectServer()
 	//workerAPI.RegisterProvider()
 
 	// Master Server
-	simapi2 := api.NewSimAPI(myProvider)
 	macb := &MasterCallback{cb} // override
-	masterAPI := util.NewMasterAPI(simapi2, *masterServaddr, *masterNodeaddr, macb)
+	masterAPI := api.NewProviderAPI(myProvider, *masterServaddr, *masterNodeaddr, macb)
 	//masterAPI.ConnectServer()
 	//masterAPI.RegisterProvider()
 

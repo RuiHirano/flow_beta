@@ -29,7 +29,7 @@ var (
 	myProvider     *api.Provider
 	workerProvider *api.Provider
 	visProvider    *api.Provider
-	pm             *util.ProviderManager
+	pm             *api.ProviderManager
 	sim            *Simulator
 	logger         *util.Logger
 	mu             sync.Mutex
@@ -119,11 +119,11 @@ func init() {
 ///////////////////////////////////////////////////////////
 type AgentProvider struct {
 	Simulator *Simulator
-	WorkerAPI *util.WorkerAPI
-	VisAPI *util.WorkerAPI
+	WorkerAPI *api.ProviderAPI
+	VisAPI *api.ProviderAPI
 }
 
-func NewAgentProvider(simulator *Simulator, workerapi *util.WorkerAPI, visapi *util.WorkerAPI) *AgentProvider {
+func NewAgentProvider(simulator *Simulator, workerapi *api.ProviderAPI, visapi *api.ProviderAPI) *AgentProvider {
 	ap := &AgentProvider{
 		Simulator: simulator,
 		WorkerAPI: workerapi,
@@ -162,7 +162,7 @@ func (ap *AgentProvider) GetSameAreaAgents() []*api.Agent {
 	//logger.Debug("getSameAreaAgents 0")
 	t1 := time.Now()
 	//logger.Debug("1: 同エリアエージェント取得")
-	targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
 	sameAgents := ap.WorkerAPI.GetAgents(targets)
@@ -184,7 +184,7 @@ func (ap *AgentProvider) GetNeighborAreaAgents() []*api.Agent {
 	//logger.Debug("getSameAreaAgents 0")
 	t1 := time.Now()
 	//logger.Debug("1: 同エリアエージェント取得")
-	targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_GATEWAY,
 	})
 	neighborAgents := ap.WorkerAPI.GetAgents(targets)
@@ -235,7 +235,7 @@ func (ap *AgentProvider) AddAgents(agents []*api.Agent) int {
 ////////////         Worker Callback       ////////////////
 ///////////////////////////////////////////////////////////
 type WorkerCallback struct {
-	*util.Callback
+	*api.Callback
 }
 
 func (cb *WorkerCallback) ForwardClockInitRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
@@ -292,7 +292,7 @@ func (cb *WorkerCallback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxap
 ////////////          Vis Callback         ////////////////
 ///////////////////////////////////////////////////////////
 type VisCallback struct {
-	*util.Callback
+	*api.Callback
 }
 
 func (cb *VisCallback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) []*api.Agent {
@@ -322,20 +322,18 @@ func main() {
 		Name: "AgentProvider",
 		Type: api.Provider_AGENT,
 	}
-	pm = util.NewProviderManager(myProvider)
-	simapi := api.NewSimAPI(myProvider)
-	cb := util.NewCallback()
+	pm = api.NewProviderManager(myProvider)
+	cb := api.NewCallback()
 
 	// Worker Server
 	wocb := &WorkerCallback{cb} // override
-	workerAPI := util.NewWorkerAPI(simapi, *servaddr, *nodeaddr, wocb)
+	workerAPI := api.NewProviderAPI(myProvider, *servaddr, *nodeaddr, wocb)
 	//workerAPI.ConnectServer()
 	//workerAPI.RegisterProvider()
 
 	// Vis Server
-	simapi2 := api.NewSimAPI(myProvider)
 	vicb := &VisCallback{cb} // override
-	visAPI := util.NewWorkerAPI(simapi2, *visServaddr, *visNodeaddr, vicb)
+	visAPI := api.NewProviderAPI(myProvider, *visServaddr, *visNodeaddr, vicb)
 	//visAPI.ConnectServer()
 	//visAPI.RegisterProvider()
 

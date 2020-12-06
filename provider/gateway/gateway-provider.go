@@ -94,13 +94,13 @@ func init() {
 ////////////     Gateway Provider           ////////////////
 ///////////////////////////////////////////////////////////
 type GatewayProvider struct {
-	Worker1API *util.WorkerAPI
+	Worker1API *api.ProviderAPI
 	Agent1Provider *api.Provider
-	Worker2API *util.WorkerAPI
+	Worker2API *api.ProviderAPI
 	Agent2Provider *api.Provider
 }
 
-func NewGatewayProvider(worker1api *util.WorkerAPI, worker2api *util.WorkerAPI) *GatewayProvider {
+func NewGatewayProvider(worker1api *api.ProviderAPI, worker2api *api.ProviderAPI) *GatewayProvider {
 	ap := &GatewayProvider{
 		Worker1API: worker1api,
 		Agent1Provider: nil,
@@ -173,7 +173,7 @@ func (ap *GatewayProvider) GetAgents(name string) []*api.Agent {
 ///////////////////////////////////////////////////////////
 
 type Worker1Callback struct {
-	*util.Callback
+	*api.Callback
 }
 
 func (cb *Worker1Callback) UpdateProvidersRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
@@ -196,7 +196,7 @@ func (cb *Worker1Callback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxa
 ///////////////////////////////////////////////////////////
 
 type Worker2Callback struct {
-	*util.Callback
+	*api.Callback
 }
 
 func (cb *Worker2Callback) UpdateProvidersRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
@@ -229,18 +229,17 @@ func main() {
 		Name: "GatewayProvider",
 		Type: api.Provider_GATEWAY,
 	}
-	simapi := api.NewSimAPI(myProvider)
-	cb := util.NewCallback()
+	cb := api.NewCallback()
 
 	// Worker Server Main
 	wocb := &Worker1Callback{cb} // override
-	worker1API := util.NewWorkerAPI(simapi, *worker1Servaddr, *worker1Nodeaddr, wocb)
+	worker1API := api.NewProviderAPI(myProvider, *worker1Servaddr, *worker1Nodeaddr, wocb)
 	//worker1API.ConnectServer()
 	//worker1API.RegisterProvider()
 
 	// Worker Server Sub
 	wocb2 := &Worker2Callback{cb} // override
-	worker2API := util.NewWorkerAPI(simapi, *worker2Servaddr, *worker2Nodeaddr, wocb2)
+	worker2API := api.NewProviderAPI(myProvider, *worker2Servaddr, *worker2Nodeaddr, wocb2)
 	//worker2API.ConnectServer()
 	//worker2API.RegisterProvider()
 

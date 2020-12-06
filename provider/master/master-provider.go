@@ -39,7 +39,7 @@ var (
 	//masterClock int
 	mu          sync.Mutex
 	//providerManager *Manager
-	pm     *util.ProviderManager
+	pm     *api.ProviderManager
 	logger *util.Logger
 	config *Config
 	podgen *PodGenerator
@@ -249,12 +249,12 @@ func init() {
 ////////////     Master Provider           ////////////////
 ///////////////////////////////////////////////////////////
 type MasterProvider struct {
-	API *util.MasterAPI
+	API *api.ProviderAPI
 	GlobalTime int
 	Status string
 }
 
-func NewMasterProvider(api *util.MasterAPI) *MasterProvider {
+func NewMasterProvider(api *api.ProviderAPI) *MasterProvider {
 	ap := &MasterProvider{
 		API: api,
 		GlobalTime: 0,
@@ -276,7 +276,7 @@ func (ap *MasterProvider) RegisterProvider(provider *api.Provider) error {
 	//fmt.Printf("regist provider! %v %v\n", p.GetId(), p.GetType())
 
 	// update provider to worker
-	targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_WORKER,
 		api.Provider_VISUALIZATION,
 	})
@@ -294,7 +294,7 @@ func (ap *MasterProvider) StopClock() error {
 
 // 
 func (ap *MasterProvider) SetClock(globalTime int) error {
-	targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_WORKER,
 		api.Provider_VISUALIZATION,
 	})
@@ -313,7 +313,7 @@ func (ap *MasterProvider) StartClock() {
 	//logger.("Next Cycle! \n%v\n", targets)
 	t1 := time.Now()
 
-	targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_WORKER,
 		api.Provider_VISUALIZATION,
 	})
@@ -381,7 +381,7 @@ func (ap *MasterProvider) SetAgents(agentNum uint64) error {
 	}
 
 	// エージェントを設置するリクエスト
-	targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_WORKER,
 	})
 	ap.API.SetAgents(targets, agents)
@@ -393,7 +393,7 @@ func (ap *MasterProvider) SetAgents(agentNum uint64) error {
 // 
 func (ap *MasterProvider) SetArea(areaCoords []*api.Coord) error {
 	// エージェントを設置するリクエスト
-	targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_WORKER,
 	})
 	ap.API.SetArea(targets)
@@ -408,7 +408,7 @@ func (ap *MasterProvider) SetArea(areaCoords []*api.Coord) error {
 ////////////     Callback     ////////////////
 ///////////////////////////////////////////////////////////
 type MasterCallback struct {
-	*util.Callback
+	*api.Callback
 }
 
 func (cb *MasterCallback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) *api.Provider {
@@ -459,7 +459,7 @@ func (proc *Processor) setAreas(areaCoords []*api.Coord) (bool, error) {
 	}
 
 	// send area info to visualization
-	targets := pm.GetProviderIds([]api.Provider_Type{
+	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_VISUALIZATION,
 	})
 	filters := []*api.Filter{}
@@ -694,13 +694,12 @@ func main() {
 		Name: "MasterProvider",
 		Type: api.Provider_MASTER,
 	}
-	simapi = api.NewSimAPI(myProvider)
-	pm = util.NewProviderManager(myProvider)
-	cb := util.NewCallback()
+	pm = api.NewProviderManager(myProvider)
+	cb := api.NewCallback()
 
 	// Master Server
 	macb := &MasterCallback{cb} // override
-	masterAPI := util.NewMasterAPI(simapi, *servaddr, *nodeaddr, macb)
+	masterAPI := api.NewProviderAPI(myProvider, *servaddr, *nodeaddr, macb)
 	//masterAPI.ConnectServer()
 	//masterAPI.RegisterProvider()
 
