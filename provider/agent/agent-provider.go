@@ -137,8 +137,8 @@ func NewAgentProvider(simulator *Simulator, workerapi *api.ProviderAPI, visapi *
 func (ap *AgentProvider) Connect() error {
 	ap.WorkerAPI.ConnectServer()
 	ap.WorkerAPI.RegisterProvider()
-	ap.VisAPI.ConnectServer()
-	ap.VisAPI.RegisterProvider()
+	//ap.VisAPI.ConnectServer()
+	//ap.VisAPI.RegisterProvider()
 	return nil
 }
 
@@ -228,6 +228,7 @@ func (ap *AgentProvider) GetAgents() []*api.Agent {
 }
 
 func (ap *AgentProvider) AddAgents(agents []*api.Agent) int {
+	//logger.Info("agents num %v", len(agents))
 	ap.Simulator.AddAgents(agents)
 	// FIX
 	return len(agents)
@@ -276,7 +277,7 @@ func (cb *WorkerCallback) SetAgentRequest(clt *sxutil.SXServiceClient, msg *sxap
 
 	// Agentをセットする
 	agents := simMsg.GetSetAgentRequest().GetAgents()
-
+	//logger.Success("Set Agent NUM %d", agents)
 	// for experiment
 	expAgents := CreateExperimentAgents(agents)
 
@@ -288,11 +289,37 @@ func (cb *WorkerCallback) SetAgentRequest(clt *sxutil.SXServiceClient, msg *sxap
 // for experiment
 func CreateExperimentAgents(agents []*api.Agent)[]*api.Agent{
 	expAgents := []*api.Agent{}
-	for _, agent := range agents{
-		maxLat, maxLon, minLat, minLon := GetCoordRange(myArea.ControlArea)
-		agent.Route.Position.Latitude = (maxLat - minLat) * rand.Float64()
-		agent.Route.Position.Longitude = (maxLon - minLon) * rand.Float64()
-		expAgents = append(expAgents, agent)
+	maxLat, maxLon, minLat, minLon := GetCoordRange(myArea.ControlArea)
+	for range agents{
+
+		uid, _ := uuid.NewRandom()
+		position := &api.Coord{
+			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
+			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
+		}
+		destination := &api.Coord{
+			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
+			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
+		}
+		transitPoint := &api.Coord{
+			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
+			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
+		}
+
+		transitPoints := []*api.Coord{transitPoint}
+		expAgents = append(expAgents, &api.Agent{
+			Type: api.AgentType_PEDESTRIAN,
+			Id:   uint64(uid.ID()),
+			Route: &api.Route{
+				Position:      position,
+				Direction:     30,
+				Speed:         60,
+				Departure:     position,
+				Destination:   destination,
+				TransitPoints: transitPoints,
+				NextTransit:   transitPoint,
+			},
+		})
 	}
 	return expAgents
 }
@@ -301,7 +328,7 @@ func CreateExperimentAgents(agents []*api.Agent)[]*api.Agent{
 func (cb *WorkerCallback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) []*api.Agent {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
-	logger.Debug("GetAgents Worker: %v")
+	//logger.Debug("GetAgents Worker: %v")
 	agents := agentProvider.GetAgents()
 	logger.Success("Send %d Agent to %d", len(agents), simMsg.SenderId)
 	return agents

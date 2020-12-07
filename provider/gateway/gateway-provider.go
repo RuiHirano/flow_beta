@@ -143,17 +143,18 @@ func (ap *GatewayProvider) UpdateProviders(providers []*api.Provider, name strin
 }
 
 // 
-func (ap *GatewayProvider) GetAgents(name string) []*api.Agent {
+func (ap *GatewayProvider) GetAgents(senderId uint64) []*api.Agent {
 	agents := []*api.Agent{}
 	t1 := time.Now()
-	if name == "WORKER1" {
+	if ap.Agent1Provider.Id == senderId{
+	//if name == "WORKER1" {
 		// worker2のagent-providerから取得
 		targets := []uint64{ap.Agent2Provider.Id}
-		agents = ap.Worker2API.GetAgents(targets)
-	}else if name == "WORKER2" {
+		agents, _ = ap.Worker2API.GetAgents(targets)
+	}else if ap.Agent2Provider.Id == senderId{
 		// worker2のagent-providerから取得
 		targets := []uint64{ap.Agent1Provider.Id}
-		agents = ap.Worker1API.GetAgents(targets)
+		agents, _ = ap.Worker1API.GetAgents(targets)
 	}
 	t2 := time.Now()
 	duration := t2.Sub(t1).Milliseconds()
@@ -187,7 +188,8 @@ func (cb *Worker1Callback) UpdateProvidersRequest(clt *sxutil.SXServiceClient, m
 func (cb *Worker1Callback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) []*api.Agent {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
-	agents := gatewayProvider.GetAgents("WORKER1")
+	logger.Debug("gateway1: %v", simMsg)
+	agents := gatewayProvider.GetAgents(simMsg.SenderId)
 	return agents
 }
 
@@ -210,7 +212,8 @@ func (cb *Worker2Callback) UpdateProvidersRequest(clt *sxutil.SXServiceClient, m
 func (cb *Worker2Callback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) []*api.Agent {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
-	agents := gatewayProvider.GetAgents("WORKER2")
+	logger.Debug("gateway2: %v", simMsg)
+	agents := gatewayProvider.GetAgents(simMsg.SenderId)
 	return agents
 }
 

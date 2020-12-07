@@ -200,6 +200,7 @@ func (rvo2route *RVO2Route) CalcNextAgents() []*api.Agent {
 			nextControlAgents = append(nextControlAgents, nextControlAgent)
 		}
 	}
+	logger.Info("DoSteped! %v", len(nextControlAgents))
 
 	return nextControlAgents
 }

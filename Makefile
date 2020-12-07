@@ -28,7 +28,7 @@ vis:
 		kubectl logs -f visualization -c visualization-provider
 
 gateway:
-		kubectl logs -f gateway${arg} -c gateway-provider
+		kubectl logs -f worker${arg} -c gateway-provider0
 
 apply:
 		kubectl apply -f ./kube/resource2/sample.yaml
