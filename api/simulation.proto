@@ -215,6 +215,7 @@ message Agent {
 	string name = 2;
     AgentType type = 3;
     Route route = 4;
+    string data = 5;
 }
 
 enum AgentType {
