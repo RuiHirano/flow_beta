@@ -148,7 +148,7 @@ func GetMockAgents(agentNum uint64) []*api.Agent {
 func init() {
 	flag.Parse()
 	logger = util.NewLogger()
-	recorder = NewRecorder()
+	/*recorder = NewRecorder()
 	recorder.Add(GetMockAgents(10))
 	recorder.Add(GetMockAgents(10))
 	recorder.Add(GetMockAgents(10))
@@ -158,7 +158,7 @@ func init() {
 	recorder.Add(GetMockAgents(10))
 	recorder.Add(GetMockAgents(10))
 	recorder.Add(GetMockAgents(10))
-	recorder.Save()
+	recorder.Save()*/
 
 	//areaJson := os.Getenv("AREA")
 	bytes := []byte(*areaJson)
