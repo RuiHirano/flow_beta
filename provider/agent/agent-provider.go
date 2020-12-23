@@ -17,6 +17,7 @@ import (
 
 	//"runtime"
 	"encoding/json"
+	"io/ioutil"
 	"runtime"
 
 	api "github.com/RuiHirano/flow_beta/api"
@@ -38,6 +39,7 @@ var (
 	myArea         *api.Area
 	agentType      api.AgentType
 	agentProvider  *AgentProvider
+	recorder *Recorder
 
 	simapi            *api.SimAPI
 
@@ -103,10 +105,60 @@ func getAreaJson() string {
 	}
 }
 
+func GetMockAgents(agentNum uint64) []*api.Agent {
+	agents := make([]*api.Agent, 0)
+	minLon, maxLon, minLat, maxLat := 136.971626, 136.989379, 35.152210, 35.161499
+	//maxLat, maxLon, minLat, minLon := GetCoordRange(proc.Area.ControlArea)
+	//fmt.Printf("minLon %v, maxLon %v, minLat %v, maxLat %v\n", minLon, maxLon, minLat, maxLat)
+	for i := 0; i < int(agentNum); i++ {
+		uid, _ := uuid.NewRandom()
+		position := &api.Coord{
+			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
+			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
+		}
+		destination := &api.Coord{
+			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
+			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
+		}
+		transitPoint := &api.Coord{
+			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
+			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
+		}
+
+		transitPoints := []*api.Coord{transitPoint}
+		agents = append(agents, &api.Agent{
+			Type: api.AgentType_PEDESTRIAN,
+			Id:   uint64(uid.ID()),
+			Route: &api.Route{
+				Position:      position,
+				Direction:     30,
+				Speed:         60,
+				Departure:     position,
+				Destination:   destination,
+				TransitPoints: transitPoints,
+				NextTransit:   transitPoint,
+			},
+		})
+		//fmt.Printf("position %v\n", position)
+	}
+
+	return agents
+}
+
 func init() {
 	flag.Parse()
 	logger = util.NewLogger()
-
+	recorder = NewRecorder()
+	recorder.Add(GetMockAgents(10))
+	recorder.Add(GetMockAgents(10))
+	recorder.Add(GetMockAgents(10))
+	recorder.Add(GetMockAgents(10))
+	recorder.Add(GetMockAgents(10))
+	recorder.Add(GetMockAgents(10))
+	recorder.Add(GetMockAgents(10))
+	recorder.Add(GetMockAgents(10))
+	recorder.Add(GetMockAgents(10))
+	recorder.Save()
 
 	//areaJson := os.Getenv("AREA")
 	bytes := []byte(*areaJson)
@@ -114,6 +166,26 @@ func init() {
 	//fmt.Printf("myArea: %v\n", myArea)
 
 	agentType = api.AgentType_PEDESTRIAN
+}
+
+type Recorder struct{
+	Agents [][]*api.Agent
+}
+func NewRecorder() *Recorder{
+	return &Recorder{
+		Agents: [][]*api.Agent{},
+	}
+}
+
+func (rc *Recorder) Add(agents []*api.Agent) error {
+	rc.Agents = append(rc.Agents, agents)
+	return nil
+}
+
+func (rc *Recorder) Save() error {
+	agentsJson, _ := json.MarshalIndent(rc.Agents, "", " ")
+	_ = ioutil.WriteFile("test.json", agentsJson, 0644)
+	return nil
 }
 
 ////////////////////////////////////////////////////////////

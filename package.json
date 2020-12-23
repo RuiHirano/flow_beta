@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@types/react-redux": "^7.1.12",
+    "harmoware-vis": "^1.6.33",
+    "react-redux": "^7.2.2",
+    "redux": "^4.0.5"
+  }
+}
