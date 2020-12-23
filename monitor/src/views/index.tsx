@@ -22,7 +22,7 @@ class Harmoware extends Container<BasedProps & BasedState> {
 
 const createData = (data: any) => {
     console.log(data);
-    let time = 0;
+    let time = Date.now();
     let color = [0, 200, 120];
     const newMovesbase: any = []
     data.forEach((stepdata: any) => {  // step毎のデータ
