@@ -154,7 +154,7 @@ func (ap *VisualizationProvider) GetAgents() []*api.Agent {
 		api.Provider_AGENT,
 	})
 	logger.Debug("targets: %v", targets)
-	agents := ap.WorkerAPI.GetAgents(targets)
+	agents, _ := ap.WorkerAPI.GetAgents(targets)
 	logger.Success("Get Agents : %s", len(agents))
 	return agents
 }
@@ -162,7 +162,7 @@ func (ap *VisualizationProvider) GetAgents() []*api.Agent {
 // 
 func (ap *VisualizationProvider) SendAgentsToMonitor(agents []*api.Agent) error {
 	if agents != nil {
-		jsonAgents := make([]string, 0)
+		/*jsonAgents := make([]string, 0)
 		for _, agentInfo := range agents {
 
 			// agentInfoTypeによってエージェントを取得
@@ -191,9 +191,10 @@ func (ap *VisualizationProvider) SendAgentsToMonitor(agents []*api.Agent) error 
 				}
 				jsonAgents = append(jsonAgents, mm.GetJson())
 			}
-		}
+		}*/
+		jsonAgents, _ := json.Marshal(agents)
 		mu.Lock()
-		ioserv.BroadcastToAll("agents", jsonAgents)
+		ioserv.BroadcastToAll("agents", string(jsonAgents))
 		mu.Unlock()
 	}
 	return nil
@@ -333,6 +334,7 @@ func (cb *MasterCallback) ForwardClockTerminateRequest(clt *sxutil.SXServiceClie
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
 	agents := visProvider.GetAgents()
 	visProvider.SendAgentsToMonitor(agents)
+	logger.Success("Get Agents from AgentProvider: %d ", len(agents))
 
 	t2 := time.Now()
 	duration := t2.Sub(t1).Milliseconds()

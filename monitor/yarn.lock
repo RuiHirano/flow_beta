@@ -1822,7 +1822,7 @@
   resolved "https://registry.yarnpkg.com/@luma.gl/constants/-/constants-8.3.2.tgz#71310972f2909f4cc83a3da7ee8cba61a1bbbad6"
   integrity sha512-KSNNXv5eE9bkMH2AcZpLysqNEU0SDDZ8JthjHtkdVyOSr4yMeAaRXyWeSuLJITiemXkm4Um8jX6Ub12OW9JPug==
 
-"@luma.gl/core@^8.3.1":
+"@luma.gl/core@^8.1.3", "@luma.gl/core@^8.3.1":
   version "8.3.2"
   resolved "https://registry.yarnpkg.com/@luma.gl/core/-/core-8.3.2.tgz#35af0de84b077cbd27e08ecbf233ffa3313a5585"
   integrity sha512-VNFAI0o54+e5biugtz19p2Mapv2xFTZ3qqtWE4xwqst4K/HqvWhoBcWsS5NYlzD6ipsUWTlaidA4ROkbFJINMw==
@@ -4799,7 +4799,7 @@ decimal.js@^10.2.0:
   resolved "https://registry.yarnpkg.com/decimal.js/-/decimal.js-10.2.1.tgz#238ae7b0f0c793d3e3cea410108b35a2c01426a3"
   integrity sha512-KaL7+6Fw6i5A2XSnsbhm/6B+NuEA7TZ4vqxnd5tXz9sbKtrN9Srj8ab4vKVdK8YAqZO9P1kg45Y6YLoduPf+kw==
 
-deck.gl@^8.3.11, deck.gl@^8.3.6:
+deck.gl@^8.1.9, deck.gl@^8.3.11:
   version "8.3.11"
   resolved "https://registry.yarnpkg.com/deck.gl/-/deck.gl-8.3.11.tgz#f9ec06fbcacb14c2c202e6e911f8ba8159f1fdb6"
   integrity sha512-x5/L9lH5rr8zzx9EKtwI69rOeifI0X/5jnnb1qIig7JUX8GVYdH+JZi/RIu6L3YlBaJ0KrehycSn3tubb8h3tg==
@@ -6235,7 +6235,12 @@ getpass@^0.1.1:
   dependencies:
     assert-plus "^1.0.0"
 
-gl-matrix@^3.0.0, gl-matrix@^3.2.0, gl-matrix@^3.2.1, gl-matrix@^3.3.0:
+gl-matrix@^2.8.1:
+  version "2.8.1"
+  resolved "https://registry.yarnpkg.com/gl-matrix/-/gl-matrix-2.8.1.tgz#1c7873448eac61d2cd25803a074e837bd42581a3"
+  integrity sha512-0YCjVpE3pS5XWlN3J4X7AiAx65+nqAI54LndtVFnQZB6G/FVLkZH8y8V6R3cIoOQR4pUdfwQGd1iwyoXHJ4Qfw==
+
+gl-matrix@^3.0.0, gl-matrix@^3.2.0, gl-matrix@^3.2.1:
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/gl-matrix/-/gl-matrix-3.3.0.tgz#232eef60b1c8b30a28cbbe75b2caf6c48fd6358b"
   integrity sha512-COb7LDz+SXaHtl/h4LeaFcNdJdAQSDeVqjiIihSXNrkWObZLhDI4hIkZC11Aeqp7bcE72clzB0BnDXr2SmslRA==
@@ -6395,19 +6400,20 @@ harmony-reflect@^1.4.6:
   resolved "https://registry.yarnpkg.com/harmony-reflect/-/harmony-reflect-1.6.1.tgz#c108d4f2bb451efef7a37861fdbdae72c9bdefa9"
   integrity sha512-WJTeyp0JzGtHcuMsi7rw2VwtkvLa+JyfEKJCFyfcS0+CDkjQ5lHPu7zEhFZP+PDSRrEgXa5Ah0l1MbgbE41XjA==
 
-harmoware-vis@^1.6.33:
-  version "1.6.33"
-  resolved "https://registry.yarnpkg.com/harmoware-vis/-/harmoware-vis-1.6.33.tgz#90ac4466707831f6a46189112a559e3374f803d3"
-  integrity sha512-wu+2GV8gixxKUvzZ3Xv1DTqS/myM4+ffHNK9cKRNSa6acSr7KuMrj6raEPiS3MKXd5GRoVe/XgENhBH7gHxKSQ==
+harmoware-vis@1.6.10:
+  version "1.6.10"
+  resolved "https://registry.yarnpkg.com/harmoware-vis/-/harmoware-vis-1.6.10.tgz#66617b902dbd9250e7bc63fc389fb61cbe4d2e9c"
+  integrity sha512-Z2aFnoTwq4BRqQ6qhEFSSJL6uwWF3NQzzM+egMi9meEAgkOQ4IEmaz/6Ikj9GK1oJ4Wjf722JqvZQVjJ/Rs4eg==
   dependencies:
-    "@luma.gl/core" "^8.3.1"
-    deck.gl "^8.3.6"
-    gl-matrix "^3.3.0"
-    mapbox-gl "^1.12.0"
+    "@luma.gl/core" "^8.1.3"
+    deck.gl "^8.1.9"
+    gl-matrix "^2.8.1"
+    mapbox-gl "^1.11.0"
     react-icons-kit "^1.3.1"
-    react-map-gl "^5.2.10"
+    react-map-gl "^5.2.7"
+    react-spinners "^0.8.3"
     typescript-fsa "^3.0.0"
-    typescript-fsa-reducers "^1.2.2"
+    typescript-fsa-reducers "^1.2.1"
 
 has-ansi@^2.0.0:
   version "2.0.0"
@@ -8229,7 +8235,7 @@ map-visit@^1.0.0:
   dependencies:
     object-visit "^1.0.0"
 
-mapbox-gl@^1.0.0, mapbox-gl@^1.12.0:
+mapbox-gl@^1.0.0, mapbox-gl@^1.11.0:
   version "1.13.0"
   resolved "https://registry.yarnpkg.com/mapbox-gl/-/mapbox-gl-1.13.0.tgz#23b339ba5116b7e3b5a2043ea968f7fcb53e34a6"
   integrity sha512-g8zlzuJxYJqbOPXT19/UBYpVrcefBQ06F/Cbj0fyEfFnFesDcU3cFTxd75/FZ6Upx2ZEjCsD61CHxrcxZidVpA==
@@ -10514,7 +10520,7 @@ react-is@^17.0.1:
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-17.0.1.tgz#5b3531bd76a645a4c9fb6e693ed36419e3301339"
   integrity sha512-NAnt2iGDXohE5LI7uBnLnqvLQMtzhkiAOLXTmv+qnF9Ky7xAPcX8Up/xWIhxvLVGJvuLiNc4xQLtuqDRzb4fSA==
 
-react-map-gl@^5.2.10:
+react-map-gl@^5.2.7:
   version "5.2.11"
   resolved "https://registry.yarnpkg.com/react-map-gl/-/react-map-gl-5.2.11.tgz#d961c5a018a549e062b1541455c8cc2f345eb6d0"
   integrity sha512-Ux2Ss7+yh5IBkkPgvA9axbUi3WLaB5jEZdIbs2VUffBOyouWtdu6JFM0EV1PRk/ZRdDy5RzlkwNkP/jCsFCkGQ==
@@ -10619,6 +10625,13 @@ react-scripts@4.0.1:
     workbox-webpack-plugin "5.1.4"
   optionalDependencies:
     fsevents "^2.1.3"
+
+react-spinners@^0.8.3:
+  version "0.8.3"
+  resolved "https://registry.yarnpkg.com/react-spinners/-/react-spinners-0.8.3.tgz#d08ed753aec4a7ef9f5d9b907ee0161271c932ee"
+  integrity sha512-fuYNjH0megp5FLuUqQXWM9mPgBXUjvYD6IkMOiwNGOOlI2UdOP1ZC3vejUAa3Y/q4qWJ6yx8rjfMjIBgEji+9A==
+  dependencies:
+    "@emotion/core" "^10.0.15"
 
 react-spinners@^0.9.0:
   version "0.9.0"
@@ -12482,7 +12495,7 @@ typedarray@^0.0.6:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=
 
-typescript-fsa-reducers@^1.2.2:
+typescript-fsa-reducers@^1.2.1:
   version "1.2.2"
   resolved "https://registry.yarnpkg.com/typescript-fsa-reducers/-/typescript-fsa-reducers-1.2.2.tgz#1e2c8e8a50ca3e09e0d6fdf2a3b42bdd17de8094"
   integrity sha512-IQ2VsIqUvmzVgWNDjxkeOxX97itl/rq+2u82jGsRdzCSFi9OtV4qf1Ec1urvj/eDlPHOaihIL7wMZzLYx9GvFg==

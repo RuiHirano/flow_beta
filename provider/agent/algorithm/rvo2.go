@@ -195,6 +195,7 @@ func (rvo2route *RVO2Route) CalcNextAgents() []*api.Agent {
 				Id:    agentInfo.Id,
 				Type:  agentInfo.Type,
 				Route: nextRoute,
+				Data: agentInfo.Data,
 			}
 
 			nextControlAgents = append(nextControlAgents, nextControlAgent)

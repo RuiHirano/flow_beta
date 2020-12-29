@@ -21,16 +21,18 @@ RUN go get -u google.golang.org/grpc
 
 # build synerex daemon
 WORKDIR /synerex_simulation
-COPY /provider/visualization ./provider/visualization
+COPY /provider/visualization/monitor/build ./provider/visualization/monitor/build
+COPY /provider/visualization/visualization-provider.go ./provider/visualization/visualization-provider.go
+COPY /provider/visualization/go.mod ./provider/visualization/go.mod
 COPY /util ./util
 COPY /api ./api
 
 # install yarn
-WORKDIR /synerex_simulation/provider/visualization/monitor
-RUN apt-get install -y nodejs
-RUN curl -o- -L https://yarnpkg.com/install.sh | bash
-RUN export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH" && \
-    yarn upgrade && yarn install && yarn build
+#WORKDIR /synerex_simulation/provider/visualization/monitor
+#RUN apt-get install -y nodejs
+#RUN curl -o- -L https://yarnpkg.com/install.sh | bash
+#RUN export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH" && \
+#    yarn upgrade && yarn install && yarn build
 
 # expose port
 #EXPOSE 10000

@@ -203,9 +203,10 @@ func (ap *ProviderAPI) GetAgents(targets []uint64) ([]*Agent, error){
 	sclient := ap.SclientOpts[uint32(ChannelType_AGENT)].Sclient
 	agents := []*Agent{}
 	simMsgs, err := ap.SimAPI.GetAgentRequest(sclient, targets)
+	//log.Printf("simMsgs: %v %v", len(simMsgs), simMsgs)
 	for _, simMsg := range simMsgs {
-		agents := simMsg.GetGetAgentResponse().GetAgents()
-		agents = append(agents, agents...)
+		agentsData := simMsg.GetGetAgentResponse().GetAgents()
+		agents = append(agents, agentsData...)
 	}
 	return agents, err
 }

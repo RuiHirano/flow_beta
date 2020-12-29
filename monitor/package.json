@@ -15,7 +15,7 @@
     "@types/react-map-gl": "^5.2.9",
     "@types/react-redux": "^7.1.12",
     "deck.gl": "^8.3.11",
-    "harmoware-vis": "^1.6.33",
+    "harmoware-vis": "1.6.10",
     "moment": "^2.29.1",
     "node-sass": "4.14.1",
     "react": "^17.0.1",

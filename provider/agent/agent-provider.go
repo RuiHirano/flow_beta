@@ -21,6 +21,7 @@ import (
 	"runtime"
 
 	api "github.com/RuiHirano/flow_beta/api"
+	algo "github.com/RuiHirano/flow_beta/provider/agent/algorithm"
 	util "github.com/RuiHirano/flow_beta/util"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
@@ -126,6 +127,21 @@ func GetMockAgents(agentNum uint64) []*api.Agent {
 		}
 
 		transitPoints := []*api.Coord{transitPoint}
+		var agentParam  *algo.AgentParam
+		if rand.Intn(2) != 0{
+			logger.Info("true", rand.Intn(2) != 0)
+			agentParam = &algo.AgentParam{
+				Status: "I",
+				Move: 0,
+			}
+		}else{
+			logger.Info("false", rand.Intn(2) != 0)
+			agentParam = &algo.AgentParam{
+				Status: "S",
+				Move: 0,
+			}
+		}
+		agentModelParamJson, _ := json.Marshal(agentParam)
 		agents = append(agents, &api.Agent{
 			Type: api.AgentType_PEDESTRIAN,
 			Id:   uint64(uid.ID()),
@@ -138,6 +154,7 @@ func GetMockAgents(agentNum uint64) []*api.Agent {
 				TransitPoints: transitPoints,
 				NextTransit:   transitPoint,
 			},
+			Data: string(agentModelParamJson),
 		})
 		//fmt.Printf("position %v\n", position)
 	}
@@ -148,6 +165,10 @@ func GetMockAgents(agentNum uint64) []*api.Agent {
 func init() {
 	flag.Parse()
 	logger = util.NewLogger()
+	agents := GetMockAgents(10)
+	s, _ := json.Marshal(agents)
+	logger.Debug("jsonagents %v", string(s))
+
 	/*recorder = NewRecorder()
 	recorder.Add(GetMockAgents(10))
 	recorder.Add(GetMockAgents(10))
@@ -209,8 +230,8 @@ func NewAgentProvider(simulator *Simulator, workerapi *api.ProviderAPI, visapi *
 func (ap *AgentProvider) Connect() error {
 	ap.WorkerAPI.ConnectServer()
 	ap.WorkerAPI.RegisterProvider()
-	//ap.VisAPI.ConnectServer()
-	//ap.VisAPI.RegisterProvider()
+	ap.VisAPI.ConnectServer()
+	ap.VisAPI.RegisterProvider()
 	return nil
 }
 
@@ -241,6 +262,7 @@ func (ap *AgentProvider) GetSameAreaAgents() []*api.Agent {
 	})
 	sameAgents, _ := ap.WorkerAPI.GetAgents(targets)
 	sim.SetDiffAgents(sameAgents)
+	logger.Success("GetSameAgents: %d %v", len(sameAgents), targets)
 	
 	t2 := time.Now()
 	duration := t2.Sub(t1).Milliseconds()
@@ -263,6 +285,7 @@ func (ap *AgentProvider) GetNeighborAreaAgents() []*api.Agent {
 	})
 	neighborAgents, _ := ap.WorkerAPI.GetAgents(targets)
 	sim.SetDiffAgents(neighborAgents)
+	logger.Success("GetNeighborAgents: %d", len(neighborAgents))
 	
 	t2 := time.Now()
 	duration := t2.Sub(t1).Milliseconds()
@@ -270,7 +293,7 @@ func (ap *AgentProvider) GetNeighborAreaAgents() []*api.Agent {
 	if duration > interval {
 		logger.Warn("time cycle delayed... Duration: %d", duration)
 	} else {
-		logger.Success("GetSameAreaAgents! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+		logger.Success("GetNeighborAgents! Duration: %v ms, Wait: %d ms", duration, interval-duration)
 	}
 	return neighborAgents
 }
@@ -379,6 +402,19 @@ func CreateExperimentAgents(agents []*api.Agent)[]*api.Agent{
 		}
 
 		transitPoints := []*api.Coord{transitPoint}
+		var agentParam  *algo.AgentParam
+		if rand.Float64() < 0.05{  // 5%以下が初期感染
+			agentParam = &algo.AgentParam{
+				Status: "I",
+				Move: 0,
+			}
+		}else{
+			agentParam = &algo.AgentParam{
+			Status: "S",
+			Move: 0,
+			}
+		}
+		agentModelParamJson, _ := json.Marshal(agentParam)
 		expAgents = append(expAgents, &api.Agent{
 			Type: api.AgentType_PEDESTRIAN,
 			Id:   uint64(uid.ID()),
@@ -391,6 +427,7 @@ func CreateExperimentAgents(agents []*api.Agent)[]*api.Agent{
 				TransitPoints: transitPoints,
 				NextTransit:   transitPoint,
 			},
+			Data: string(agentModelParamJson),
 		})
 	}
 	return expAgents
@@ -416,8 +453,8 @@ type VisCallback struct {
 func (cb *VisCallback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) []*api.Agent {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
-	logger.Debug("GetAgents VIS: %v")
-	agents := sim.Agents
+	logger.Debug("GetAgents VIS")
+	agents := agentProvider.GetAgents()
 	logger.Success("Send %d Agent to VIS %d", len(agents), simMsg.SenderId)
 	return agents
 }

@@ -1,39 +1,50 @@
 package algorithm
 
 import (
-	"fmt"
 	"math"
+	"math/rand"
+
+	"encoding/json"
 
 	api "github.com/RuiHirano/flow_beta/api"
+	rvo "github.com/RuiHirano/rvo2-go/src/rvosimulator"
 )
 
+var (
+	//sim       *rvo.RVOSimulator
+	//logger    *util.Logger
+	//routeName string
+
+//fcs *geojson.FeatureCollection
+)
+
+
 type ModelParam struct{
-	Radius int   // 半径何m以内にいる人が接触と判断するか
+	Radius float64   // 半径何m?以内にいる人が接触と判断するか
 	Rate float64 // 何%が感染するか
 }
 
 type AgentParam struct{
-	Status string  // S: まだ感染していない人, I: 感染しており、他者に感染させる能力を持つ人, R: 病気から回復して免疫を得た人、あるいは死亡した人
-	Move int // 0: ランダムに動く   1: 止まる
+	Status string  `json:"status"`  // S: まだ感染していない人, I: 感染しており、他者に感染させる能力を持つ人, R: 病気から回復して免疫を得た人、あるいは死亡した人
+	Move int  `json:"move"` // 0: ランダムに動く   1: 止まる
 }
 
 type Infection struct {
 	Agents []*api.Agent
 	ModelParam *ModelParam
+	Area       *api.Area
 }
 
-func NewInfection(param *ModelParam) *Infection {
+func NewInfection(param *ModelParam, agents []*api.Agent, area *api.Area) *Infection {
 	r := &Infection{
-		Agents: []*api.Agent{},
+		Agents: agents,
+		Area:   area,
 		ModelParam: param,
 	}
 	return r
 }
 
-func (inf *Infection) AddAgents(agents []*api.Agent){
-	inf.Agents = agents
-}
-
+// CalcDirectionAndDistance: 目的地までの距離と角度を計算する関数
 func (inf *Infection) CalcDirectionAndDistance(startCoord *api.Coord, goalCoord *api.Coord) (float64, float64) {
 
 	r := 6378137 // equatorial radius
@@ -56,36 +67,16 @@ func (inf *Infection) CalcDirectionAndDistance(startCoord *api.Coord, goalCoord 
 	return direction, distance
 }
 
-// TODO: Why Calc Error ? newLat=nan and newLon = inf
-func (inf *Infection) CalcMovedPosition(currentPosition *api.Coord, goalPosition *api.Coord, distance float64, speed float64) *api.Coord {
-
-	sLat := currentPosition.Latitude
-	sLon := currentPosition.Longitude
-	gLat := goalPosition.Latitude
-	gLon := goalPosition.Longitude
-	// 割合
-	x := speed * 1000 / 3600 / distance
-
-	newLat := sLat + (gLat-sLat)*x
-	newLon := sLon + (gLon-sLon)*x
-
-	nextPosition := &api.Coord{
-		Latitude:  newLat,
-		Longitude: newLon,
-	}
-
-	return nextPosition
-}
-
-// DecideNextTransit: 次の経由地を決める関数
+// DecideNextTransit: 次の経由地を求める関数
 func (inf *Infection) DecideNextTransit(nextTransit *api.Coord, transitPoint []*api.Coord, distance float64, destination *api.Coord) *api.Coord {
+
 	// 距離が5m以下の場合
-	if distance < 5 {
+	if distance < 150 {
 		if nextTransit != destination {
 			for i, tPoint := range transitPoint {
 				if tPoint.Longitude == nextTransit.Longitude && tPoint.Latitude == nextTransit.Latitude {
 					if i+1 == len(transitPoint) {
-						// すべての経由地を通った場合、nilにする
+						// すべての経由地を通った場合、nextTransitをdestinationにする
 						nextTransit = destination
 					} else {
 						// 次の経由地を設定する
@@ -94,91 +85,148 @@ func (inf *Infection) DecideNextTransit(nextTransit *api.Coord, transitPoint []*
 				}
 			}
 		} else {
-			fmt.Printf("\x1b[30m\x1b[47m Arrived Destination! \x1b[0m\n")
+			//fmt.Printf("arrived!")
 		}
 	}
 	return nextTransit
 }
 
-// CalcNextRoute：次の時刻のRouteを計算する関数
-func (inf *Infection) CalcNextRoute(agentInfo *api.Agent) *api.Route {
-
-	route := agentInfo.Route
-	speed := route.Speed
-	currentPosition := route.Position
-	nextTransit := route.NextTransit
-	transitPoints := route.TransitPoints
-	destination := route.Destination
-	// passed all transit point
-	//if nextTransit != nil {
-	//	destination = nextTransit
-	//}
-
-	// 現在位置と目標位置との距離と角度を計算
-	direction, distance := inf.CalcDirectionAndDistance(currentPosition, nextTransit)
-
-	// 次の時刻のPositionを計算
-	nextPosition := inf.CalcMovedPosition(currentPosition, nextTransit, distance, speed)
-
-	// 経由地に到着していれば、目標位置を次の経由地に更新する
-	nextTransit = inf.DecideNextTransit(nextTransit, transitPoints, distance, destination)
-
-	//fmt.Printf("\x1b[30m\x1b[47m Position %v, NextTransit: %v, NextTransit: %v, Direction: %v, Distance: %v \x1b[0m\n", currentPosition, nextTransit, destination, direction, distance)
-	//fmt.Printf("\x1b[30m\x1b[47m 上下:  %v, 左右: %v \x1b[0m\n", nextTransit.Lat-currentPosition.Lat, nextTransit.Lon-currentPosition.Lon)
-
-	//} else {
-	//	log.Printf("\x1b[30m\x1b[47m LOCATION CULC ERROR %v \x1b[0m\n", nextPosition)
-	//}
-
-	nextRoute := &api.Route{
-		Position:      nextPosition,
-		Direction:     direction,
-		Speed:         speed,
-		Destination:   route.Destination,
-		Departure:     route.Departure,
-		TransitPoints: transitPoints,
-		NextTransit:   nextTransit,
-		TotalDistance: route.TotalDistance,
-		RequiredTime:  route.RequiredTime,
+// GetNextTransit: 次の経由地を求める関数
+func (inf *Infection) GetNextTransit(nextTransit *api.Coord, distance float64) *api.Coord {
+	newNextTransit := nextTransit
+	//logger.Error("Name: %v, Distance %v\n", routeName, distance)
+	// 距離が5m以下の場合
+	if distance < 10 {
+		routes := GetRoutes2()
+		for _, route := range routes {
+			if route.Point.Longitude == nextTransit.Longitude && route.Point.Latitude == nextTransit.Latitude {
+				index := rand.Intn(len(route.NeighborPoints))
+				nextRoute := route.NeighborPoints[index]
+				newNextTransit = nextRoute.Point
+				routeName = nextRoute.Name
+				//logger.Warn("Name: %v, Index %v\n", routeName, index)
+				break
+			}
+		}
 	}
-
-	return nextRoute
+	return newNextTransit
 }
 
+// SetupScenario: Scenarioを設定する関数
+func (inf *Infection) SetupScenario() {
+	// Set Agent
+	for _, agentInfo := range inf.Agents {
 
+		position := &rvo.Vector2{X: agentInfo.Route.Position.Longitude, Y: agentInfo.Route.Position.Latitude}
+		goal := &rvo.Vector2{X: agentInfo.Route.NextTransit.Longitude, Y: agentInfo.Route.NextTransit.Latitude}
 
-// CalcNextAgents: 次の時刻のエージェントを取得する関数
-func (inf *Infection) CalcAgents(agents []*api.Agent) []*api.Agent {
+		// Agentを追加
+		id, _ := sim.AddDefaultAgent(position)
 
+		// 目的地を設定
+		sim.SetAgentGoal(id, goal)
+
+		// エージェントの速度方向ベクトルを設定
+		goalVector := sim.GetAgentGoalVector(id)
+		sim.SetAgentPrefVelocity(id, goalVector)
+		//sim.SetAgentMaxSpeed(id, float64(api.MaxSpeed))
+	}
+}
+
+func (inf *Infection) CalcNextAgents() []*api.Agent {
+
+	currentAgents := inf.Agents
+
+	timeStep := 0.1
+	neighborDist := 0.00003 // どのくらいの距離の相手をNeighborと認識するか?Neighborとの距離をどのくらいに保つか？ぶつかったと認識する距離？
+	maxneighbors := 3       // 周り何体を計算対象とするか
+	timeHorizon := 1.0
+	timeHorizonObst := 1.0
+	radius := 0.00001  // エージェントの半径
+	maxSpeed := 0.0004 // エージェントの最大スピード
+	sim = rvo.NewRVOSimulator(timeStep, neighborDist, maxneighbors, timeHorizon, timeHorizonObst, radius, maxSpeed, &rvo.Vector2{X: 0, Y: 0})
+
+	// scenario設定
+	inf.SetupScenario()
+
+	// Stepを進める
+	sim.DoStep()
+
+	// 管理エリアのエージェントのみを抽出
 	nextControlAgents := make([]*api.Agent, 0)
+	for rvoId, agentInfo := range currentAgents {
+		// 管理エリア内のエージェントのみ抽出
+		position := agentInfo.Route.Position
+		if IsAgentInArea(position, inf.Area.ControlArea) {
+			destination := agentInfo.Route.Destination
 
-	for _, agentInfo := range agents {
-		// 次の時刻のRouteを計算
-		nextRoute := inf.CalcNextRoute(agentInfo)
+			// rvoの位置情報を緯度経度に変換する
+			rvoAgent := sim.GetAgent(int(rvoId))
+			rvoAgentPosition := rvoAgent.Position
 
+			// infection探索
+			var data *AgentParam
+			json.Unmarshal([]byte(agentInfo.Data), &data)
+			if data.Status == "S"{
+				// 自身が感染しておらず、半径rの周りに感染している人がいれば、自身も感染する
+				rvoNeighbors := rvoAgent.AgentNeighbors
+				for _, rvoNeighbor := range rvoNeighbors{
+					neighbor := currentAgents[rvoNeighbor.Agent.ID]
+					var neighborData *AgentParam
+					json.Unmarshal([]byte(neighbor.Data), &neighborData)
+					// 半径rに感染している人がいる場合
+					if neighborData.Status == "I" && math.Sqrt(rvoNeighbor.DistSq) < inf.ModelParam.Radius{
+						// xの確率で感染する
+						if rand.Float64() < inf.ModelParam.Rate {
+							// 感染
+							data.Status = "I"
+						}
+					}
+				}
+			}
 
-		nextControlAgent := &api.Agent{
-			Id:    agentInfo.Id,
-			Type:  agentInfo.Type,
-			Route: nextRoute,
-		}
-		// Agent追加
-		nextControlAgents = append(nextControlAgents, nextControlAgent)
-		// 自エリアにいる場合、次のルートを計算する
-		/*if IsAgentInArea(agentInfo.Route.Position, inf.Area.ControlArea) {
+			nextCoord := &api.Coord{
+				Latitude:  rvoAgentPosition.Y,
+				Longitude: rvoAgentPosition.X,
+			}
 
-			// 次の時刻のRouteを計算
-			nextRoute := inf.CalcNextRoute(agentInfo, inf.SameAreaAgents)
+			// 現在の位置とゴールとの距離と角度を求める (度, m))
+			_, distance := inf.CalcDirectionAndDistance(nextCoord, agentInfo.Route.NextTransit)
+			// 次の経由地nextTransitを求める
+			//nextTransit := inf.DecideNextTransit(agentInfo.Route.NextTransit, agentInfo.Route.TransitPoints, distance, destination)
+			//nextTransit := agentInfo.Route.NextTransit
+			nextTransit := inf.GetNextTransit(agentInfo.Route.NextTransit, distance)
+
+			goalVector := sim.GetAgentGoalVector(int(rvoId))
+			direction := math.Atan2(goalVector.Y, goalVector.X)
+			speed := agentInfo.Route.Speed
+
+			nextRoute := &api.Route{
+				Position:      nextCoord,
+				Direction:     direction,
+				Speed:         speed,
+				Destination:   destination,
+				Departure:     agentInfo.Route.Departure,
+				TransitPoints: agentInfo.Route.TransitPoints,
+				NextTransit:   nextTransit,
+				TotalDistance: agentInfo.Route.TotalDistance,
+				RequiredTime:  agentInfo.Route.RequiredTime,
+			}
+
+			dataStr, _ := json.Marshal(data)
 
 			nextControlAgent := &api.Agent{
 				Id:    agentInfo.Id,
 				Type:  agentInfo.Type,
 				Route: nextRoute,
+				Data: string(dataStr),
 			}
-			// Agent追加
+
 			nextControlAgents = append(nextControlAgents, nextControlAgent)
-		}*/
+		}
 	}
+	logger.Info("DoSteped! %v", len(nextControlAgents))
+
 	return nextControlAgents
 }
 
@@ -186,10 +234,30 @@ func (inf *Infection) CalcAgents(agents []*api.Agent) []*api.Agent {
 /*func IsAgentInArea(position *api.Coord, areaCoords []*api.Coord) bool {
 	lat := position.Latitude
 	lon := position.Longitude
-	maxLat, maxLon, minLat, minLon := simutil.GetCoordRange(areaCoords)
+	maxLat, maxLon, minLat, minLon := GetCoordRange(areaCoords)
 	if minLat < lat && lat < maxLat && minLon < lon && lon < maxLon {
 		return true
 	} else {
 		return false
 	}
+}
+
+func GetCoordRange(coords []*api.Coord) (float64, float64, float64, float64) {
+	maxLon, maxLat := math.Inf(-1), math.Inf(-1)
+	minLon, minLat := math.Inf(0), math.Inf(0)
+	for _, coord := range coords {
+		if coord.Latitude > maxLat {
+			maxLat = coord.Latitude
+		}
+		if coord.Longitude > maxLon {
+			maxLon = coord.Longitude
+		}
+		if coord.Latitude < minLat {
+			minLat = coord.Latitude
+		}
+		if coord.Longitude < minLon {
+			minLon = coord.Longitude
+		}
+	}
+	return maxLat, maxLon, minLat, minLon
 }*/

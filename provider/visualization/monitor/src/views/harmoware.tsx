@@ -40,23 +40,26 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
     //const movesdata = [...movesbase]
 
     const getAgents = (data: any) => {
+        const agents = JSON.parse(data)
+        console.log("getAgents: ", agents.length);
         const time = Date.now() / 1000; // set time as now. (If data have time, ..)
         const newMovesbase: Movesbase[] = [];
         // useEffect内では外側のstateは初期化時のままなので、set関数内で過去のstateを取得する必要がある
         setMovesdata((movesdata) => {
             //console.log("socketData: ", movesdata);
-            data.forEach((value: any) => {
-                const { mtype, id, lat, lon } = JSON.parse(
-                    value
-                );
-                let color = [0, 200, 120];
-
+            agents.forEach((agent: any) => {
+                let color = [0, 255, 0];  // S
+                const data = JSON.parse(agent.data)
+                if (data.status === "I") {
+                    color = [255, 0, 0]
+                }
                 let isExist = false;
                 // operation内のelapsedtimeなどのオブジェクトは2つ以上ないと表示されないので注意
 
                 movesdata.forEach((movedata) => {
                     //console.log("id, type: ", id, movedata.type)
-                    if (id === movedata.type) {
+                    if (agent.id === movedata.type) {
+
                         //console.log("match")
                         // 存在する場合、更新
                         newMovesbase.push({
@@ -65,8 +68,8 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
                                 ...movedata.operation,
                                 {
                                     elapsedtime: time,
-                                    position: [lon, lat, 0],
-                                    color
+                                    position: [agent.route.position.longitude, agent.route.position.latitude, 0],
+                                    color: color
                                 }
                             ]
                         });
@@ -76,13 +79,12 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
 
                 if (!isExist) {
                     // 存在しない場合、新規作成
-                    let color = [0, 255, 0];
                     newMovesbase.push({
-                        type: id,
+                        type: agent.id,
                         operation: [
                             {
                                 elapsedtime: time,
-                                position: [lon, lat, 0],
+                                position: [agent.route.position.longitude, agent.route.position.latitude, 0],
                                 color
                             }
                         ]
@@ -91,6 +93,7 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
 
 
             });
+            //console.log("newMovesbase: ", newMovesbase)
             return newMovesbase
         })
 
@@ -133,7 +136,7 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
 
         //testAgent()
 
-        console.log(process.env);
+        console.log("ver1.0.12", process.env);
         if (actions) {
             actions.setViewport({
                 ...props.viewport,

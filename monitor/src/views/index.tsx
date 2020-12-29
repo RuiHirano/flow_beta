@@ -22,13 +22,15 @@ class Harmoware extends Container<BasedProps & BasedState> {
 
 const createData = (data: any) => {
     console.log(data);
-    let time = Date.now();
+    let time = Math.floor(Date.now() / 1000)
+    console.log("time: ", time, Date.now())
     let color = [0, 200, 120];
     const newMovesbase: any = []
     data.forEach((stepdata: any) => {  // step毎のデータ
         const stepMovesbase = [...newMovesbase]
         console.log("test2", stepMovesbase.length)
-        time += 1
+        time = Math.floor(time + 1)
+        console.log("time: ", time)
         stepdata.forEach((agentdata: any) => {   // agentデータ
             let isExist = false
             stepMovesbase.forEach((movebase: any, index: number) => {
@@ -66,26 +68,87 @@ const createData = (data: any) => {
 
         });
     });
-    console.log(newMovesbase)
+    console.log("newMovesbase", newMovesbase)
     return newMovesbase
 }
+
 
 const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
 
     const { actions, depotsData, viewport, movesbase, movedData, routePaths, clickedObject } = props
+
+    const [movesdata, setMovesdata] = useState<Movesbase[]>([])
 
     const pickFile = (file: File) => {
         var fileReader = new FileReader();
         fileReader.onload = function () {
             if (typeof fileReader.result === "string") {
                 const data = JSON.parse(fileReader.result)
-                const newMovesbase = createData(data)
-                actions.updateMovesBase(newMovesbase)
+                //const newMovesbase = createData(data)
+                //actions.updateMovesBase(newMovesbase)
+                runDataLoop(data)
                 //actions.updateMovesBase(data)
             }
         }
         fileReader.readAsText(file);
         console.log(JSON.stringify(file))
+    }
+
+    const createData2 = (stepdata: any) => {
+        let time = Math.floor(Date.now() / 1000)
+        console.log("time: ", time, Date.now())
+        let color = [0, 200, 120];
+        const newMovesbase: any = []
+        setMovesdata((movesdata) => {
+            stepdata.forEach((agentdata: any) => {   // agentデータ
+                let isExist = false
+                movesdata.forEach((movedata: any, index: number) => {
+                    //console.log("test", movedata.type, agentdata.id, movedata.type === agentdata.id)
+                    if (movedata.type === agentdata.id) {
+                        //console.log("test2", movedata.type === agentdata.id)
+                        isExist = true
+                        newMovesbase[index] = {
+                            ...movedata,
+                            operation: [
+                                ...movedata.operation,
+                                {
+                                    elapsedtime: time,
+                                    position: [agentdata.route.position.longitude, agentdata.route.position.latitude, 0],
+                                    color
+                                }
+                            ]
+                        };
+                    }
+                });
+                if (!isExist) {
+                    // 存在しない場合、新規作成
+                    let color = [0, 255, 0];
+                    newMovesbase.push({
+                        type: agentdata.id,
+                        operation: [
+                            {
+                                elapsedtime: time,
+                                position: [agentdata.route.position.longitude, agentdata.route.position.latitude, 0],
+                                color
+                            }
+                        ]
+                    });
+                }
+
+            });
+            return newMovesbase
+        })
+        console.log("newMovesbase", newMovesbase)
+        return newMovesbase
+    }
+
+    const runDataLoop = async (data: any) => {
+        for (let i = 0; i < data.length; i++) {
+            const stepData = data[i]
+            const newMovesbase = createData2(stepData)
+            actions.updateMovesBase(newMovesbase);
+            await timeout(1000)
+        }
     }
 
     useEffect(() => {
@@ -100,10 +163,10 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
                 height: window.screen.height,
                 zoom: 16
             })
+
             actions.setSecPerHour(3600);
             actions.setLeading(2)
             actions.setTrailing(5)
-
         }
     }, [])
 
