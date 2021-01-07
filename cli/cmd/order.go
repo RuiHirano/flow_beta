@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -128,12 +129,55 @@ type ConfigOptions struct {
 	ConfigName string `validate:"required" json:"config_name"`
 }
 
+type InfectionOptions struct {
+	Radius float64  `validate:"required,min=0,max=1", json:"radius"` // 半径何m?以内にいる人が接触と判断するか
+	Rate float64 `validate:"required,min=0,max=1", json:"rate"`// 何%が感染するか
+}
+
 var (
 	ao  = &AgentOptions{}
 	aro = &AreaOptions{}
 	co  = &ClockOptions{}
 	coo = &ConfigOptions{}
+	io = &InfectionOptions{}
 )
+
+var simulatorRequestCmd = &cobra.Command{
+	Use:   "inf",
+	Short: "order reset",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("simulation request\n")
+		//aojson, _ := json.Marshal(ao)
+		data, _ := json.Marshal(io)
+		request := &pb.SimulatorRequest{
+			Type: "SET_PARAM",
+			Data: string(data),
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		//response, err := client.RunProcess(ctx, request)
+		client.Simulator(ctx, request)
+		//sender.Post(aojson, "/order/set/agent")
+	},
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		return validateParams(*io)
+	},
+}
+
+var resetCmd = &cobra.Command{
+	Use:   "reset",
+	Short: "order reset",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("reset\n")
+		//aojson, _ := json.Marshal(ao)
+		request := &pb.ResetRequest{}
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		//response, err := client.RunProcess(ctx, request)
+		client.Reset(ctx, request)
+		//sender.Post(aojson, "/order/set/agent")
+	},
+}
 
 var setCmd = &cobra.Command{
 	Use:   "set",
@@ -215,6 +259,8 @@ var configCmd = &cobra.Command{
 }
 
 func init() {
+	simulatorRequestCmd.Flags().Float64VarP(&io.Rate, "rate", "p", 0.5, "infect rate (required)")
+	simulatorRequestCmd.Flags().Float64VarP(&io.Radius, "radius", "r", 0.00006, "infect radius (required)")
 	agentCmd.Flags().IntVarP(&ao.Num, "num", "n", 0, "agent num (required)")
 	areaCmd.Flags().StringVarP(&aro.ELat, "elat", "a", "35.161544", "area end latitude (required)")
 	areaCmd.Flags().StringVarP(&aro.SLat, "slat", "b", "35.152371", "area start latitude (required)")
@@ -227,6 +273,8 @@ func init() {
 	setCmd.AddCommand(areaCmd)
 	setCmd.AddCommand(configCmd)
 	orderCmd.AddCommand(setCmd)
+	orderCmd.AddCommand(resetCmd)
+	orderCmd.AddCommand(simulatorRequestCmd)  // simulation独自のコマンド
 }
 
 /////////////////////////////////////////////////

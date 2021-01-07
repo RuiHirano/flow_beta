@@ -135,12 +135,36 @@ func (ap *WorkerProvider) RegisterProvider(provider *api.Provider) {
 }
 
 // 
+func (ap *WorkerProvider) SimulatorRequest(simReq *api.SimulatorRequest) {
+	targets := pm.GetTargets([]api.Provider_Type{
+		api.Provider_AGENT,
+	})
+	if err := ap.WorkerAPI.SimulatorRequest(targets, simReq); err != nil{
+		logger.Error("error on Connect SimulatorRequest: ", err)
+	}else{
+		logger.Success("Success SimulatorRequest: ")
+	}
+}
+
+// 
+func (ap *WorkerProvider) Reset() {
+	targets := pm.GetTargets([]api.Provider_Type{
+		api.Provider_AGENT,
+	})
+	if err := ap.WorkerAPI.Reset(targets); err != nil{
+		logger.Error("error on Connect Reset: ", err)
+	}else{
+		logger.Success("Success Reset: ")
+	}
+}
+
+// 
 func (ap *WorkerProvider) SetClock(clock *api.Clock) {
 	targets := pm.GetTargets([]api.Provider_Type{
 		api.Provider_AGENT,
 	})
 	if err := ap.WorkerAPI.SetClock(targets, clock); err != nil{
-		logger.Error("error on Connect RegisterProvider: ", err)
+		logger.Error("error on SetClock: ", err)
 	}else{
 		logger.Success("Success Set Clock: ")
 	}
@@ -154,7 +178,7 @@ func (ap *WorkerProvider) SetAgents(agents []*api.Agent) {
 		api.Provider_AGENT,
 	})
 	if err := ap.WorkerAPI.SetAgents(targets, agents); err != nil{
-		logger.Error("error on Connect RegisterProvider: ", err)
+		logger.Error("error on Set Agents: ", err)
 	}else{
 		logger.Success("Success Set Agents: ")
 	}
@@ -204,6 +228,22 @@ func (ap *WorkerProvider) ForwardClockTerminate() {
 type MasterCallback struct {
 	*api.Callback
 }
+
+func (cb *MasterCallback) SimulatorRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	simReq := simMsg.GetSimulatorRequest()
+	workerProvider.SimulatorRequest(simReq)
+	logger.Success("Simulator\n")
+}
+
+func (cb *MasterCallback) ResetRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	workerProvider.Reset()
+	logger.Success("Reset\n")
+}
+
 
 func (cb *MasterCallback) ForwardClockInitRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	t1 := time.Now()

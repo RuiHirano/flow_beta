@@ -246,6 +246,18 @@ func (ap *ProviderAPI) SetArea(targets []uint64) {
 	//ap.SimAPI.SetAreaRequest(sclient, targets, clock)
 }
 
+func (ap *ProviderAPI) Reset(targets []uint64) error{
+	sclient := ap.SclientOpts[uint32(ChannelType_PROVIDER)].Sclient
+	_, err := ap.SimAPI.ResetRequest(sclient, targets)
+	return err
+}
+
+
+func (ap *ProviderAPI) SimulatorRequest(targets []uint64, req *SimulatorRequest) error{
+	sclient := ap.SclientOpts[uint32(ChannelType_PROVIDER)].Sclient
+	_, err := ap.SimAPI.SimulatorRequest(sclient, targets, req)
+	return err
+}
 
 
 
@@ -560,6 +572,81 @@ func (s *SimAPI) GetAgentResponse(sclient *sxutil.SXServiceClient, msgId uint64,
 		SenderId: s.Provider.Id,
 		Type:     MsgType_GET_AGENT_RESPONSE,
 		Data:     &SimMsg_GetAgentResponse{getAgentResponse},
+	}
+
+	s.ResponseSimMsg(sclient, simMsg, targetId)
+
+	return msgId
+}
+
+///////////////////////////////////////////
+////  Provider API Reset and Sim Request  /
+//////////////////////////////////////////
+
+// リセットするDemand
+func (s *SimAPI) ResetRequest(sclient *sxutil.SXServiceClient, targets []uint64) ([]*SimMsg, error) {
+	if len(targets) == 0 {
+		return []*SimMsg{}, nil
+	}
+	resetRequest := &ResetRequest{}
+	uid, _ := uuid.NewRandom()
+	msgId := uint64(uid.ID())
+	simMsg := &SimMsg{
+		MsgId:    msgId,
+		SenderId: s.Provider.Id,
+		Type:     MsgType_RESET_REQUEST,
+		Data:     &SimMsg_ResetRequest{resetRequest},
+	}
+
+	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+
+	return sps, err
+}
+
+// リセットするSupply
+func (s *SimAPI) ResetResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64) uint64 {
+	resetResponse := &ResetResponse{}
+
+	simMsg := &SimMsg{
+		MsgId:    msgId,
+		SenderId: s.Provider.Id,
+		Type:     MsgType_RESET_RESPONSE,
+		Data:     &SimMsg_ResetResponse{resetResponse},
+	}
+
+	s.ResponseSimMsg(sclient, simMsg, targetId)
+
+	return msgId
+}
+
+// Simulator独自のデータをやりとりするDemand
+func (s *SimAPI) SimulatorRequest(sclient *sxutil.SXServiceClient, targets []uint64, simReq *SimulatorRequest) ([]*SimMsg, error) {
+	if len(targets) == 0 {
+		return []*SimMsg{}, nil
+	}
+	uid, _ := uuid.NewRandom()
+	msgId := uint64(uid.ID())
+	simMsg := &SimMsg{
+		MsgId:    msgId,
+		SenderId: s.Provider.Id,
+		Type:     MsgType_SIMULATOR_REQUEST,
+		Data:     &SimMsg_SimulatorRequest{simReq},
+	}
+
+	sps, err := s.RequestSimMsg(sclient, targets, simMsg)
+
+	return sps, err
+}
+
+// Simulator独自のデータをやりとりするSupply
+func (s *SimAPI) SimulatorResponse(sclient *sxutil.SXServiceClient, msgId uint64, targetId uint64) uint64 {
+	simulatorResponse := &SimulatorResponse{}
+
+	simMsg := &SimMsg{
+		MsgId:    msgId,
+		SenderId: s.Provider.Id,
+		Type:     MsgType_SIMULATOR_RESPONSE,
+		Data:     &SimMsg_SimulatorResponse{simulatorResponse},
 	}
 
 	s.ResponseSimMsg(sclient, simMsg, targetId)
@@ -1043,6 +1130,10 @@ type CallbackInterface interface {
 	ForwardClockTerminateResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
 	SendAreaInfoRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
 	SendAreaInfoResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	ResetRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	ResetResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	SimulatorRequest(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
+	SimulatorResponse(clt *sxutil.SXServiceClient, simMsg *sxapi.MbusMsg)
 }
 
 type BaseCallback struct {
@@ -1124,6 +1215,26 @@ func (bc *BaseCallback) ProviderCallback(clt *sxutil.SXServiceClient, msg *sxapi
 			bc.UpdateProvidersResponse(clt, msg)
 			bc.simapi.SendMsgToWait(msg)
 
+
+		case MsgType_RESET_REQUEST:
+			bc.ResetRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.ResetResponse(clt, msgId, targetId)
+
+		case MsgType_RESET_RESPONSE:
+			bc.ResetResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
+		
+		case MsgType_SIMULATOR_REQUEST:
+			bc.SimulatorRequest(clt, msg)
+			// response
+			targetId := msg.GetSenderId()
+			bc.simapi.SimulatorResponse(clt, msgId, targetId)
+
+		case MsgType_SIMULATOR_RESPONSE:
+			bc.SimulatorResponse(clt, msg)
+			bc.simapi.SendMsgToWait(msg)
 		}
 		return
 	}()
@@ -1242,6 +1353,10 @@ func (cb Callback) RegisterProviderRequest(clt *sxutil.SXServiceClient, msg *sxa
 func (cb Callback) RegisterProviderResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {}
 func (cb Callback) UpdateProvidersRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)   {}
 func (cb Callback) UpdateProvidersResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)  {}
+func (cb Callback) ResetRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)   {}
+func (cb Callback) ResetResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)  {}
+func (cb Callback) SimulatorRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)   {}
+func (cb Callback) SimulatorResponse(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)  {}
 
 // Clock
 func (cb Callback) SetClockRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg)               {}

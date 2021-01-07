@@ -235,6 +235,18 @@ func (ap *AgentProvider) Connect() error {
 	return nil
 }
 
+// 
+func (ap *AgentProvider) SimulatorRequest(simReq *api.SimulatorRequest) {
+	ap.Simulator.SimulationRequest(simReq)
+	logger.Success("SimulationRequest")
+}
+
+// 
+func (ap *AgentProvider) Reset() {
+	ap.Simulator.ResetAgents()
+	logger.Success("Reset")
+}
+
 // Connect: Worker Nodeに接続する
 func (ap *AgentProvider) ForwardClock() error {
 	//logger.Debug("calcNextAgents 0")
@@ -334,6 +346,21 @@ func (ap *AgentProvider) AddAgents(agents []*api.Agent) int {
 ///////////////////////////////////////////////////////////
 type WorkerCallback struct {
 	*api.Callback
+}
+
+func (cb *WorkerCallback) SimulatorRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	simReq := simMsg.GetSimulatorRequest()
+	agentProvider.SimulatorRequest(simReq)
+	logger.Success("Simulator\n")
+}
+
+func (cb *WorkerCallback) ResetRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
+	simMsg := &api.SimMsg{}
+	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
+	agentProvider.Reset()
+	logger.Success("Reset\n")
 }
 
 func (cb *WorkerCallback) ForwardClockInitRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {

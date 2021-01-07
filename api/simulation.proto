@@ -34,6 +34,10 @@ message SimMsg {
         GetAgentResponse get_agent_response = 25;
         SendAreaInfoRequest send_area_info_request = 26;
         SendAreaInfoResponse send_area_info_response = 27;
+        ResetRequest reset_request = 28;
+        ResetResponse reset_response = 29;
+        SimulatorRequest simulator_request = 30;
+        SimulatorResponse simulator_response = 31;
     }
 }
 
@@ -63,6 +67,10 @@ enum MsgType {
     FORWARD_CLOCK_TERMINATE_RESPONSE = 21;
     SEND_AREA_INFO_REQUEST = 22;
     SEND_AREA_INFO_RESPONSE = 23;
+    RESET_REQUEST = 24;
+    RESET_RESPONSE = 25;
+    SIMULATOR_REQUEST = 26;
+    SIMULATOR_RESPONSE = 27;
 }
 
 enum StatusType {
@@ -78,6 +86,20 @@ enum ChannelType {
     AREA = 4;
 }
 
+
+message SimulatorRequest {
+    string type = 1;
+    string data = 2;
+}
+
+message SimulatorResponse {
+}
+
+message ResetRequest {
+}
+
+message ResetResponse {
+}
 
 message SendAreaInfoRequest {
     repeated Area areas = 1;

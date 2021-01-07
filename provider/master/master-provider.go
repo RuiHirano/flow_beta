@@ -42,7 +42,7 @@ var (
 	pm     *api.ProviderManager
 	logger *util.Logger
 	config *Config
-	podgen *PodGenerator
+	//podgen *PodGenerator
 	//proc   *Processor
 	masterProvider  *MasterProvider
 
@@ -181,6 +181,38 @@ func (ap *MasterProvider) RegisterProvider(provider *api.Provider) error {
 	logger.Success("Update Providers! Worker Num: ", len(targets))
 	return nil
 }
+
+// 
+func (ap *MasterProvider) Reset() error {
+	ap.StopClock()
+	ap.SetClock(0)
+	// ResetRequest to Worker
+	targets := pm.GetTargets([]api.Provider_Type{
+		api.Provider_WORKER,
+		//api.Provider_VISUALIZATION,
+	})
+	ap.API.Reset(targets)
+	logger.Success("Reset")
+
+	return nil
+}
+
+func (ap *MasterProvider) SimulatorRequest(reqType string, data string) error {
+	// ResetRequest to Worker
+	targets := pm.GetTargets([]api.Provider_Type{
+		api.Provider_WORKER,
+		//api.Provider_VISUALIZATION,
+	})
+	req := &api.SimulatorRequest{
+		Type: reqType,
+		Data: data,
+	}
+	ap.API.SimulatorRequest(targets, req)
+	logger.Success("Reset")
+
+	return nil
+}
+
 
 // 
 func (ap *MasterProvider) StopClock() error {
@@ -430,6 +462,42 @@ type MasterService struct{}
 func getUid() uint64 {
 	uid, _ := uuid.NewRandom()
 	return uint64(uid.ID())
+}
+
+func (b *MasterService) Simulator(ctx context.Context, request *pb.SimulatorRequest) (*pb.Response, error) {
+	fmt.Printf("Got Simulator Request %v\n", request)
+	masterProvider.SimulatorRequest(request.GetType(), request.GetData())
+	//proc.setClock(masterClock)
+	// Response
+	requestId := getUid()
+	response := &pb.Response{
+		RequestId: requestId,
+		Timestamp: uint64(time.Now().Unix()),
+		Status: &pb.Status{
+			Type:    pb.StatusType_FINISHED,
+			Log:     "",
+			Message: "",
+		},
+	}
+	return response, nil
+}
+
+func (b *MasterService) Reset(ctx context.Context, request *pb.ResetRequest) (*pb.Response, error) {
+	fmt.Printf("Got Reset Request %v\n", request)
+	masterProvider.Reset()
+	//proc.setClock(masterClock)
+	// Response
+	requestId := getUid()
+	response := &pb.Response{
+		RequestId: requestId,
+		Timestamp: uint64(time.Now().Unix()),
+		Status: &pb.Status{
+			Type:    pb.StatusType_FINISHED,
+			Log:     "",
+			Message: "",
+		},
+	}
+	return response, nil
 }
 
 func (b *MasterService) SetClock(ctx context.Context, request *pb.SetClockRequest) (*pb.Response, error) {

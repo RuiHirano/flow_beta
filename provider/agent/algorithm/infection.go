@@ -20,8 +20,8 @@ var (
 
 
 type ModelParam struct{
-	Radius float64   // 半径何m?以内にいる人が接触と判断するか
-	Rate float64 // 何%が感染するか
+	Radius float64  `json:"radius"` // 半径何m?以内にいる人が接触と判断するか
+	Rate float64 `json:"rate"`// 何%が感染するか
 }
 
 type AgentParam struct{
@@ -35,13 +35,30 @@ type Infection struct {
 	Area       *api.Area
 }
 
-func NewInfection(param *ModelParam, agents []*api.Agent, area *api.Area) *Infection {
+func NewInfection(param *ModelParam) *Infection {
 	r := &Infection{
-		Agents: agents,
-		Area:   area,
 		ModelParam: param,
 	}
 	return r
+}
+
+func (inf *Infection) SimulationRequest(simReq *api.SimulatorRequest) {
+	simType := simReq.GetType()
+	if simType == "SET_PATAM"{
+		data := simReq.GetData()
+		var param *ModelParam
+		json.Unmarshal([]byte(data), &param)
+		inf.ModelParam = param
+		logger.Success("Set Param")
+	}
+}
+
+func (inf *Infection) SetAgents(agents []*api.Agent) {
+	inf.Agents = agents
+}
+
+func (inf *Infection) SetArea(area *api.Area) {
+	inf.Area = area
 }
 
 // CalcDirectionAndDistance: 目的地までの距離と角度を計算する関数

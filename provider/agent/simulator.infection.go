@@ -7,8 +7,16 @@ import (
 	algo "github.com/RuiHirano/flow_beta/provider/agent/algorithm"
 )
 
+var (
+	infection *algo.Infection
+)
+func init(){	
 
-func init(){
+	param := &algo.ModelParam{
+		Radius: 0.00006,  // 2m
+		Rate: 0.8,  // 80%
+	}
+	infection = algo.NewInfection(param)
 }
 
 // SynerexSimulator :
@@ -78,9 +86,14 @@ func (sim *Simulator) SetAgents(agentsInfo []*api.Agent) {
 	sim.Agents = newAgents
 }
 
-// ClearAgents :　Agentsを追加する関数
-func (sim *Simulator) ClearAgents() {
+// ResetAgents :　Agentsを追加する関数
+func (sim *Simulator) ResetAgents() {
 	sim.Agents = make([]*api.Agent, 0)
+}
+
+// SimulationRequest :　Agentsを追加する関数
+func (sim *Simulator) SimulationRequest(simReq *api.SimulatorRequest) {
+	infection.SimulationRequest(simReq)
 }
 
 // GetAgents :　Agentsを取得する関数
@@ -116,11 +129,13 @@ func (sim *Simulator) ForwardStep() []*api.Agent {
 	// Agent計算
 	//sameAgents := sim.DiffAgents
 	//rvo2route := algo.NewRVO2Route(sim.Agents, sim.Area)
-	param := &algo.ModelParam{
+	/*param := &algo.ModelParam{
 		Radius: 0.00006,  // 2m
 		Rate: 0.8,  // 80%
 	}
-	infection := algo.NewInfection(param, sim.Agents, sim.Area)
+	infection := algo.NewInfection(param, sim.Agents, sim.Area)*/
+	infection.SetAgents(sim.Agents)
+	infection.SetArea(sim.Area)
 	nextAgents := infection.CalcNextAgents()
 	sim.Agents = nextAgents
 

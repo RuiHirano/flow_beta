@@ -4,12 +4,23 @@ package master;
 option go_package="master";
 
 service Master {
+    rpc Simulator(SimulatorRequest) returns (Response){}
+    rpc Reset(ResetRequest) returns (Response){}
     rpc SetClock(SetClockRequest) returns (Response){}
     rpc StartClock(StartClockRequest) returns (Response){}  
     rpc StopClock(StopClockRequest) returns (Response){}  
     rpc SetArea(SetAreaRequest) returns (Response){}  
     rpc SetAgent(SetAgentRequest) returns (Response){} 
     rpc SetConfig(SetConfigRequest) returns (Response){} 
+}
+
+
+message SimulatorRequest {
+    string type = 1;
+    string data = 2;
+}
+
+message ResetRequest {
 }
 
 message SetClockRequest {
