@@ -419,10 +419,11 @@ func (w *Waiter) WaitMsg(simMsgId uint64, targets []uint64, timeout uint64) ([]*
 }
 
 func (w *Waiter) SendMsgToWait(msg *sxapi.MbusMsg) {
-	//mu.Lock()
 	simMsg := &SimMsg{}
 	proto.Unmarshal(msg.Cdata.Entity, simMsg)
+	mu.Lock()
 	waitCh, ok := w.WaitChMap[simMsg.GetMsgId()]
+	mu.Unlock()
 	if ok {
 		waitCh <- simMsg
 	}
