@@ -106,6 +106,7 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
             //console.log("newMovesbase: ", newMovesbase)
             return newMovesbase
         })
+        console.log(`時間: ${(new Date()).toLocaleString('ja-JP')}\n 感染者: ${graphData.infected}, 健常者: ${graphData.susceptible} 回復者: ${graphData.recovered}`)
         setGraphData((data) => {
             return [...data, graphData]
         })
@@ -149,7 +150,7 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
 
         //testAgent()
 
-        console.log("ver1.1.1", process.env);
+        console.log("ver1.1.2", process.env);
         if (actions) {
             actions.setViewport({
                 ...props.viewport,

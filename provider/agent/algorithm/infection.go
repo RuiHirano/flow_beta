@@ -21,7 +21,8 @@ var (
 
 type ModelParam struct{
 	Radius float64  `json:"radius"` // 半径何m?以内にいる人が接触と判断するか
-	Rate float64 `json:"rate"`// 何%が感染するか
+	Rate float64 `json:"rate"`// 何%で感染するか
+	DefaultInfRate float64 `json:"defaultInfRate"` // 最初のエージェントの何％が感染から始まるか
 }
 
 type AgentParam struct{
@@ -44,12 +45,12 @@ func NewInfection(param *ModelParam) *Infection {
 
 func (inf *Infection) SimulationRequest(simReq *api.SimulatorRequest) {
 	simType := simReq.GetType()
-	if simType == "SET_PATAM"{
+	if simType == "SET_PARAM"{
 		data := simReq.GetData()
 		var param *ModelParam
 		json.Unmarshal([]byte(data), &param)
 		inf.ModelParam = param
-		logger.Success("Set Param")
+		logger.Success("Set Param: radius %v, rate %v, defaultInfRate %v", param.Radius, param.Rate, param.DefaultInfRate, data)
 	}
 }
 
@@ -113,7 +114,7 @@ func (inf *Infection) GetNextTransit(nextTransit *api.Coord, distance float64) *
 	newNextTransit := nextTransit
 	//logger.Error("Name: %v, Distance %v\n", routeName, distance)
 	// 距離が5m以下の場合
-	if distance < 10 {
+	/*if distance < 10 {
 		routes := GetRoutes2()
 		for _, route := range routes {
 			if route.Point.Longitude == nextTransit.Longitude && route.Point.Latitude == nextTransit.Latitude {
@@ -125,7 +126,7 @@ func (inf *Infection) GetNextTransit(nextTransit *api.Coord, distance float64) *
 				break
 			}
 		}
-	}
+	}*/
 	return newNextTransit
 }
 

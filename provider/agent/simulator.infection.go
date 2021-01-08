@@ -1,10 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"math"
+
+	"math/rand"
 
 	api "github.com/RuiHirano/flow_beta/api"
 	algo "github.com/RuiHirano/flow_beta/provider/agent/algorithm"
+	"github.com/google/uuid"
 )
 
 var (
@@ -15,6 +19,7 @@ func init(){
 	param := &algo.ModelParam{
 		Radius: 0.00006,  // 2m
 		Rate: 0.8,  // 80%
+		DefaultInfRate: 0.2, // 20%
 	}
 	infection = algo.NewInfection(param)
 }
@@ -41,14 +46,17 @@ func NewSimulator(areaInfo *api.Area, agentType api.AgentType) *Simulator {
 }
 
 // AddAgents :　Agentsを追加する関数
-func (sim *Simulator) AddAgents(agentsInfo []*api.Agent) int {
+func (sim *Simulator) AddAgents(agents []*api.Agent) int {
+
+	infAgents := CreateInfectionAgents(agents)
+	
 	newAgents := make([]*api.Agent, 0)
-	for _, agentInfo := range agentsInfo {
-		if agentInfo.Type == sim.AgentType {
-			position := agentInfo.Route.Position
+	for _, infAgent := range infAgents {
+		if infAgent.Type == sim.AgentType {
+			position := infAgent.Route.Position
 			//("Debug %v, %v", position, sim.Area.DuplicateArea)
 			if IsAgentInArea(position, sim.Area.DuplicateArea) {
-				newAgents = append(newAgents, agentInfo)
+				newAgents = append(newAgents, infAgent)
 			}
 		}
 	}
@@ -175,4 +183,56 @@ func GetCoordRange(coords []*api.Coord) (float64, float64, float64, float64) {
 		}
 	}
 	return maxLat, maxLon, minLat, minLon
+}
+
+// for experiment
+func CreateInfectionAgents(agents []*api.Agent)[]*api.Agent{
+	expAgents := []*api.Agent{}
+	maxLat, maxLon, minLat, minLon := GetCoordRange(myArea.ControlArea)
+	for range agents{
+
+		uid, _ := uuid.NewRandom()
+		position := &api.Coord{
+			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
+			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
+		}
+		destination := &api.Coord{
+			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
+			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
+		}
+		transitPoint := &api.Coord{
+			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
+			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
+		}
+
+		transitPoints := []*api.Coord{transitPoint}
+		var agentParam  *algo.AgentParam
+		if rand.Float64() < infection.ModelParam.DefaultInfRate{  // 5%以下が初期感染
+			agentParam = &algo.AgentParam{
+				Status: "I",
+				Move: 0,
+			}
+		}else{
+			agentParam = &algo.AgentParam{
+			Status: "S",
+			Move: 0,
+			}
+		}
+		agentModelParamJson, _ := json.Marshal(agentParam)
+		expAgents = append(expAgents, &api.Agent{
+			Type: api.AgentType_PEDESTRIAN,
+			Id:   uint64(uid.ID()),
+			Route: &api.Route{
+				Position:      position,
+				Direction:     30,
+				Speed:         60,
+				Departure:     position,
+				Destination:   destination,
+				TransitPoints: transitPoints,
+				NextTransit:   transitPoint,
+			},
+			Data: string(agentModelParamJson),
+		})
+	}
+	return expAgents
 }

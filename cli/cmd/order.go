@@ -132,6 +132,7 @@ type ConfigOptions struct {
 type InfectionOptions struct {
 	Radius float64  `validate:"required,min=0,max=1", json:"radius"` // 半径何m?以内にいる人が接触と判断するか
 	Rate float64 `validate:"required,min=0,max=1", json:"rate"`// 何%が感染するか
+	DefaultInfRate float64 `validate:"required,min=0,max=1", json:"defaultInfRate"`// 最初のエージェントの何％が感染から始まるか
 }
 
 var (
@@ -144,11 +145,11 @@ var (
 
 var simulatorRequestCmd = &cobra.Command{
 	Use:   "inf",
-	Short: "order reset",
+	Short: "order inf",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("simulation request\n")
 		//aojson, _ := json.Marshal(ao)
 		data, _ := json.Marshal(io)
+		fmt.Printf("simulation request\n", io, string(data))
 		request := &pb.SimulatorRequest{
 			Type: "SET_PARAM",
 			Data: string(data),
@@ -261,6 +262,7 @@ var configCmd = &cobra.Command{
 func init() {
 	simulatorRequestCmd.Flags().Float64VarP(&io.Rate, "rate", "p", 0.5, "infect rate (required)")
 	simulatorRequestCmd.Flags().Float64VarP(&io.Radius, "radius", "r", 0.00006, "infect radius (required)")
+	simulatorRequestCmd.Flags().Float64VarP(&io.DefaultInfRate, "defaultInfRate", "d", 0.2, "default infect rate (required)")
 	agentCmd.Flags().IntVarP(&ao.Num, "num", "n", 0, "agent num (required)")
 	areaCmd.Flags().StringVarP(&aro.ELat, "elat", "a", "35.161544", "area end latitude (required)")
 	areaCmd.Flags().StringVarP(&aro.SLat, "slat", "b", "35.152371", "area start latitude (required)")

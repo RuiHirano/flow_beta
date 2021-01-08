@@ -401,65 +401,12 @@ func (cb *WorkerCallback) SetAgentRequest(clt *sxutil.SXServiceClient, msg *sxap
 	agents := simMsg.GetSetAgentRequest().GetAgents()
 	//logger.Success("Set Agent NUM %d", agents)
 	// for experiment
-	expAgents := CreateExperimentAgents(agents)
+	//expAgents := CreateExperimentAgents(agents)
 
 	// Agent情報を追加する
-	num := agentProvider.AddAgents(expAgents)
+	num := agentProvider.AddAgents(agents)
 	logger.Success("Set Agent %d", num)
 }
-
-// for experiment
-func CreateExperimentAgents(agents []*api.Agent)[]*api.Agent{
-	expAgents := []*api.Agent{}
-	maxLat, maxLon, minLat, minLon := GetCoordRange(myArea.ControlArea)
-	for range agents{
-
-		uid, _ := uuid.NewRandom()
-		position := &api.Coord{
-			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
-			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
-		}
-		destination := &api.Coord{
-			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
-			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
-		}
-		transitPoint := &api.Coord{
-			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
-			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
-		}
-
-		transitPoints := []*api.Coord{transitPoint}
-		var agentParam  *algo.AgentParam
-		if rand.Float64() < 0.05{  // 5%以下が初期感染
-			agentParam = &algo.AgentParam{
-				Status: "I",
-				Move: 0,
-			}
-		}else{
-			agentParam = &algo.AgentParam{
-			Status: "S",
-			Move: 0,
-			}
-		}
-		agentModelParamJson, _ := json.Marshal(agentParam)
-		expAgents = append(expAgents, &api.Agent{
-			Type: api.AgentType_PEDESTRIAN,
-			Id:   uint64(uid.ID()),
-			Route: &api.Route{
-				Position:      position,
-				Direction:     30,
-				Speed:         60,
-				Departure:     position,
-				Destination:   destination,
-				TransitPoints: transitPoints,
-				NextTransit:   transitPoint,
-			},
-			Data: string(agentModelParamJson),
-		})
-	}
-	return expAgents
-}
-
 
 func (cb *WorkerCallback) GetAgentRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) []*api.Agent {
 	simMsg := &api.SimMsg{}
