@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { HarmoVisLayers, Container, BasedProps, BasedState, connectToHarmowareVis, MovesLayer, Movesbase, MovesbaseOperation, DepotsLayer, DepotsData, LineMapLayer, LineMapData } from 'harmoware-vis';
 import io from "socket.io-client";
 import { Controller } from '../components';
+import { useStatsGraph, GraphData } from '../components/statsgraph';
 
 
 //const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN ? process.env.REACT_APP_MAPBOX_TOKEN : "";
@@ -37,6 +38,7 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
     const [linedata, setLinedata] = useState<LineMapData[]>([])
     const [areadata, setAreadata] = useState<AreaInfo[]>([])
     const [movesdata, setMovesdata] = useState<Movesbase[]>([])
+    const { renderStatsGraphView, setGraphData } = useStatsGraph()
     //const movesdata = [...movesbase]
 
     const getAgents = (data: any) => {
@@ -44,14 +46,22 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
         console.log("getAgents: ", agents.length);
         const time = Date.now() / 1000; // set time as now. (If data have time, ..)
         const newMovesbase: Movesbase[] = [];
+        const graphData: GraphData = { timestamp: time, susceptible: 0, infected: 0, recovered: 0 }
         // useEffect内では外側のstateは初期化時のままなので、set関数内で過去のstateを取得する必要がある
         setMovesdata((movesdata) => {
             //console.log("socketData: ", movesdata);
             agents.forEach((agent: any) => {
                 let color = [0, 255, 0];  // S
                 const data = JSON.parse(agent.data)
-                if (data.status === "I") {
-                    color = [255, 0, 0]
+                if (data.status === "S") {
+                    color = [0, 255, 0]   // S
+                    graphData.susceptible += 1
+                } else if (data.status === "I") {
+                    color = [255, 0, 0]   // I
+                    graphData.infected += 1
+                } else {
+                    color = [0, 0, 255]   // R
+                    graphData.recovered += 1
                 }
                 let isExist = false;
                 // operation内のelapsedtimeなどのオブジェクトは2つ以上ないと表示されないので注意
@@ -96,7 +106,10 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
             //console.log("newMovesbase: ", newMovesbase)
             return newMovesbase
         })
-
+        setGraphData((data) => {
+            return [...data, graphData]
+        })
+        //addGraphData(graphData)  // add data to graph
         actions.updateMovesBase(newMovesbase);
     }
 
@@ -136,7 +149,7 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
 
         //testAgent()
 
-        console.log("ver1.0.12", process.env);
+        console.log("ver1.1.1", process.env);
         if (actions) {
             actions.setViewport({
                 ...props.viewport,
@@ -153,11 +166,11 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
         }
     }, [])
 
-
     //console.log("render: ", viewport, actions)
     return (
         <div>
             <Controller {...props} />
+
             <HarmoVisLayers
                 viewport={viewport} actions={actions}
                 mapboxApiAccessToken={MAPBOX_TOKEN}
@@ -186,6 +199,7 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
 
                 ]}
             />
+            {renderStatsGraphView()}
         </div>
     );
 }

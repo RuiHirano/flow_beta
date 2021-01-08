@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@babel/helper-regex": "^7.10.5",
+    "@material-ui/core": "^4.11.2",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
@@ -12,6 +13,7 @@
     "@types/react": "^16.9.0",
     "@types/react-dom": "^16.9.0",
     "@types/react-redux": "^7.1.9",
+    "@types/recharts": "^1.8.18",
     "@types/socket.io": "^2.1.8",
     "@types/socket.io-client": "^1.4.33",
     "harmoware-vis": "1.6.10",
@@ -20,6 +22,7 @@
     "react-dom": "^16.13.1",
     "react-redux": "^7.2.0",
     "react-scripts": "3.4.1",
+    "recharts": "1.8.5",
     "redux": "^4.0.5",
     "socket.io": "^2.3.0",
     "socket.io-client": "^2.3.0",
