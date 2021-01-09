@@ -282,16 +282,14 @@ func (ap *MasterProvider) SetAgents(agentNum uint64) error {
 			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
 			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
 		}
-		destination := &api.Coord{
-			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
-			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
-		}
-		transitPoint := &api.Coord{
-			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
-			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
+		transitPoint := &api.TransitPoint{
+			Id: string(uid.ID()),
+			Coord: &api.Coord{
+				Longitude: minLon + (maxLon-minLon)*rand.Float64(),
+				Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
+			},
 		}
 
-		transitPoints := []*api.Coord{transitPoint}
 		agents = append(agents, &api.Agent{
 			Type: api.AgentType_PEDESTRIAN,
 			Id:   uint64(uid.ID()),
@@ -299,9 +297,7 @@ func (ap *MasterProvider) SetAgents(agentNum uint64) error {
 				Position:      position,
 				Direction:     30,
 				Speed:         60,
-				Departure:     position,
-				Destination:   destination,
-				TransitPoints: transitPoints,
+				TransitPoints: []*api.TransitPoint{transitPoint},
 				NextTransit:   transitPoint,
 			},
 		})

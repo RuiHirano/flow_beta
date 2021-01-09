@@ -51,6 +51,9 @@ func NewSimulator(areaInfo *api.Area, agentType api.AgentType) *Simulator {
 		AgentType:  agentType,
 	}
 
+	transitPoints := createTransitPoints(10, nodeData, linkData)
+	logger.Debug("transitPoints %v", transitPoints)
+
 	return sim
 }
 
@@ -201,7 +204,7 @@ func CreateInfectionAgents(agents []*api.Agent)[]*api.Agent{
 	for range agents{
 
 		uid, _ := uuid.NewRandom()
-		departure, destination, transitPoints := createRoute(10, nodeData, linkData)
+		transitPoints := createTransitPoints(100, nodeData, linkData)
 		/*position := &api.Coord{
 			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
 			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
@@ -233,13 +236,11 @@ func CreateInfectionAgents(agents []*api.Agent)[]*api.Agent{
 			Type: api.AgentType_PEDESTRIAN,
 			Id:   uint64(uid.ID()),
 			Route: &api.Route{
-				Position:      departure,
+				Position:      transitPoints[0].Coord,
 				Direction:     30,
 				Speed:         60,
-				Departure:     departure,
-				Destination:   destination,
 				TransitPoints: transitPoints,
-				NextTransit:   transitPoints[0],
+				NextTransit:   transitPoints[1],
 			},
 			Data: string(agentModelParamJson),
 		})
@@ -464,7 +465,49 @@ func getRandomNodeLinkID(node Node)string{
 	return linkID
 }
 
-func createRoute(transitNum int, nodeData map[string]Node, linkData map[string]Link) (*api.Coord, *api.Coord, []*api.Coord){
+func getNextNode(node Node, transitPoints []*api.TransitPoint)Node{
+	linkIDSlice := []string{node.LinkID1}
+	if node.LinkID2 != "" { linkIDSlice = append(linkIDSlice, node.LinkID2) }
+	if node.LinkID3 != "" { linkIDSlice = append(linkIDSlice, node.LinkID3) }
+	if node.LinkID4 != "" { linkIDSlice = append(linkIDSlice, node.LinkID4) }
+	if node.LinkID5 != "" { linkIDSlice = append(linkIDSlice, node.LinkID5) }
+	if node.LinkID6 != "" { linkIDSlice = append(linkIDSlice, node.LinkID6) }
+	for _, linkID := range linkIDSlice{
+		// Nodeを決定
+		nextLink := linkData[linkID]
+		nextNode := nodeData[nextLink.StartNodeID]
+		if node.Latitude == nextNode.Latitude && node.Longitude == nextNode.Longitude{
+			nextNode = nodeData[nextLink.EndNodeID]  // 同じNodeに戻らないようにする
+		}
+
+		// 行き止まりだったら戻る
+		if len(linkIDSlice) == 1{
+			return nextNode
+		}
+		// transitPointに存在しないNodeを選択する
+		isExist := false
+		for _, tp := range transitPoints{
+			if nextNode.Latitude == tp.Coord.Latitude && nextNode.Longitude == tp.Coord.Longitude{
+				isExist = true
+			}
+		}
+		if isExist == false {
+			return nextNode
+		}
+		//return nextNode
+	}
+	// Nodeを決定
+	//logger.Warn("Node null error", linkIDSlice)
+	nextLink := linkData[linkIDSlice[0]]
+	nextNode := nodeData[nextLink.StartNodeID]
+	if node.Latitude == nextNode.Latitude && node.Longitude == nextNode.Longitude{
+		nextNode = nodeData[nextLink.EndNodeID]  // 同じNodeに戻らないようにする
+	}
+
+	return nextNode
+}
+
+func createTransitPoints(transitNum int, nodeData map[string]Node, linkData map[string]Link) ([]*api.TransitPoint){
 	// departure
 	keys := make([]string, len(nodeData))
 	i := 0
@@ -474,27 +517,25 @@ func createRoute(transitNum int, nodeData map[string]Node, linkData map[string]L
 	}
 	randkey := keys[rand.Intn(len(nodeData))]
 	departureNode := nodeData[randkey]
-	departure := &api.Coord{Latitude: departureNode.Latitude, Longitude: departureNode.Longitude}
+	uid, _ := uuid.NewRandom()
+	departure := &api.TransitPoint{
+		Id: strconv.Itoa(int(uid.ID())),
+		Coord: &api.Coord{Latitude: departureNode.Latitude, Longitude: departureNode.Longitude},
+	}
 	
 	// transitpoints
-	transitPoints := []*api.Coord{}
+
+	transitPoints := []*api.TransitPoint{departure}
 	tgtNode := departureNode
 	for i := 0; i < transitNum; i++ {
-		//log.Print(tgtNode.NodeID)
-		nextLink := linkData[getRandomNodeLinkID(tgtNode)]
-		nextNode := nodeData[nextLink.StartNodeID]
-		if tgtNode.Latitude == nextNode.Latitude && tgtNode.Longitude == nextNode.Longitude{
-			nextNode = nodeData[nextLink.EndNodeID]  // 同じNodeに戻らないようにする
-		}
-		transitPoints = append(transitPoints, &api.Coord{
-			Latitude: nextNode.Latitude,
-			Longitude: nextNode.Longitude,
+		uid, _ := uuid.NewRandom()
+		nextNode := getNextNode(tgtNode, transitPoints)
+		transitPoints = append(transitPoints, &api.TransitPoint{
+			Id: strconv.Itoa(int(uid.ID())),
+			Coord: &api.Coord{Latitude: nextNode.Latitude, Longitude: nextNode.Longitude},
 		})
 		tgtNode = nextNode
+		//logger.Debug("nextNode: \n%v\n%v\n%v", nextNode.NodeID, nextNode.Latitude, nextNode.Longitude)
 	}
-	// destination
-	destinationLink := linkData[tgtNode.LinkID1]
-	destinationNode := nodeData[destinationLink.EndNodeID]
-	destination := &api.Coord{Latitude: destinationNode.Latitude, Longitude: destinationNode.Longitude}
-	return departure, destination, transitPoints
+	return transitPoints
 }

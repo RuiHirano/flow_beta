@@ -117,16 +117,15 @@ func GetMockAgents(agentNum uint64) []*api.Agent {
 			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
 			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
 		}
-		destination := &api.Coord{
+		transitPoint := &api.TransitPoint{
+			Id: string(uid.ID()),
+			Coord:&api.Coord{
 			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
 			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
-		}
-		transitPoint := &api.Coord{
-			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
-			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
-		}
+		},
+	}
 
-		transitPoints := []*api.Coord{transitPoint}
+		transitPoints := []*api.TransitPoint{transitPoint}
 		var agentParam  *algo.AgentParam
 		if rand.Intn(2) != 0{
 			logger.Info("true", rand.Intn(2) != 0)
@@ -149,8 +148,6 @@ func GetMockAgents(agentNum uint64) []*api.Agent {
 				Position:      position,
 				Direction:     30,
 				Speed:         60,
-				Departure:     position,
-				Destination:   destination,
 				TransitPoints: transitPoints,
 				NextTransit:   transitPoint,
 			},
@@ -165,9 +162,9 @@ func GetMockAgents(agentNum uint64) []*api.Agent {
 func init() {
 	flag.Parse()
 	logger = util.NewLogger()
-	agents := GetMockAgents(10)
-	s, _ := json.Marshal(agents)
-	logger.Debug("jsonagents %v", string(s))
+	//agents := GetMockAgents(10)
+	//s, _ := json.Marshal(agents)
+	//logger.Debug("jsonagents %v", string(s))
 
 	/*recorder = NewRecorder()
 	recorder.Add(GetMockAgents(10))
@@ -230,8 +227,9 @@ func NewAgentProvider(simulator *Simulator, workerapi *api.ProviderAPI, visapi *
 func (ap *AgentProvider) Connect() error {
 	ap.WorkerAPI.ConnectServer()
 	ap.WorkerAPI.RegisterProvider()
-	ap.VisAPI.ConnectServer()
-	ap.VisAPI.RegisterProvider()
+	// For without Vis
+	//ap.VisAPI.ConnectServer()
+	//ap.VisAPI.RegisterProvider()
 	return nil
 }
 

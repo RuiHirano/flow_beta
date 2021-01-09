@@ -1,7 +1,6 @@
 package algorithm
 
 import (
-	"fmt"
 	"math"
 
 	api "github.com/RuiHirano/flow_beta/api"
@@ -62,7 +61,7 @@ func (simple *SimpleRoute) CalcMovedPosition(currentPosition *api.Coord, goalPos
 }
 
 // DecideNextTransit: 次の経由地を決める関数
-func (simple *SimpleRoute) DecideNextTransit(nextTransit *api.Coord, transitPoint []*api.Coord, distance float64, destination *api.Coord) *api.Coord {
+/*func (simple *SimpleRoute) DecideNextTransit(nextTransit *api.Coord, transitPoint []*api.Coord, distance float64, destination *api.Coord) *api.Coord {
 	// 距離が5m以下の場合
 	if distance < 5 {
 		if nextTransit != destination {
@@ -82,6 +81,28 @@ func (simple *SimpleRoute) DecideNextTransit(nextTransit *api.Coord, transitPoin
 		}
 	}
 	return nextTransit
+}*/
+
+// DecideNextTransit: 次の経由地を求める関数
+func (simple *SimpleRoute) DecideNextTransit(position *api.Coord, nextTransit *api.TransitPoint, transitPoints []*api.TransitPoint) *api.TransitPoint {
+
+	// 距離を確認
+	_, distance := simple.CalcDirectionAndDistance(position, nextTransit.Coord)
+
+	// 距離が5m以下の場合
+	if distance < 5 {
+		nowNodeId := nextTransit.Id
+		for i, v := range transitPoints{
+			if nowNodeId == v.Id{
+				if i == len(transitPoints){
+					logger.Info("Arrived")
+				}else{
+					nextTransit = transitPoints[i+1]
+				}
+			}
+		}
+	}
+	return nextTransit
 }
 
 // CalcNextRoute：次の時刻のRouteを計算する関数
@@ -92,20 +113,20 @@ func (simple *SimpleRoute) CalcNextRoute(agentInfo *api.Agent) *api.Route {
 	currentPosition := route.Position
 	nextTransit := route.NextTransit
 	transitPoints := route.TransitPoints
-	destination := route.Destination
+	//destination := route.Destination
 	// passed all transit point
 	//if nextTransit != nil {
 	//	destination = nextTransit
 	//}
 
 	// 現在位置と目標位置との距離と角度を計算
-	direction, distance := simple.CalcDirectionAndDistance(currentPosition, nextTransit)
+	direction, distance := simple.CalcDirectionAndDistance(currentPosition, nextTransit.Coord)
 
 	// 次の時刻のPositionを計算
-	nextPosition := simple.CalcMovedPosition(currentPosition, nextTransit, distance, speed)
+	position := simple.CalcMovedPosition(currentPosition, nextTransit.Coord, distance, speed)
 
 	// 経由地に到着していれば、目標位置を次の経由地に更新する
-	nextTransit = simple.DecideNextTransit(nextTransit, transitPoints, distance, destination)
+	nextTransit = simple.DecideNextTransit(position, agentInfo.Route.NextTransit ,agentInfo.Route.TransitPoints)
 
 	//fmt.Printf("\x1b[30m\x1b[47m Position %v, NextTransit: %v, NextTransit: %v, Direction: %v, Distance: %v \x1b[0m\n", currentPosition, nextTransit, destination, direction, distance)
 	//fmt.Printf("\x1b[30m\x1b[47m 上下:  %v, 左右: %v \x1b[0m\n", nextTransit.Lat-currentPosition.Lat, nextTransit.Lon-currentPosition.Lon)
@@ -115,15 +136,11 @@ func (simple *SimpleRoute) CalcNextRoute(agentInfo *api.Agent) *api.Route {
 	//}
 
 	nextRoute := &api.Route{
-		Position:      nextPosition,
+		Position:      position,
 		Direction:     direction,
 		Speed:         speed,
-		Destination:   route.Destination,
-		Departure:     route.Departure,
 		TransitPoints: transitPoints,
 		NextTransit:   nextTransit,
-		TotalDistance: route.TotalDistance,
-		RequiredTime:  route.RequiredTime,
 	}
 
 	return nextRoute

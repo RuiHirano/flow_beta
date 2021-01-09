@@ -43,6 +43,9 @@ apply-dev:
 apply-nagoya-dev:
 		kubectl apply -f ./kube/resource2/nagoya-sample-dev.yaml
 
+apply-nagoya-dev-no-vis:
+		kubectl apply -f ./kube/resource2/nagoya-sample-dev-no-vis.yaml
+
 app:
 		kubectl apply -f ./kube/util/master-simulator.yaml
 

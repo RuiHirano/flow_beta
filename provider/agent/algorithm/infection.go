@@ -40,6 +40,7 @@ func NewInfection(param *ModelParam) *Infection {
 	r := &Infection{
 		ModelParam: param,
 	}
+
 	return r
 }
 
@@ -86,7 +87,7 @@ func (inf *Infection) CalcDirectionAndDistance(startCoord *api.Coord, goalCoord 
 }
 
 // DecideNextTransit: 次の経由地を求める関数
-func (inf *Infection) DecideNextTransit(nextTransit *api.Coord, transitPoint []*api.Coord, distance float64, destination *api.Coord) *api.Coord {
+/*func (inf *Infection) DecideNextTransit(nextTransit *api.Coord, transitPoint []*api.Coord, distance float64, destination *api.Coord) *api.Coord {
 
 	// 距離が5m以下の場合
 	if distance < 10 {
@@ -109,33 +110,27 @@ func (inf *Infection) DecideNextTransit(nextTransit *api.Coord, transitPoint []*
 		}
 	}
 	return nextTransit
-}
+}*/
 
 // DecideNextTransit: 次の経由地を求める関数
-func (inf *Infection) DecideNextTransit2(position *api.Coord, nextTransit *api.Coord, transitPoint []*api.Coord) *api.Coord {
+func (inf *Infection) DecideNextTransit(position *api.Coord, nextTransit *api.TransitPoint, transitPoints []*api.TransitPoint) *api.TransitPoint {
 
 	// 距離を確認
-	_, distance := inf.CalcDirectionAndDistance(position, nextTransit)
+	_, distance := inf.CalcDirectionAndDistance(position, nextTransit.Coord)
 
 	// 距離が5m以下の場合
 	if distance < 5 {
-		
-		if nextTransit != destination {
-			for i, tPoint := range transitPoint {
-				if tPoint.Longitude == nextTransit.Longitude && tPoint.Latitude == nextTransit.Latitude {
-					if i+1 == len(transitPoint) {
-						// すべての経由地を通った場合、nextTransitをdestinationにする
-						nextTransit = destination
-						logger.Info("Destination %v %v", nextTransit, len(transitPoint))
-					} else {
-						// 次の経由地を設定する
-						nextTransit = transitPoint[i+1]
-						logger.Info("Next Transit %v %v", nextTransit, len(transitPoint))
-					}
+		nowTransitId := nextTransit.Id
+		for i, v := range transitPoints{
+			if nowTransitId == v.Id{
+				if i+1 == len(transitPoints){
+					//logger.Info("Arrived")
+					//logger.Info("Arrived %v %v %v %v \n %v", distance, position, nextTransit.Coord, len(transitPoints), transitPoints)
+				}else{
+					nextTransit = transitPoints[i+1]
+					//logger.Info("NextTransitPoint %v %v %v %v \n %v", i+1, nowTransitId)
 				}
 			}
-		} else {
-			logger.Info("Arrived")
 		}
 	}
 	return nextTransit
@@ -168,7 +163,7 @@ func (inf *Infection) SetupScenario() {
 	for _, agentInfo := range inf.Agents {
 
 		position := &rvo.Vector2{X: agentInfo.Route.Position.Longitude, Y: agentInfo.Route.Position.Latitude}
-		goal := &rvo.Vector2{X: agentInfo.Route.NextTransit.Longitude, Y: agentInfo.Route.NextTransit.Latitude}
+		goal := &rvo.Vector2{X: agentInfo.Route.NextTransit.Coord.Longitude, Y: agentInfo.Route.NextTransit.Coord.Latitude}
 
 		// Agentを追加
 		id, _ := sim.AddDefaultAgent(position)
@@ -208,7 +203,7 @@ func (inf *Infection) CalcNextAgents() []*api.Agent {
 		// 管理エリア内のエージェントのみ抽出
 		position := agentInfo.Route.Position
 		if IsAgentInArea(position, inf.Area.ControlArea) {
-			destination := agentInfo.Route.Destination
+			//destination := agentInfo.Route.Destination
 
 			// rvoの位置情報を緯度経度に変換する
 			rvoAgent := sim.GetAgent(int(rvoId))
@@ -240,13 +235,22 @@ func (inf *Infection) CalcNextAgents() []*api.Agent {
 				Longitude: rvoAgentPosition.X,
 			}
 
+
 			// 現在の位置とゴールとの距離と角度を求める (度, m))
 			//_, distance := inf.CalcDirectionAndDistance(position, agentInfo.Route.NextTransit)
 			// 次の経由地nextTransitを求める
 			//nextTransit := inf.DecideNextTransit(agentInfo.Route.NextTransit, agentInfo.Route.TransitPoints, distance, destination)
-			nextTransit := inf.DecideNextTransit2(position, agentInfo.Route.NextTransit ,agentInfo.Route.TransitPoints)
+			nextTransit := inf.DecideNextTransit(position, agentInfo.Route.NextTransit ,agentInfo.Route.TransitPoints)
 			//nextTransit := agentInfo.Route.NextTransit
 			//nextTransit := inf.GetNextTransit(agentInfo.Route.NextTransit, distance)
+
+
+			// ゴールしている場合、動かないようにする
+			tp := agentInfo.Route.TransitPoints[len(agentInfo.Route.TransitPoints)-1]
+			if nextTransit.Coord.Latitude == tp.Coord.Latitude && nextTransit.Coord.Longitude == tp.Coord.Longitude{
+				position = agentInfo.Route.Position
+			}
+
 
 			goalVector := sim.GetAgentGoalVector(int(rvoId))
 			direction := math.Atan2(goalVector.Y, goalVector.X)
@@ -256,12 +260,8 @@ func (inf *Infection) CalcNextAgents() []*api.Agent {
 				Position:      position,
 				Direction:     direction,
 				Speed:         speed,
-				Destination:   destination,
-				Departure:     agentInfo.Route.Departure,
 				TransitPoints: agentInfo.Route.TransitPoints,
 				NextTransit:   nextTransit,
-				TotalDistance: agentInfo.Route.TotalDistance,
-				RequiredTime:  agentInfo.Route.RequiredTime,
 			}
 
 			dataStr, _ := json.Marshal(data)
