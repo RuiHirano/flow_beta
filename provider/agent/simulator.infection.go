@@ -2,7 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"math"
+	"strconv"
+	"strings"
+
+	"github.com/jszwec/csvutil"
 
 	"math/rand"
 
@@ -13,9 +18,13 @@ import (
 
 var (
 	infection *algo.Infection
+	linkData map[string]Link
+	nodeData map[string]Node
 )
 func init(){	
 
+	linkData = getLinkData()
+	nodeData = getNodeData()
 	param := &algo.ModelParam{
 		Radius: 0.00006,  // 2m
 		Rate: 0.8,  // 80%
@@ -188,11 +197,12 @@ func GetCoordRange(coords []*api.Coord) (float64, float64, float64, float64) {
 // for experiment
 func CreateInfectionAgents(agents []*api.Agent)[]*api.Agent{
 	expAgents := []*api.Agent{}
-	maxLat, maxLon, minLat, minLon := GetCoordRange(myArea.ControlArea)
+	//maxLat, maxLon, minLat, minLon := GetCoordRange(myArea.ControlArea)
 	for range agents{
 
 		uid, _ := uuid.NewRandom()
-		position := &api.Coord{
+		departure, destination, transitPoints := createRoute(10, nodeData, linkData)
+		/*position := &api.Coord{
 			Longitude: minLon + (maxLon-minLon)*rand.Float64(),
 			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
 		}
@@ -205,7 +215,7 @@ func CreateInfectionAgents(agents []*api.Agent)[]*api.Agent{
 			Latitude:  minLat + (maxLat-minLat)*rand.Float64(),
 		}
 
-		transitPoints := []*api.Coord{transitPoint}
+		transitPoints := []*api.Coord{transitPoint}*/
 		var agentParam  *algo.AgentParam
 		if rand.Float64() < infection.ModelParam.DefaultInfRate{  // 5%以下が初期感染
 			agentParam = &algo.AgentParam{
@@ -223,16 +233,268 @@ func CreateInfectionAgents(agents []*api.Agent)[]*api.Agent{
 			Type: api.AgentType_PEDESTRIAN,
 			Id:   uint64(uid.ID()),
 			Route: &api.Route{
-				Position:      position,
+				Position:      departure,
 				Direction:     30,
 				Speed:         60,
-				Departure:     position,
+				Departure:     departure,
 				Destination:   destination,
 				TransitPoints: transitPoints,
-				NextTransit:   transitPoint,
+				NextTransit:   transitPoints[0],
 			},
 			Data: string(agentModelParamJson),
 		})
 	}
 	return expAgents
+}
+
+
+
+
+///////////////////////////////////////////////
+////////   Nagoya Route ///////////////////////
+//////////////////////////////////////////////
+
+type Link struct {
+	LinkID string `csv:"LinkID"`
+	StartNodeID string `csv:"StartNodeID"`
+	EndNodeID string `csv:"EndNodeID"`
+	Type int `csv:"Type"`
+}
+
+func getLinkData() map[string]Link{
+	var linkData []Link
+// バイト列を読み込む
+	b, _ := ioutil.ReadFile("./data/nagoya/link.csv")
+	// ユーザー定義型スライスにマッピング
+	csvutil.Unmarshal(b, &linkData)
+
+	linkMap := make(map[string]Link)
+	for _, v := range linkData{
+		linkMap[v.LinkID] = v
+	}
+	return linkMap
+}
+
+type Exit struct {
+	ExitID string `csv:"ExitID"`
+	NodeID string `csv:"NodeID"`
+	FacilityID string `csv:"FacilityID"`
+	Name string `csv:"Name"`
+}
+
+func getExitData() map[string]Exit{
+	var exitData []Exit
+// バイト列を読み込む
+	b, _ := ioutil.ReadFile("./data/nagoya/exit.csv")
+	// ユーザー定義型スライスにマッピング
+	csvutil.Unmarshal(b, &exitData)
+
+	exitMap := make(map[string]Exit)
+	for _, v := range exitData{
+		exitMap[v.ExitID] = v
+	}
+	return exitMap
+}
+
+func convertToCoord(wgs84 string) float64{
+	values := strings.Split(wgs84, ".")
+	degrees, _ := strconv.ParseFloat(values[0], 64)
+	minutes, _ := strconv.ParseFloat(values[1], 64)
+	seconds1, _ := strconv.ParseFloat(values[2], 64)
+	var seconds float64
+	if len(values) == 3{
+		seconds = seconds1
+	}else{
+		seconds2, _ := strconv.ParseFloat(values[3], 64)
+		seconds = seconds1 + seconds2/10000
+	}
+	result := degrees + minutes/60 +seconds/3600
+	return result
+}
+
+type NodeCSV struct {
+	NodeID string `csv:"NodeID"`
+	Code int `csv:"Code"`
+	Latitude string `csv:"Latitude"`
+	Longitude string `csv:"Longitude"`
+	Height float64 `csv:"Height"`
+	LinkID1 string `csv:"LinkID1"`
+	LinkID2 string `csv:"LinkID2"`
+	LinkID3 string `csv:"LinkID3"`
+	LinkID4 string `csv:"LinkID4"`
+	LinkID5 string `csv:"LinkID5"`
+	LinkID6 string `csv:"LinkID6"`
+}
+
+type Node struct {
+	NodeID string `csv:"NodeID"`
+	Code int `csv:"Code"`
+	Latitude float64 `csv:"Latitude"`
+	Longitude float64 `csv:"Longitude"`
+	Height float64 `csv:"Height"`
+	LinkID1 string `csv:"LinkID1"`
+	LinkID2 string `csv:"LinkID2"`
+	LinkID3 string `csv:"LinkID3"`
+	LinkID4 string `csv:"LinkID4"`
+	LinkID5 string `csv:"LinkID5"`
+	LinkID6 string `csv:"LinkID6"`
+}
+
+func getNodeData() map[string]Node{
+	var nodeData []Node
+// バイト列を読み込む
+	var nodeCSVData []NodeCSV
+	b, _ := ioutil.ReadFile("./data/nagoya/node.csv")
+	// ユーザー定義型スライスにマッピング
+	csvutil.Unmarshal(b, &nodeCSVData)
+	
+	for _, v := range nodeCSVData{
+		nodeData = append(nodeData, Node{
+			NodeID : v.NodeID,
+			Code : v.Code,
+			Latitude : convertToCoord(v.Latitude),
+			Longitude : convertToCoord(v.Longitude),
+			Height : v.Height,
+			LinkID1 : v.LinkID1,
+			LinkID2 : v.LinkID2,
+			LinkID3 : v.LinkID3,
+			LinkID4 : v.LinkID4,
+			LinkID5 : v.LinkID5,
+			LinkID6 : v.LinkID6,
+		})
+	}
+
+	nodeMap := make(map[string]Node)
+	for _, v := range nodeData{
+		nodeMap[v.NodeID] = v
+	}
+	return nodeMap
+}
+
+type FacilityCSV struct {
+	FacilityID string `csv:"FacilityID"`
+	Name string `csv:"Name"`
+	Code int `csv:"Code"`
+	Latitude string `csv:"Latitude"`
+	Longitude string `csv:"Longitude"`
+}
+
+type Facility struct {
+	FacilityID string `csv:"FacilityID"`
+	Name string `csv:"Name"`
+	Code int `csv:"Code"`
+	Latitude float64 `csv:"Latitude"`
+	Longitude float64 `csv:"Longitude"`
+}
+
+func getFacilityData() map[string]Facility{
+	var facilityData []Facility
+// バイト列を読み込む
+	var facilityCSVData []FacilityCSV
+	b, _ := ioutil.ReadFile("./data/nagoya/facility.csv")
+	// ユーザー定義型スライスにマッピング
+	csvutil.Unmarshal(b, &facilityCSVData)
+	
+	for _, v := range facilityCSVData{
+		facilityData = append(facilityData, Facility{
+			FacilityID : v.FacilityID,
+			Name: v.Name,
+			Code : v.Code,
+			Latitude : convertToCoord(v.Latitude),
+			Longitude : convertToCoord(v.Longitude),
+		})
+	}
+
+	facilityMap := make(map[string]Facility)
+	for _, v := range facilityData{
+		facilityMap[v.FacilityID] = v
+	}
+	return facilityMap
+}
+
+type HospitalCSV struct {
+	HospitalID string `csv:"HospitalID"`
+	Name string `csv:"Name"`
+	Code int `csv:"Code"`
+	Latitude string `csv:"Latitude"`
+	Longitude string `csv:"Longitude"`
+}
+
+type Hospital struct {
+	HospitalID string `csv:"HospitalID"`
+	Name string `csv:"Name"`
+	Code int `csv:"Code"`
+	Latitude float64 `csv:"Latitude"`
+	Longitude float64 `csv:"Longitude"`
+}
+
+func getHospitalData() map[string]Hospital{
+	var hospitalData []Hospital
+// バイト列を読み込む
+	var hospitalCSVData []HospitalCSV
+	b, _ := ioutil.ReadFile("./data/nagoya/hospital.csv")
+	// ユーザー定義型スライスにマッピング
+	csvutil.Unmarshal(b, &hospitalCSVData)
+	
+	for _, v := range hospitalCSVData{
+		hospitalData = append(hospitalData, Hospital{
+			HospitalID : v.HospitalID,
+			Name: v.Name,
+			Code : v.Code,
+			Latitude : convertToCoord(v.Latitude),
+			Longitude : convertToCoord(v.Longitude),
+		})
+	}
+
+	hospitalMap := make(map[string]Hospital)
+	for _, v := range hospitalData{
+		hospitalMap[v.HospitalID] = v
+	}
+	return hospitalMap
+}
+
+func getRandomNodeLinkID(node Node)string{
+	linkIDSlice := []string{node.LinkID1}
+	if node.LinkID2 != "" { linkIDSlice = append(linkIDSlice, node.LinkID2) }
+	if node.LinkID3 != "" { linkIDSlice = append(linkIDSlice, node.LinkID3) }
+	if node.LinkID4 != "" { linkIDSlice = append(linkIDSlice, node.LinkID4) }
+	if node.LinkID5 != "" { linkIDSlice = append(linkIDSlice, node.LinkID5) }
+	if node.LinkID6 != "" { linkIDSlice = append(linkIDSlice, node.LinkID6) }
+	linkID := linkIDSlice[rand.Intn(len(linkIDSlice))]
+	return linkID
+}
+
+func createRoute(transitNum int, nodeData map[string]Node, linkData map[string]Link) (*api.Coord, *api.Coord, []*api.Coord){
+	// departure
+	keys := make([]string, len(nodeData))
+	i := 0
+	for k := range nodeData {
+		keys[i] = k
+		i++
+	}
+	randkey := keys[rand.Intn(len(nodeData))]
+	departureNode := nodeData[randkey]
+	departure := &api.Coord{Latitude: departureNode.Latitude, Longitude: departureNode.Longitude}
+	
+	// transitpoints
+	transitPoints := []*api.Coord{}
+	tgtNode := departureNode
+	for i := 0; i < transitNum; i++ {
+		//log.Print(tgtNode.NodeID)
+		nextLink := linkData[getRandomNodeLinkID(tgtNode)]
+		nextNode := nodeData[nextLink.StartNodeID]
+		if tgtNode.Latitude == nextNode.Latitude && tgtNode.Longitude == nextNode.Longitude{
+			nextNode = nodeData[nextLink.EndNodeID]  // 同じNodeに戻らないようにする
+		}
+		transitPoints = append(transitPoints, &api.Coord{
+			Latitude: nextNode.Latitude,
+			Longitude: nextNode.Longitude,
+		})
+		tgtNode = nextNode
+	}
+	// destination
+	destinationLink := linkData[tgtNode.LinkID1]
+	destinationNode := nodeData[destinationLink.EndNodeID]
+	destination := &api.Coord{Latitude: destinationNode.Latitude, Longitude: destinationNode.Longitude}
+	return departure, destination, transitPoints
 }

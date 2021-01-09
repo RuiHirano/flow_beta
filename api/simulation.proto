@@ -249,12 +249,13 @@ message Route {
     Coord position = 1;
     double direction = 2;
     double speed = 3;
-    Coord destination = 4;
-    Coord departure = 5;
-    repeated Coord transit_points = 6;
-    Coord next_transit = 7;
-    double total_distance = 8;
-    double required_time = 9;
+    repeated TransitPoint transit_points = 4;
+    TransitPoint next_transit = 5;
+}
+
+message TransitPoint{
+    string id = 1;
+    Coord coord = 2;
 }
 
 message Coord {

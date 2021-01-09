@@ -40,6 +40,9 @@ delete:
 apply-dev:
 		kubectl apply -f ./kube/resource2/sample-dev.yaml
 
+apply-nagoya-dev:
+		kubectl apply -f ./kube/resource2/nagoya-sample-dev.yaml
+
 app:
 		kubectl apply -f ./kube/util/master-simulator.yaml
 

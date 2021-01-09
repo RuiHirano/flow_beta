@@ -690,10 +690,10 @@ func main() {
 	option := Option{
 		FileName: *fileName + ".yaml",
 		AreaCoords: []Coord{
-			{Longitude: 136.971626, Latitude: 35.161499},
-			{Longitude: 136.971626, Latitude: 35.152210},
-			{Longitude: 136.989379, Latitude: 35.152210},
-			{Longitude: 136.989379, Latitude: 35.161499},
+			{Longitude: 136.870738, Latitude: 35.210890},
+			{Longitude: 136.870738, Latitude: 35.136241},
+			{Longitude: 136.957084, Latitude: 35.136241},
+			{Longitude: 136.957084, Latitude: 35.210890},
 		},
 		DevideSquareNum: 2,   // 2*2 = 4 areas
 		DuplicateRate:   0.1, // 10% of each area
