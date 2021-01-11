@@ -7,7 +7,7 @@ import { useStatsGraph, GraphData } from '../components/statsgraph';
 
 
 //const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN ? process.env.REACT_APP_MAPBOX_TOKEN : "";
-const MAPBOX_TOKEN = 'pk.eyJ1IjoicnVpaGlyYW5vIiwiYSI6ImNqdmc0bXJ0dTAzZDYzem5vMmk0ejQ0engifQ.3k045idIb4JNvawjppzqZA'
+const MAPBOX_TOKEN = 'pk.eyJ1IjoicnVpaGlyYW5vIiwiYSI6ImNrODV5cWRrbDBiYmkzbW83MHB0OXR2YWsifQ.DsQnn_9ZQY8-wp0elf-Yhw'
 
 
 class Harmoware extends Container<BasedProps & BasedState> {

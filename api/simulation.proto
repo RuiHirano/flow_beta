@@ -255,7 +255,8 @@ message Route {
 
 message TransitPoint{
     string id = 1;
-    Coord coord = 2;
+    string status = 2;
+    Coord coord = 3;
 }
 
 message Coord {

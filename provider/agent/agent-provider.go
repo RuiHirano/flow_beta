@@ -228,8 +228,8 @@ func (ap *AgentProvider) Connect() error {
 	ap.WorkerAPI.ConnectServer()
 	ap.WorkerAPI.RegisterProvider()
 	// For without Vis
-	//ap.VisAPI.ConnectServer()
-	//ap.VisAPI.RegisterProvider()
+	ap.VisAPI.ConnectServer()
+	ap.VisAPI.RegisterProvider()
 	return nil
 }
 

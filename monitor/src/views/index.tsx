@@ -1,7 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
-import { HarmoVisLayers, Container, BasedProps, BasedState, connectToHarmowareVis, MovesLayer, Movesbase, MovesbaseOperation, DepotsLayer, DepotsData, LineMapLayer, LineMapData } from 'harmoware-vis';
+import { HarmoVisLayers, Container, BasedProps, BasedState, connectToHarmowareVis, MovesLayer, Movesbase, MovesInput, MovesbaseOperation, DepotsLayer, DepotsData, LineMapLayer, LineMapData, EventInfo } from 'harmoware-vis';
 import { Controller } from '../components';
+import Controller2 from '../components/controller2';
 import Dropzone from 'react-dropzone'
 import { setMovesBase } from 'harmoware-vis/lib/src/actions';
 import { StaticMap } from 'react-map-gl';
@@ -80,12 +81,14 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
     const [movesdata, setMovesdata] = useState<Movesbase[]>([])
 
     const pickFile = (file: File) => {
+        console.log("picked file", file)
         var fileReader = new FileReader();
         fileReader.onload = function () {
             if (typeof fileReader.result === "string") {
                 const data = JSON.parse(fileReader.result)
                 //const newMovesbase = createData(data)
                 //actions.updateMovesBase(newMovesbase)
+                console.log("data", data)
                 runDataLoop(data)
                 //actions.updateMovesBase(data)
             }
@@ -143,12 +146,14 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
     }
 
     const runDataLoop = async (data: any) => {
+        let newMovesbase = []
         for (let i = 0; i < data.length; i++) {
             const stepData = data[i]
-            const newMovesbase = createData2(stepData)
-            actions.updateMovesBase(newMovesbase);
+            newMovesbase = createData2(stepData)
             await timeout(1000)
         }
+        console.log("movesData: ", newMovesbase)
+        actions.updateMovesBase(newMovesbase);
     }
 
     useEffect(() => {
@@ -165,29 +170,104 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
             })
 
             actions.setSecPerHour(3600);
-            actions.setLeading(2)
-            actions.setTrailing(5)
+            actions.setLeading(-5)
+            actions.setTrailing(-5)
         }
     }, [])
+
+    const [controllerState, setControllerState] = useState({
+        mapboxVisible: true,
+        moveDataVisible: true,
+        moveOptionVisible: false,
+        moveOptionArcVisible: false,
+        moveSvgVisible: false,
+        depotOptionVisible: false,
+        heatmapVisible: false,
+        optionChange: false,
+        iconChange: true,
+        iconCubeType: 0,
+        popup: [0, 0, ''],
+        popupInfo: null
+    })
+
+    const getMapboxChecked = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setControllerState({ ...controllerState, mapboxVisible: e.target.checked });
+    }
+
+    const getMoveDataChecked = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setControllerState({ ...controllerState, moveDataVisible: e.target.checked });
+    }
+
+    const getMoveOptionChecked = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setControllerState({ ...controllerState, moveOptionVisible: e.target.checked });
+    }
+
+    const getMoveOptionArcChecked = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setControllerState({ ...controllerState, moveOptionArcVisible: e.target.checked });
+    }
+
+    const getMoveSvgChecked = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setControllerState({ ...controllerState, moveSvgVisible: e.target.checked });
+    }
+
+    const getDepotOptionChecked = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setControllerState({ ...controllerState, depotOptionVisible: e.target.checked });
+    }
+
+    const getOptionChangeChecked = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setControllerState({ ...controllerState, optionChange: e.target.checked });
+    }
+
+    const getIconChangeChecked = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setControllerState({ ...controllerState, iconChange: e.target.checked });
+    }
+
+    const getIconCubeTypeSelected = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setControllerState({ ...controllerState, iconCubeType: +e.target.value });
+    }
+
+    const getHeatmapVisible = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setControllerState({ ...controllerState, heatmapVisible: e.target.checked });
+    }
+
+    const onHover = (el: EventInfo) => {
+        if (el && el.object) {
+            let disptext = '';
+            const objctlist = Object.entries(el.object);
+            for (let i = 0, lengthi = objctlist.length; i < lengthi; i = (i + 1) | 0) {
+                const strvalue = objctlist[i][1].toString();
+                disptext = disptext + (i > 0 ? '\n' : '');
+                disptext = disptext + (`${objctlist[i][0]}: ${strvalue}`);
+            }
+            setControllerState({ ...controllerState, popup: [el.x, el.y, disptext] });
+        } else {
+            setControllerState({ ...controllerState, popup: [0, 0, ''] });
+        }
+    }
+
 
 
     return (
         <div>
 
             <div>
-                <Dropzone onDrop={acceptedFiles => pickFile(acceptedFiles[0])}>
-                    {({ getRootProps, getInputProps }) => (
-                        <section>
-                            <div style={{ height: 100 }} {...getRootProps()}>
-                                <input {...getInputProps()} />
-                                <p>Drag 'n' drop some files here, or click to select files</p>
-                            </div>
-                        </section>
-                    )}
-                </Dropzone>
+                <Controller2
+                    {...props}
+                    iconCubeType={controllerState.iconCubeType}
+                    getMapboxChecked={getMapboxChecked.bind(this)}
+                    getMoveDataChecked={getMoveDataChecked.bind(this)}
+                    getMoveOptionChecked={getMoveOptionChecked.bind(this)}
+                    getMoveOptionArcChecked={getMoveOptionArcChecked.bind(this)}
+                    getMoveSvgChecked={getMoveSvgChecked.bind(this)}
+                    getDepotOptionChecked={getDepotOptionChecked.bind(this)}
+                    getHeatmapVisible={getHeatmapVisible.bind(this)}
+                    getOptionChangeChecked={getOptionChangeChecked.bind(this)}
+                    getIconChangeChecked={getIconChangeChecked.bind(this)}
+                    getIconCubeTypeSelected={getIconCubeTypeSelected.bind(this)}
+                />
             </div>
             <div style={{ height: '90%' }}>
-                <Controller {...props} />
+
                 <HarmoVisLayers
                     viewport={viewport} actions={actions}
                     mapboxApiAccessToken={MAPBOX_TOKEN}
@@ -198,19 +278,19 @@ const HarmowarePage: React.FC<BasedProps & BasedState> = (props) => {
                             movedData,
                             clickedObject,
                             actions,
-                            optionVisible: false,
-                            //lightSettings,
-                            //layerRadiusScale: 0.1,
+                            optionVisible: true,
+                            layerRadiusScale: 0.1,
                             getRadius: x => 0.5,
-                            //getRouteWidth: x => 1,
-                            //optionCellSize: 2,
-                            //sizeScale: 1,
+                            getRouteWidth: x => 1,
+                            optionCellSize: 2,
+                            sizeScale: 1,
                             iconChange: false,
-                            //optionChange: false, // this.state.optionChange,
-                            //onHover
+                            optionChange: false, // this.state.optionChange,
+
                         }),
 
                     ]}
+                //mapGlComponents={ this.getMapGlComponents(movedData) }
                 />
             </div>
         </div>

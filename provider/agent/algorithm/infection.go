@@ -120,15 +120,20 @@ func (inf *Infection) DecideNextTransit(position *api.Coord, nextTransit *api.Tr
 
 	// 距離が5m以下の場合
 	if distance < 5 {
-		nowTransitId := nextTransit.Id
-		for i, v := range transitPoints{
-			if nowTransitId == v.Id{
-				if i+1 == len(transitPoints){
-					//logger.Info("Arrived")
-					//logger.Info("Arrived %v %v %v %v \n %v", distance, position, nextTransit.Coord, len(transitPoints), transitPoints)
-				}else{
-					nextTransit = transitPoints[i+1]
-					//logger.Info("NextTransitPoint %v %v %v %v \n %v", i+1, nowTransitId)
+		// 施設内のとき
+		if nextTransit.Status == "FASILITY" && rand.Float64() < 0.9{
+			// 90%でそのまま建物にいる
+		}else{
+			nowTransitId := nextTransit.Id
+			for i, v := range transitPoints{
+				if nowTransitId == v.Id{
+					if i+1 == len(transitPoints){
+						//logger.Info("Arrived")
+						//logger.Info("Arrived %v %v %v %v \n %v", distance, position, nextTransit.Coord, len(transitPoints), transitPoints)
+					}else{
+						nextTransit = transitPoints[i+1]
+						//logger.Info("NextTransitPoint %v %v %v %v \n %v", i+1, nowTransitId)
+					}
 				}
 			}
 		}

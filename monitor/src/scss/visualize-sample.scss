@@ -1,0 +1,74 @@
+@import './harmoware.scss';
+
+div.vis_sample_controller {
+  font-size: 10pt; 
+  z-index: 100; 
+  position: fixed; 
+  top: 10px; 
+  right: 20px;
+  width: 260px;
+  ul {
+    list-style-type: none;
+    li {
+      margin: 0px 0px 4px 0px;
+      input[type="range"] {
+        width: 100%;
+      }
+    }
+    div.form-check {
+      input[type="checkbox"],label {
+        cursor: pointer;
+      }
+    }
+    div.form-select {
+      label {
+        margin-bottom: 2px;
+      }
+      select {
+        color: #f8f9fa;
+        border-radius: 2px;
+        cursor: pointer;
+        line-height: 14px;
+        padding: 4px 8px;
+        text-align: center;
+        vertical-align: middle;
+        width: 100%;
+        border-width: 1px;
+        border-color: #f8f9fa;
+        transition: all .2s ease;
+        background: none;
+        &:hover {
+          color: #212529;
+          background-color: #f8f9fa;
+          background: #f8f9fa;
+        }
+      }
+    }
+  }
+  div.vis_sample_input_button_column {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    label {
+      input[type="file"] {
+        display: none;
+      }
+    }
+    div {
+      white-space: nowrap;
+      overflow: hidden;
+      text-Overflow: ellipsis;
+      margin: -6px 0px 0px 0px;
+    }
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    cursor: pointer;
+    &:hover {
+      background: #FFFFFF;
+    }
+  }
+  span.button_span {
+    display: flex;
+    justify-content: center;
+  }
+}

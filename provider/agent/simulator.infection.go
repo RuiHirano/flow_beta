@@ -20,11 +20,15 @@ var (
 	infection *algo.Infection
 	linkData map[string]Link
 	nodeData map[string]Node
+	facilityData map[string]Facility
+	exitData map[string]Exit
 )
 func init(){	
 
 	linkData = getLinkData()
 	nodeData = getNodeData()
+	facilityData = getFacilityData()
+	exitData = getExitData()
 	param := &algo.ModelParam{
 		Radius: 0.00006,  // 2m
 		Rate: 0.8,  // 80%
@@ -292,7 +296,7 @@ func getExitData() map[string]Exit{
 
 	exitMap := make(map[string]Exit)
 	for _, v := range exitData{
-		exitMap[v.ExitID] = v
+		exitMap[v.NodeID] = v
 	}
 	return exitMap
 }
@@ -465,7 +469,18 @@ func getRandomNodeLinkID(node Node)string{
 	return linkID
 }
 
-func getNextNode(node Node, transitPoints []*api.TransitPoint)Node{
+func getNextNode(node Node, transitPoints []*api.TransitPoint)(Node, string){
+
+	// 建物があれば入る
+	if exit, ok := exitData[node.NodeID]; ok {
+		facilityID := exit.FacilityID
+		facility := facilityData[facilityID]
+		nextNode := node
+		nextNode.Latitude = facility.Latitude
+		nextNode.Longitude = facility.Longitude
+		return nextNode, "FACILITY"
+	}
+
 	linkIDSlice := []string{node.LinkID1}
 	if node.LinkID2 != "" { linkIDSlice = append(linkIDSlice, node.LinkID2) }
 	if node.LinkID3 != "" { linkIDSlice = append(linkIDSlice, node.LinkID3) }
@@ -481,9 +496,9 @@ func getNextNode(node Node, transitPoints []*api.TransitPoint)Node{
 		}
 
 		// 行き止まりだったら戻る
-		if len(linkIDSlice) == 1{
-			return nextNode
-		}
+		//if len(linkIDSlice) == 1{
+		//	return nextNode
+		//}
 		// transitPointに存在しないNodeを選択する
 		isExist := false
 		for _, tp := range transitPoints{
@@ -492,7 +507,7 @@ func getNextNode(node Node, transitPoints []*api.TransitPoint)Node{
 			}
 		}
 		if isExist == false {
-			return nextNode
+			return nextNode, ""
 		}
 		//return nextNode
 	}
@@ -504,7 +519,7 @@ func getNextNode(node Node, transitPoints []*api.TransitPoint)Node{
 		nextNode = nodeData[nextLink.EndNodeID]  // 同じNodeに戻らないようにする
 	}
 
-	return nextNode
+	return nextNode, ""
 }
 
 func createTransitPoints(transitNum int, nodeData map[string]Node, linkData map[string]Link) ([]*api.TransitPoint){
@@ -529,9 +544,11 @@ func createTransitPoints(transitNum int, nodeData map[string]Node, linkData map[
 	tgtNode := departureNode
 	for i := 0; i < transitNum; i++ {
 		uid, _ := uuid.NewRandom()
-		nextNode := getNextNode(tgtNode, transitPoints)
+		nextNode, status := getNextNode(tgtNode, transitPoints)
+		
 		transitPoints = append(transitPoints, &api.TransitPoint{
 			Id: strconv.Itoa(int(uid.ID())),
+			Status: status,
 			Coord: &api.Coord{Latitude: nextNode.Latitude, Longitude: nextNode.Longitude},
 		})
 		tgtNode = nextNode
