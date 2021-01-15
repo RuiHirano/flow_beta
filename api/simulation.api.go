@@ -171,12 +171,16 @@ func NewProviderAPI(provider *Provider, servAddr string, nodeAddr string, cb Cal
 }
 
 // Connect: Worker Nodeに接続する
-func (ap *ProviderAPI) ConnectServer() error {
+func (ap *ProviderAPI) ConnectServer(flag bool) error {
 	channelTypes := []uint32{}
 	for _, opt := range ap.SclientOpts {
 		channelTypes = append(channelTypes, opt.ChType)
 	}
+	// FIX
 	ni := sxutil.GetDefaultNodeServInfo()
+	if flag {
+		ni = sxutil.NewNodeServInfo()
+	}
 	ap.SimAPI.RegisterNodeLoop(ni, ap.NodeAddr, ap.Provider.Name, channelTypes)
 
 	// Register Synerex Server

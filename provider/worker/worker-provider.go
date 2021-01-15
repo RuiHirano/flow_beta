@@ -104,13 +104,18 @@ func NewWorkerProvider(masterapi *api.ProviderAPI, workerapi *api.ProviderAPI) *
 	return ap
 }
 func (ap *WorkerProvider) Connect(){
-	if err := ap.WorkerAPI.ConnectServer(); err != nil{
+	if err := ap.WorkerAPI.ConnectServer(false); err != nil{
 		logger.Error("error on Connect: WorkerServer", err)
-	}else if err := ap.MasterAPI.ConnectServer(); err != nil{
+	}
+	logger.Success("Connect to WorkerServer")
+	if err := ap.MasterAPI.ConnectServer(true); err != nil{
 		logger.Error("error on Connect MasterServer: ", err)
-	}else if err := ap.MasterAPI.RegisterProvider(); err != nil{
+	}
+	logger.Success("Connect to MasterServer")
+	if err := ap.MasterAPI.RegisterProvider(); err != nil{
 		logger.Error("error on Connect RegisterProvider: ", err)
 	}
+	logger.Success("Connect to RegisterProvider")
 		logger.Success("Success Connect: ")
 
 }

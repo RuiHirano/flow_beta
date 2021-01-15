@@ -4,6 +4,7 @@ import (
 	//"context"
 
 	"flag"
+	"strconv"
 
 	//"fmt"
 	//"log"
@@ -17,7 +18,6 @@ import (
 
 	//"runtime"
 	"encoding/json"
-	"io/ioutil"
 	"runtime"
 
 	api "github.com/RuiHirano/flow_beta/api"
@@ -128,13 +128,13 @@ func GetMockAgents(agentNum uint64) []*api.Agent {
 		transitPoints := []*api.TransitPoint{transitPoint}
 		var agentParam  *algo.AgentParam
 		if rand.Intn(2) != 0{
-			logger.Info("true", rand.Intn(2) != 0)
+			//logger.Info("true", rand.Intn(2) != 0)
 			agentParam = &algo.AgentParam{
 				Status: "I",
 				Move: 0,
 			}
 		}else{
-			logger.Info("false", rand.Intn(2) != 0)
+			//logger.Info("false", rand.Intn(2) != 0)
 			agentParam = &algo.AgentParam{
 				Status: "S",
 				Move: 0,
@@ -166,7 +166,8 @@ func init() {
 	//s, _ := json.Marshal(agents)
 	//logger.Debug("jsonagents %v", string(s))
 
-	/*recorder = NewRecorder()
+	recorder = NewRecorder()
+	/*recorder.Add(GetMockAgents(10))
 	recorder.Add(GetMockAgents(10))
 	recorder.Add(GetMockAgents(10))
 	recorder.Add(GetMockAgents(10))
@@ -174,9 +175,7 @@ func init() {
 	recorder.Add(GetMockAgents(10))
 	recorder.Add(GetMockAgents(10))
 	recorder.Add(GetMockAgents(10))
-	recorder.Add(GetMockAgents(10))
-	recorder.Add(GetMockAgents(10))
-	recorder.Save()*/
+	recorder.Add(GetMockAgents(10))*/
 
 	//areaJson := os.Getenv("AREA")
 	bytes := []byte(*areaJson)
@@ -186,23 +185,70 @@ func init() {
 	agentType = api.AgentType_PEDESTRIAN
 }
 
+type StepData struct {
+	Time int  `json:"time"`
+	Infected int   `json:"infected"`
+	Susceptible int   `json:"susceptible"`
+	Recovered int    `json:"recovered"`
+}
 type Recorder struct{
-	Agents [][]*api.Agent
+	Datetime string
+	Data[]*StepData
+	SaveNum int
+	Time int
 }
 func NewRecorder() *Recorder{
 	return &Recorder{
-		Agents: [][]*api.Agent{},
+		Datetime: time.Now().Format("20060102-1504"),
+		Data: []*StepData{},
+		SaveNum: 0,
+		Time: 0,
 	}
 }
 
 func (rc *Recorder) Add(agents []*api.Agent) error {
-	rc.Agents = append(rc.Agents, agents)
+	stepData := &StepData{}
+	stepData.Time = rc.Time
+	rc.Time += 1
+	for _, agent := range agents{
+		var data *algo.AgentParam
+		json.Unmarshal([]byte(agent.Data), &data)
+		if data.Status == "S"{
+			stepData.Susceptible += 1
+		}else if data.Status == "I"{
+			stepData.Infected += 1
+		}else if data.Status == "R"{
+			stepData.Recovered += 1
+		}
+	}
+	rc.Data = append(rc.Data, stepData)
+	logger.Info("", len(rc.Data))
+	if len(rc.Data) > 100{
+		rc.Save()
+		rc.Data = []*StepData{}
+		rc.SaveNum +=1
+	}
 	return nil
 }
 
+func (rc *Recorder) CheckDir (dirname string) {
+	if _, err := os.Stat("./result/"+dirname); os.IsNotExist(err) {
+	  os.Mkdir("./result/"+dirname, 0777)
+	}
+  }
+  
+
 func (rc *Recorder) Save() error {
-	agentsJson, _ := json.MarshalIndent(rc.Agents, "", " ")
-	_ = ioutil.WriteFile("test.json", agentsJson, 0644)
+	rc.CheckDir(rc.Datetime)
+	name := *providerName+"_"+strconv.Itoa(rc.SaveNum)+".json"
+	file, err := os.Create("./result/"+rc.Datetime + "/" +name)
+    if err != nil {
+        logger.Error("ERROR: %v", err)
+    }
+    defer file.Close()
+
+	jsonData, _ := json.Marshal(rc.Data)
+    file.Write(([]byte)(string(jsonData)))            // ファイル出力
 	return nil
 }
 
@@ -225,11 +271,11 @@ func NewAgentProvider(simulator *Simulator, workerapi *api.ProviderAPI, visapi *
 }
 
 func (ap *AgentProvider) Connect() error {
-	ap.WorkerAPI.ConnectServer()
+	ap.WorkerAPI.ConnectServer(false)
 	ap.WorkerAPI.RegisterProvider()
 	// For without Vis
-	ap.VisAPI.ConnectServer()
-	ap.VisAPI.RegisterProvider()
+	//ap.VisAPI.ConnectServer()
+	//ap.VisAPI.RegisterProvider()
 	return nil
 }
 
@@ -308,12 +354,17 @@ func (ap *AgentProvider) GetNeighborAreaAgents() []*api.Agent {
 	return neighborAgents
 }
 
+
+
 func (ap *AgentProvider) UpdateAgents(agents []*api.Agent) error {
 	t1 := time.Now()
 	
 	newAgents := sim.UpdateDuplicateAgents(agents)
 	// Agentsをセットする
 	sim.SetAgents(newAgents)
+
+	// resultにfileとして保存する
+	//recorder.Add(newAgents)
 
 	//logger.Debug("updateNextAgents 3")
 	t2 := time.Now()

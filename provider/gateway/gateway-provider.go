@@ -111,10 +111,27 @@ func NewGatewayProvider(worker1api *api.ProviderAPI, worker2api *api.ProviderAPI
 }
 
 func (ap *GatewayProvider) Connect() error {
-	ap.Worker1API.ConnectServer()
-	ap.Worker1API.RegisterProvider()
-	ap.Worker2API.ConnectServer()
-	ap.Worker2API.RegisterProvider()
+	if err := ap.Worker1API.ConnectServer(false); err != nil{
+		logger.Error("error on Connect: Worker1Server", err)
+	}
+	logger.Success("Connect to  Worker1Server")
+	if err := ap.Worker1API.RegisterProvider(); err != nil{
+		logger.Error("error on Connect Worker1RegisterProvider: ", err)
+	}
+	logger.Success("Connect to Worker1RegisterProvider")
+	if err := ap.Worker2API.ConnectServer(true); err != nil{
+		logger.Error("error on Connect Worker2Server: ", err)
+	}
+	logger.Success("Connect to Worker2Server")
+	if err := ap.Worker2API.RegisterProvider(); err != nil{
+		logger.Error("error on Connect Worker2RegisterProvider: ", err)
+	}
+	logger.Success("Connect to Worker2RegisterProvider")
+	logger.Success("Success Connect: ")
+	//ap.Worker1API.ConnectServer()
+	//ap.Worker1API.RegisterProvider()
+	//ap.Worker2API.ConnectServer()
+	//ap.Worker2API.RegisterProvider()
 	return nil
 }
 
@@ -160,9 +177,9 @@ func (ap *GatewayProvider) GetAgents(senderId uint64) []*api.Agent {
 	duration := t2.Sub(t1).Milliseconds()
 	interval := int64(1000) // 周期ms
 	if duration > interval {
-		logger.Warn("time cycle delayed... Duration: %d", duration)
+		logger.Warn("time cycle delayed... Duration: %d, Agent: %v", duration, len(agents))
 	} else {
-		logger.Success("Get Agent! Duration: %v ms, Wait: %d ms", duration, interval-duration)
+		logger.Success("Get Agent! Duration: %v ms, Wait: %d ms, Agent: %v", duration, interval-duration, len(agents))
 	}
 	
 	return agents
