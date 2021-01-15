@@ -1,0 +1,4046 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: simulator
+spec:
+  selector:
+    app: simulator
+  ports:
+  - name: http
+    port: 8000
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simulator
+  labels:
+    app: simulator
+spec:
+  containers:
+  - name: simulator
+    image: gcr.io/ruirui-synerex-simulation/simulator:latest
+    imagePullPolicy: IfNotPresent
+    stdin: true
+    tty: true
+    env:
+    - name: MASTER_ADDRESS
+      value: master:9900
+    ports:
+    - containerPort: 8000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: master
+spec:
+  selector:
+    app: master
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+  - name: master-provider
+    port: 9900
+    targetPort: 9900
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: master
+  labels:
+    app: master
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: master
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: master
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: master
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: master-provider
+    image: gcr.io/ruirui-synerex-simulation/master-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_SERVER_ADDRESS
+      value: master:10000
+    - name: CLI_PORT
+      value: "9900"
+    - name: PROVIDER_NAME
+      value: MasterProvider
+    ports:
+    - containerPort: 9900
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker11
+spec:
+  selector:
+    app: worker11
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker11
+  labels:
+    app: worker11
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker11
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker11
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker11
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker11:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker11:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider11
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker11:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker11:10000
+    - name: AREA_JSON
+      value: '{"id":11, "name":"Unknown", "duplicate_area": [{"latitude":35.14992665, "longitude":136.8692989},{"latitude":35.13499685, "longitude":136.8692989},{"latitude":35.13499685, "longitude":136.8865681},{"latitude":35.14992665, "longitude":136.8865681}], "control_area": [{"latitude":35.1486825, "longitude":136.870738},{"latitude":35.136241, "longitude":136.870738},{"latitude":35.136241, "longitude":136.885129},{"latitude":35.1486825, "longitude":136.885129}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider11
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker11:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker11:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker21:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker21:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1121
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker11:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker11:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker12:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker12:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1112
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker12
+spec:
+  selector:
+    app: worker12
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker12
+  labels:
+    app: worker12
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker12
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker12
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker12
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker12:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker12:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider12
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker12:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker12:10000
+    - name: AREA_JSON
+      value: '{"id":12, "name":"Unknown", "duplicate_area": [{"latitude":35.16236815, "longitude":136.8692989},{"latitude":35.14743835, "longitude":136.8692989},{"latitude":35.14743835, "longitude":136.8865681},{"latitude":35.16236815, "longitude":136.8865681}], "control_area": [{"latitude":35.161124, "longitude":136.870738},{"latitude":35.1486825, "longitude":136.870738},{"latitude":35.1486825, "longitude":136.885129},{"latitude":35.161124, "longitude":136.885129}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider12
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker12:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker12:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker22:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker22:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1222
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker12:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker12:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker13:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker13:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1213
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker13
+spec:
+  selector:
+    app: worker13
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker13
+  labels:
+    app: worker13
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker13
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker13
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker13
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker13:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker13:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider13
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker13:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker13:10000
+    - name: AREA_JSON
+      value: '{"id":13, "name":"Unknown", "duplicate_area": [{"latitude":35.17480964999999, "longitude":136.8692989},{"latitude":35.15987985, "longitude":136.8692989},{"latitude":35.15987985, "longitude":136.8865681},{"latitude":35.17480964999999, "longitude":136.8865681}], "control_area": [{"latitude":35.173565499999995, "longitude":136.870738},{"latitude":35.161124, "longitude":136.870738},{"latitude":35.161124, "longitude":136.885129},{"latitude":35.173565499999995, "longitude":136.885129}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider13
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker13:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker13:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker23:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker23:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1323
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker13:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker13:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker14:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker14:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1314
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker14
+spec:
+  selector:
+    app: worker14
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker14
+  labels:
+    app: worker14
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker14
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker14
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker14
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker14:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker14:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider14
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker14:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker14:10000
+    - name: AREA_JSON
+      value: '{"id":14, "name":"Unknown", "duplicate_area": [{"latitude":35.187251149999994, "longitude":136.8692989},{"latitude":35.17232135, "longitude":136.8692989},{"latitude":35.17232135, "longitude":136.8865681},{"latitude":35.187251149999994, "longitude":136.8865681}], "control_area": [{"latitude":35.186007, "longitude":136.870738},{"latitude":35.173565499999995, "longitude":136.870738},{"latitude":35.173565499999995, "longitude":136.885129},{"latitude":35.186007, "longitude":136.885129}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider14
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker14:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker14:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker24:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker24:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1424
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker14:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker14:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker15:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker15:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1415
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker15
+spec:
+  selector:
+    app: worker15
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker15
+  labels:
+    app: worker15
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker15
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker15
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker15
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker15:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker15:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider15
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker15:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker15:10000
+    - name: AREA_JSON
+      value: '{"id":15, "name":"Unknown", "duplicate_area": [{"latitude":35.199692649999996, "longitude":136.8692989},{"latitude":35.18476285, "longitude":136.8692989},{"latitude":35.18476285, "longitude":136.8865681},{"latitude":35.199692649999996, "longitude":136.8865681}], "control_area": [{"latitude":35.1984485, "longitude":136.870738},{"latitude":35.186007, "longitude":136.870738},{"latitude":35.186007, "longitude":136.885129},{"latitude":35.1984485, "longitude":136.885129}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider15
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker15:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker15:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker25:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker25:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1525
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker15:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker15:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker16:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker16:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1516
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker16
+spec:
+  selector:
+    app: worker16
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker16
+  labels:
+    app: worker16
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker16
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker16
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker16
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker16:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker16:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider16
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker16:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker16:10000
+    - name: AREA_JSON
+      value: '{"id":16, "name":"Unknown", "duplicate_area": [{"latitude":35.21213415, "longitude":136.8692989},{"latitude":35.19720435, "longitude":136.8692989},{"latitude":35.19720435, "longitude":136.8865681},{"latitude":35.21213415, "longitude":136.8865681}], "control_area": [{"latitude":35.21089, "longitude":136.870738},{"latitude":35.1984485, "longitude":136.870738},{"latitude":35.1984485, "longitude":136.885129},{"latitude":35.21089, "longitude":136.885129}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider16
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker16:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker16:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker26:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker26:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider1626
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker21
+spec:
+  selector:
+    app: worker21
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker21
+  labels:
+    app: worker21
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker21
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker21
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker21
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker21:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker21:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider21
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker21:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker21:10000
+    - name: AREA_JSON
+      value: '{"id":21, "name":"Unknown", "duplicate_area": [{"latitude":35.14992665, "longitude":136.8836899},{"latitude":35.13499685, "longitude":136.8836899},{"latitude":35.13499685, "longitude":136.9009591},{"latitude":35.14992665, "longitude":136.9009591}], "control_area": [{"latitude":35.1486825, "longitude":136.885129},{"latitude":35.136241, "longitude":136.885129},{"latitude":35.136241, "longitude":136.89952},{"latitude":35.1486825, "longitude":136.89952}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider21
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker21:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker21:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker31:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker31:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2131
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker21:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker21:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker22:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker22:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2122
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker22
+spec:
+  selector:
+    app: worker22
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker22
+  labels:
+    app: worker22
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker22
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker22
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker22
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker22:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker22:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider22
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker22:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker22:10000
+    - name: AREA_JSON
+      value: '{"id":22, "name":"Unknown", "duplicate_area": [{"latitude":35.16236815, "longitude":136.8836899},{"latitude":35.14743835, "longitude":136.8836899},{"latitude":35.14743835, "longitude":136.9009591},{"latitude":35.16236815, "longitude":136.9009591}], "control_area": [{"latitude":35.161124, "longitude":136.885129},{"latitude":35.1486825, "longitude":136.885129},{"latitude":35.1486825, "longitude":136.89952},{"latitude":35.161124, "longitude":136.89952}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider22
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker22:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker22:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker32:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker32:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2232
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker22:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker22:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker23:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker23:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2223
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker23
+spec:
+  selector:
+    app: worker23
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker23
+  labels:
+    app: worker23
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker23
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker23
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker23
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker23:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker23:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider23
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker23:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker23:10000
+    - name: AREA_JSON
+      value: '{"id":23, "name":"Unknown", "duplicate_area": [{"latitude":35.17480964999999, "longitude":136.8836899},{"latitude":35.15987985, "longitude":136.8836899},{"latitude":35.15987985, "longitude":136.9009591},{"latitude":35.17480964999999, "longitude":136.9009591}], "control_area": [{"latitude":35.173565499999995, "longitude":136.885129},{"latitude":35.161124, "longitude":136.885129},{"latitude":35.161124, "longitude":136.89952},{"latitude":35.173565499999995, "longitude":136.89952}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider23
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker23:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker23:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker33:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker33:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2333
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker23:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker23:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker24:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker24:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2324
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker24
+spec:
+  selector:
+    app: worker24
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker24
+  labels:
+    app: worker24
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker24
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker24
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker24
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker24:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker24:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider24
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker24:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker24:10000
+    - name: AREA_JSON
+      value: '{"id":24, "name":"Unknown", "duplicate_area": [{"latitude":35.187251149999994, "longitude":136.8836899},{"latitude":35.17232135, "longitude":136.8836899},{"latitude":35.17232135, "longitude":136.9009591},{"latitude":35.187251149999994, "longitude":136.9009591}], "control_area": [{"latitude":35.186007, "longitude":136.885129},{"latitude":35.173565499999995, "longitude":136.885129},{"latitude":35.173565499999995, "longitude":136.89952},{"latitude":35.186007, "longitude":136.89952}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider24
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker24:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker24:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker34:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker34:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2434
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker24:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker24:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker25:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker25:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2425
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker25
+spec:
+  selector:
+    app: worker25
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker25
+  labels:
+    app: worker25
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker25
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker25
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker25
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker25:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker25:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider25
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker25:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker25:10000
+    - name: AREA_JSON
+      value: '{"id":25, "name":"Unknown", "duplicate_area": [{"latitude":35.199692649999996, "longitude":136.8836899},{"latitude":35.18476285, "longitude":136.8836899},{"latitude":35.18476285, "longitude":136.9009591},{"latitude":35.199692649999996, "longitude":136.9009591}], "control_area": [{"latitude":35.1984485, "longitude":136.885129},{"latitude":35.186007, "longitude":136.885129},{"latitude":35.186007, "longitude":136.89952},{"latitude":35.1984485, "longitude":136.89952}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider25
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker25:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker25:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker35:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker35:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2535
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker25:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker25:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker26:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker26:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2526
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker26
+spec:
+  selector:
+    app: worker26
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker26
+  labels:
+    app: worker26
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker26
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker26
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker26
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker26:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker26:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider26
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker26:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker26:10000
+    - name: AREA_JSON
+      value: '{"id":26, "name":"Unknown", "duplicate_area": [{"latitude":35.21213415, "longitude":136.8836899},{"latitude":35.19720435, "longitude":136.8836899},{"latitude":35.19720435, "longitude":136.9009591},{"latitude":35.21213415, "longitude":136.9009591}], "control_area": [{"latitude":35.21089, "longitude":136.885129},{"latitude":35.1984485, "longitude":136.885129},{"latitude":35.1984485, "longitude":136.89952},{"latitude":35.21089, "longitude":136.89952}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider26
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker26:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker26:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker36:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker36:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider2636
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker31
+spec:
+  selector:
+    app: worker31
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker31
+  labels:
+    app: worker31
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker31
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker31
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker31
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker31:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker31:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider31
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker31:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker31:10000
+    - name: AREA_JSON
+      value: '{"id":31, "name":"Unknown", "duplicate_area": [{"latitude":35.14992665, "longitude":136.8980809},{"latitude":35.13499685, "longitude":136.8980809},{"latitude":35.13499685, "longitude":136.91535009999998},{"latitude":35.14992665, "longitude":136.91535009999998}], "control_area": [{"latitude":35.1486825, "longitude":136.89952},{"latitude":35.136241, "longitude":136.89952},{"latitude":35.136241, "longitude":136.91391099999998},{"latitude":35.1486825, "longitude":136.91391099999998}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider31
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker31:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker31:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker41:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker41:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3141
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker31:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker31:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker32:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker32:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3132
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker32
+spec:
+  selector:
+    app: worker32
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker32
+  labels:
+    app: worker32
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker32
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker32
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker32
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker32:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker32:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider32
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker32:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker32:10000
+    - name: AREA_JSON
+      value: '{"id":32, "name":"Unknown", "duplicate_area": [{"latitude":35.16236815, "longitude":136.8980809},{"latitude":35.14743835, "longitude":136.8980809},{"latitude":35.14743835, "longitude":136.91535009999998},{"latitude":35.16236815, "longitude":136.91535009999998}], "control_area": [{"latitude":35.161124, "longitude":136.89952},{"latitude":35.1486825, "longitude":136.89952},{"latitude":35.1486825, "longitude":136.91391099999998},{"latitude":35.161124, "longitude":136.91391099999998}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider32
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker32:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker32:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker42:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker42:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3242
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker32:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker32:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker33:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker33:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3233
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker33
+spec:
+  selector:
+    app: worker33
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker33
+  labels:
+    app: worker33
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker33
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker33
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker33
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker33:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker33:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider33
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker33:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker33:10000
+    - name: AREA_JSON
+      value: '{"id":33, "name":"Unknown", "duplicate_area": [{"latitude":35.17480964999999, "longitude":136.8980809},{"latitude":35.15987985, "longitude":136.8980809},{"latitude":35.15987985, "longitude":136.91535009999998},{"latitude":35.17480964999999, "longitude":136.91535009999998}], "control_area": [{"latitude":35.173565499999995, "longitude":136.89952},{"latitude":35.161124, "longitude":136.89952},{"latitude":35.161124, "longitude":136.91391099999998},{"latitude":35.173565499999995, "longitude":136.91391099999998}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider33
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker33:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker33:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker43:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker43:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3343
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker33:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker33:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker34:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker34:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3334
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker34
+spec:
+  selector:
+    app: worker34
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker34
+  labels:
+    app: worker34
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker34
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker34
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker34
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker34:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker34:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider34
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker34:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker34:10000
+    - name: AREA_JSON
+      value: '{"id":34, "name":"Unknown", "duplicate_area": [{"latitude":35.187251149999994, "longitude":136.8980809},{"latitude":35.17232135, "longitude":136.8980809},{"latitude":35.17232135, "longitude":136.91535009999998},{"latitude":35.187251149999994, "longitude":136.91535009999998}], "control_area": [{"latitude":35.186007, "longitude":136.89952},{"latitude":35.173565499999995, "longitude":136.89952},{"latitude":35.173565499999995, "longitude":136.91391099999998},{"latitude":35.186007, "longitude":136.91391099999998}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider34
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker34:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker34:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker44:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker44:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3444
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker34:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker34:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker35:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker35:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3435
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker35
+spec:
+  selector:
+    app: worker35
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker35
+  labels:
+    app: worker35
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker35
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker35
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker35
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker35:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker35:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider35
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker35:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker35:10000
+    - name: AREA_JSON
+      value: '{"id":35, "name":"Unknown", "duplicate_area": [{"latitude":35.199692649999996, "longitude":136.8980809},{"latitude":35.18476285, "longitude":136.8980809},{"latitude":35.18476285, "longitude":136.91535009999998},{"latitude":35.199692649999996, "longitude":136.91535009999998}], "control_area": [{"latitude":35.1984485, "longitude":136.89952},{"latitude":35.186007, "longitude":136.89952},{"latitude":35.186007, "longitude":136.91391099999998},{"latitude":35.1984485, "longitude":136.91391099999998}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider35
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker35:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker35:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker45:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker45:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3545
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker35:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker35:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker36:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker36:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3536
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker36
+spec:
+  selector:
+    app: worker36
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker36
+  labels:
+    app: worker36
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker36
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker36
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker36
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker36:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker36:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider36
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker36:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker36:10000
+    - name: AREA_JSON
+      value: '{"id":36, "name":"Unknown", "duplicate_area": [{"latitude":35.21213415, "longitude":136.8980809},{"latitude":35.19720435, "longitude":136.8980809},{"latitude":35.19720435, "longitude":136.91535009999998},{"latitude":35.21213415, "longitude":136.91535009999998}], "control_area": [{"latitude":35.21089, "longitude":136.89952},{"latitude":35.1984485, "longitude":136.89952},{"latitude":35.1984485, "longitude":136.91391099999998},{"latitude":35.21089, "longitude":136.91391099999998}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider36
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker36:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker36:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker46:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker46:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider3646
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker41
+spec:
+  selector:
+    app: worker41
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker41
+  labels:
+    app: worker41
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker41
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker41
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker41
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker41:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker41:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider41
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker41:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker41:10000
+    - name: AREA_JSON
+      value: '{"id":41, "name":"Unknown", "duplicate_area": [{"latitude":35.14992665, "longitude":136.91247189999999},{"latitude":35.13499685, "longitude":136.91247189999999},{"latitude":35.13499685, "longitude":136.9297411},{"latitude":35.14992665, "longitude":136.9297411}], "control_area": [{"latitude":35.1486825, "longitude":136.91391099999998},{"latitude":35.136241, "longitude":136.91391099999998},{"latitude":35.136241, "longitude":136.928302},{"latitude":35.1486825, "longitude":136.928302}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider41
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker41:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker41:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker51:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker51:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4151
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker41:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker41:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker42:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker42:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4142
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker42
+spec:
+  selector:
+    app: worker42
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker42
+  labels:
+    app: worker42
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker42
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker42
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker42
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker42:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker42:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider42
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker42:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker42:10000
+    - name: AREA_JSON
+      value: '{"id":42, "name":"Unknown", "duplicate_area": [{"latitude":35.16236815, "longitude":136.91247189999999},{"latitude":35.14743835, "longitude":136.91247189999999},{"latitude":35.14743835, "longitude":136.9297411},{"latitude":35.16236815, "longitude":136.9297411}], "control_area": [{"latitude":35.161124, "longitude":136.91391099999998},{"latitude":35.1486825, "longitude":136.91391099999998},{"latitude":35.1486825, "longitude":136.928302},{"latitude":35.161124, "longitude":136.928302}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider42
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker42:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker42:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker52:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker52:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4252
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker42:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker42:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker43:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker43:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4243
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker43
+spec:
+  selector:
+    app: worker43
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker43
+  labels:
+    app: worker43
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker43
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker43
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker43
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker43:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker43:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider43
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker43:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker43:10000
+    - name: AREA_JSON
+      value: '{"id":43, "name":"Unknown", "duplicate_area": [{"latitude":35.17480964999999, "longitude":136.91247189999999},{"latitude":35.15987985, "longitude":136.91247189999999},{"latitude":35.15987985, "longitude":136.9297411},{"latitude":35.17480964999999, "longitude":136.9297411}], "control_area": [{"latitude":35.173565499999995, "longitude":136.91391099999998},{"latitude":35.161124, "longitude":136.91391099999998},{"latitude":35.161124, "longitude":136.928302},{"latitude":35.173565499999995, "longitude":136.928302}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider43
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker43:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker43:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker53:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker53:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4353
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker43:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker43:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker44:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker44:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4344
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker44
+spec:
+  selector:
+    app: worker44
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker44
+  labels:
+    app: worker44
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker44
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker44
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker44
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker44:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker44:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider44
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker44:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker44:10000
+    - name: AREA_JSON
+      value: '{"id":44, "name":"Unknown", "duplicate_area": [{"latitude":35.187251149999994, "longitude":136.91247189999999},{"latitude":35.17232135, "longitude":136.91247189999999},{"latitude":35.17232135, "longitude":136.9297411},{"latitude":35.187251149999994, "longitude":136.9297411}], "control_area": [{"latitude":35.186007, "longitude":136.91391099999998},{"latitude":35.173565499999995, "longitude":136.91391099999998},{"latitude":35.173565499999995, "longitude":136.928302},{"latitude":35.186007, "longitude":136.928302}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider44
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker44:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker44:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker54:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker54:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4454
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker44:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker44:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker45:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker45:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4445
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker45
+spec:
+  selector:
+    app: worker45
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker45
+  labels:
+    app: worker45
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker45
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker45
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker45
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker45:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker45:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider45
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker45:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker45:10000
+    - name: AREA_JSON
+      value: '{"id":45, "name":"Unknown", "duplicate_area": [{"latitude":35.199692649999996, "longitude":136.91247189999999},{"latitude":35.18476285, "longitude":136.91247189999999},{"latitude":35.18476285, "longitude":136.9297411},{"latitude":35.199692649999996, "longitude":136.9297411}], "control_area": [{"latitude":35.1984485, "longitude":136.91391099999998},{"latitude":35.186007, "longitude":136.91391099999998},{"latitude":35.186007, "longitude":136.928302},{"latitude":35.1984485, "longitude":136.928302}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider45
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker45:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker45:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker55:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker55:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4555
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker45:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker45:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker46:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker46:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4546
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker46
+spec:
+  selector:
+    app: worker46
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker46
+  labels:
+    app: worker46
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker46
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker46
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker46
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker46:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker46:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider46
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker46:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker46:10000
+    - name: AREA_JSON
+      value: '{"id":46, "name":"Unknown", "duplicate_area": [{"latitude":35.21213415, "longitude":136.91247189999999},{"latitude":35.19720435, "longitude":136.91247189999999},{"latitude":35.19720435, "longitude":136.9297411},{"latitude":35.21213415, "longitude":136.9297411}], "control_area": [{"latitude":35.21089, "longitude":136.91391099999998},{"latitude":35.1984485, "longitude":136.91391099999998},{"latitude":35.1984485, "longitude":136.928302},{"latitude":35.21089, "longitude":136.928302}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider46
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker46:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker46:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker56:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker56:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider4656
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker51
+spec:
+  selector:
+    app: worker51
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker51
+  labels:
+    app: worker51
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker51
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker51
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker51
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker51:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker51:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider51
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker51:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker51:10000
+    - name: AREA_JSON
+      value: '{"id":51, "name":"Unknown", "duplicate_area": [{"latitude":35.14992665, "longitude":136.9268629},{"latitude":35.13499685, "longitude":136.9268629},{"latitude":35.13499685, "longitude":136.94413210000002},{"latitude":35.14992665, "longitude":136.94413210000002}], "control_area": [{"latitude":35.1486825, "longitude":136.928302},{"latitude":35.136241, "longitude":136.928302},{"latitude":35.136241, "longitude":136.94269300000002},{"latitude":35.1486825, "longitude":136.94269300000002}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider51
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker51:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker51:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker61:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker61:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5161
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker51:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker51:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker52:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker52:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5152
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker52
+spec:
+  selector:
+    app: worker52
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker52
+  labels:
+    app: worker52
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker52
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker52
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker52
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker52:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker52:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider52
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker52:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker52:10000
+    - name: AREA_JSON
+      value: '{"id":52, "name":"Unknown", "duplicate_area": [{"latitude":35.16236815, "longitude":136.9268629},{"latitude":35.14743835, "longitude":136.9268629},{"latitude":35.14743835, "longitude":136.94413210000002},{"latitude":35.16236815, "longitude":136.94413210000002}], "control_area": [{"latitude":35.161124, "longitude":136.928302},{"latitude":35.1486825, "longitude":136.928302},{"latitude":35.1486825, "longitude":136.94269300000002},{"latitude":35.161124, "longitude":136.94269300000002}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider52
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker52:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker52:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker62:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker62:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5262
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker52:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker52:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker53:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker53:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5253
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker53
+spec:
+  selector:
+    app: worker53
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker53
+  labels:
+    app: worker53
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker53
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker53
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker53
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker53:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker53:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider53
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker53:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker53:10000
+    - name: AREA_JSON
+      value: '{"id":53, "name":"Unknown", "duplicate_area": [{"latitude":35.17480964999999, "longitude":136.9268629},{"latitude":35.15987985, "longitude":136.9268629},{"latitude":35.15987985, "longitude":136.94413210000002},{"latitude":35.17480964999999, "longitude":136.94413210000002}], "control_area": [{"latitude":35.173565499999995, "longitude":136.928302},{"latitude":35.161124, "longitude":136.928302},{"latitude":35.161124, "longitude":136.94269300000002},{"latitude":35.173565499999995, "longitude":136.94269300000002}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider53
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker53:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker53:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker63:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker63:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5363
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker53:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker53:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker54:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker54:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5354
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker54
+spec:
+  selector:
+    app: worker54
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker54
+  labels:
+    app: worker54
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker54
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker54
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker54
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker54:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker54:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider54
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker54:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker54:10000
+    - name: AREA_JSON
+      value: '{"id":54, "name":"Unknown", "duplicate_area": [{"latitude":35.187251149999994, "longitude":136.9268629},{"latitude":35.17232135, "longitude":136.9268629},{"latitude":35.17232135, "longitude":136.94413210000002},{"latitude":35.187251149999994, "longitude":136.94413210000002}], "control_area": [{"latitude":35.186007, "longitude":136.928302},{"latitude":35.173565499999995, "longitude":136.928302},{"latitude":35.173565499999995, "longitude":136.94269300000002},{"latitude":35.186007, "longitude":136.94269300000002}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider54
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker54:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker54:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker64:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker64:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5464
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker54:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker54:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker55:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker55:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5455
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker55
+spec:
+  selector:
+    app: worker55
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker55
+  labels:
+    app: worker55
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker55
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker55
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker55
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker55:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker55:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider55
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker55:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker55:10000
+    - name: AREA_JSON
+      value: '{"id":55, "name":"Unknown", "duplicate_area": [{"latitude":35.199692649999996, "longitude":136.9268629},{"latitude":35.18476285, "longitude":136.9268629},{"latitude":35.18476285, "longitude":136.94413210000002},{"latitude":35.199692649999996, "longitude":136.94413210000002}], "control_area": [{"latitude":35.1984485, "longitude":136.928302},{"latitude":35.186007, "longitude":136.928302},{"latitude":35.186007, "longitude":136.94269300000002},{"latitude":35.1984485, "longitude":136.94269300000002}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider55
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker55:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker55:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker65:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker65:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5565
+  - name: gateway-provider1
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker55:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker55:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker56:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker56:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5556
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker56
+spec:
+  selector:
+    app: worker56
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker56
+  labels:
+    app: worker56
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker56
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker56
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker56
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker56:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker56:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider56
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker56:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker56:10000
+    - name: AREA_JSON
+      value: '{"id":56, "name":"Unknown", "duplicate_area": [{"latitude":35.21213415, "longitude":136.9268629},{"latitude":35.19720435, "longitude":136.9268629},{"latitude":35.19720435, "longitude":136.94413210000002},{"latitude":35.21213415, "longitude":136.94413210000002}], "control_area": [{"latitude":35.21089, "longitude":136.928302},{"latitude":35.1984485, "longitude":136.928302},{"latitude":35.1984485, "longitude":136.94269300000002},{"latitude":35.21089, "longitude":136.94269300000002}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider56
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker56:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker56:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker66:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker66:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider5666
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker61
+spec:
+  selector:
+    app: worker61
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker61
+  labels:
+    app: worker61
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker61
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker61
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker61
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker61:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker61:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider61
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker61:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker61:10000
+    - name: AREA_JSON
+      value: '{"id":61, "name":"Unknown", "duplicate_area": [{"latitude":35.14992665, "longitude":136.94125390000002},{"latitude":35.13499685, "longitude":136.94125390000002},{"latitude":35.13499685, "longitude":136.9585231},{"latitude":35.14992665, "longitude":136.9585231}], "control_area": [{"latitude":35.1486825, "longitude":136.94269300000002},{"latitude":35.136241, "longitude":136.94269300000002},{"latitude":35.136241, "longitude":136.957084},{"latitude":35.1486825, "longitude":136.957084}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider61
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker61:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker61:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker62:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker62:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider6162
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker62
+spec:
+  selector:
+    app: worker62
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker62
+  labels:
+    app: worker62
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker62
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker62
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker62
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker62:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker62:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider62
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker62:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker62:10000
+    - name: AREA_JSON
+      value: '{"id":62, "name":"Unknown", "duplicate_area": [{"latitude":35.16236815, "longitude":136.94125390000002},{"latitude":35.14743835, "longitude":136.94125390000002},{"latitude":35.14743835, "longitude":136.9585231},{"latitude":35.16236815, "longitude":136.9585231}], "control_area": [{"latitude":35.161124, "longitude":136.94269300000002},{"latitude":35.1486825, "longitude":136.94269300000002},{"latitude":35.1486825, "longitude":136.957084},{"latitude":35.161124, "longitude":136.957084}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider62
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker62:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker62:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker63:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker63:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider6263
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker63
+spec:
+  selector:
+    app: worker63
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker63
+  labels:
+    app: worker63
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker63
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker63
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker63
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker63:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker63:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider63
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker63:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker63:10000
+    - name: AREA_JSON
+      value: '{"id":63, "name":"Unknown", "duplicate_area": [{"latitude":35.17480964999999, "longitude":136.94125390000002},{"latitude":35.15987985, "longitude":136.94125390000002},{"latitude":35.15987985, "longitude":136.9585231},{"latitude":35.17480964999999, "longitude":136.9585231}], "control_area": [{"latitude":35.173565499999995, "longitude":136.94269300000002},{"latitude":35.161124, "longitude":136.94269300000002},{"latitude":35.161124, "longitude":136.957084},{"latitude":35.173565499999995, "longitude":136.957084}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider63
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker63:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker63:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker64:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker64:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider6364
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker64
+spec:
+  selector:
+    app: worker64
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker64
+  labels:
+    app: worker64
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker64
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker64
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker64
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker64:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker64:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider64
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker64:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker64:10000
+    - name: AREA_JSON
+      value: '{"id":64, "name":"Unknown", "duplicate_area": [{"latitude":35.187251149999994, "longitude":136.94125390000002},{"latitude":35.17232135, "longitude":136.94125390000002},{"latitude":35.17232135, "longitude":136.9585231},{"latitude":35.187251149999994, "longitude":136.9585231}], "control_area": [{"latitude":35.186007, "longitude":136.94269300000002},{"latitude":35.173565499999995, "longitude":136.94269300000002},{"latitude":35.173565499999995, "longitude":136.957084},{"latitude":35.186007, "longitude":136.957084}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider64
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker64:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker64:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker65:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker65:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider6465
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker65
+spec:
+  selector:
+    app: worker65
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker65
+  labels:
+    app: worker65
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker65
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker65
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker65
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker65:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker65:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider65
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker65:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker65:10000
+    - name: AREA_JSON
+      value: '{"id":65, "name":"Unknown", "duplicate_area": [{"latitude":35.199692649999996, "longitude":136.94125390000002},{"latitude":35.18476285, "longitude":136.94125390000002},{"latitude":35.18476285, "longitude":136.9585231},{"latitude":35.199692649999996, "longitude":136.9585231}], "control_area": [{"latitude":35.1984485, "longitude":136.94269300000002},{"latitude":35.186007, "longitude":136.94269300000002},{"latitude":35.186007, "longitude":136.957084},{"latitude":35.1984485, "longitude":136.957084}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider65
+  - name: gateway-provider0
+    image: gcr.io/ruirui-synerex-simulation/gateway-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker65:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker65:10000
+    - name: SX_WORKER_NODESERV_ADDRESS
+      value: worker66:9000
+    - name: SX_WORKER_SERVER_ADDRESS
+      value: worker66:10000
+    - name: PROVIDER_NAME
+      value: GatewayProvider6566
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker66
+spec:
+  selector:
+    app: worker66
+  ports:
+  - name: synerex
+    port: 10000
+    targetPort: 10000
+  - name: nodeid
+    port: 9000
+    targetPort: 9000
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: worker66
+  labels:
+    app: worker66
+spec:
+  containers:
+  - name: synerex-nodeserv
+    image: gcr.io/ruirui-synerex-simulation/synerex-nodeserv:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker66
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_NODESERV_VERSION
+      value: "false"
+    - name: SX_NODESERV_VEBOSE
+      value: "false"
+    - name: SX_NODESERV_RESTART
+      value: "false"
+    ports:
+    - containerPort: 9000
+  - name: synerex-server
+    image: gcr.io/ruirui-synerex-simulation/synerex-server:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_HOST
+      value: worker66
+    - name: SX_NODESERV_PORT
+      value: "9000"
+    - name: SX_SERVER_HOST
+      value: worker66
+    - name: SX_SERVER_PORT
+      value: "10000"
+    - name: SX_SERVER_NAME
+      value: SynerexServer
+    - name: SX_SERVER_METRICS
+      value: "false"
+    ports:
+    - containerPort: 10000
+  - name: worker-provider
+    image: gcr.io/ruirui-synerex-simulation/worker-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker66:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker66:10000
+    - name: SX_MASTER_NODESERV_ADDRESS
+      value: master:9000
+    - name: SX_MASTER_SERVER_ADDRESS
+      value: master:10000
+    - name: PROVIDER_NAME
+      value: WorkerProvider66
+  - name: agent-provider
+    image: gcr.io/ruirui-synerex-simulation/agent-provider:latest
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: SX_NODESERV_ADDRESS
+      value: worker66:9000
+    - name: SX_SERVER_ADDRESS
+      value: worker66:10000
+    - name: AREA_JSON
+      value: '{"id":66, "name":"Unknown", "duplicate_area": [{"latitude":35.21213415, "longitude":136.94125390000002},{"latitude":35.19720435, "longitude":136.94125390000002},{"latitude":35.19720435, "longitude":136.9585231},{"latitude":35.21213415, "longitude":136.9585231}], "control_area": [{"latitude":35.21089, "longitude":136.94269300000002},{"latitude":35.1984485, "longitude":136.94269300000002},{"latitude":35.1984485, "longitude":136.957084},{"latitude":35.21089, "longitude":136.957084}]}'
+    - name: PROVIDER_NAME
+      value: AgentProvider66
+
+---

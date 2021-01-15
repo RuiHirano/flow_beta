@@ -429,8 +429,8 @@ func (cb *WorkerCallback) ForwardClockMainRequest(clt *sxutil.SXServiceClient, m
 func (cb *WorkerCallback) ForwardClockTerminateRequest(clt *sxutil.SXServiceClient, msg *sxapi.MbusMsg) {
 	simMsg := &api.SimMsg{}
 	proto.Unmarshal(msg.GetCdata().GetEntity(), simMsg)
-	agents := agentProvider.GetNeighborAreaAgents()
-	agentProvider.UpdateAgents(agents)
+	//agents := agentProvider.GetNeighborAreaAgents()
+	//agentProvider.UpdateAgents(agents)
 	logger.Success("Forward Clock Terminate")
 }
 
