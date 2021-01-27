@@ -1,0 +1,27 @@
+area:
+  startLatitude: 35.10000
+  endLatitude: 135.10000
+  startLongitude: 40.11000
+  endLongitude: 140.11000
+agents:
+  - num: 100
+    param:
+      type: person
+      speed: 20
+      position:
+        latitude: 36.234551
+        longitude: 138.325119
+      destination:
+        latitude: 37.234551
+        longitude: 138.311351
+  - num: 200
+    param:
+      type: car
+      speed: 80
+      position:
+        latitude: 38.232551
+        longitude: 138.322511
+      destination:
+        latitude: 37.234321
+        longitude: 138.336511
+  

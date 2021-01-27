@@ -555,14 +555,14 @@ func convertAreaToJson(area Area) string {
 func main() {
 
 	option := Option{
-		FileName: "gcp-nagoya-infection-25.yaml",
+		FileName: "local-nagoya-infection-4.yaml",
 		AreaCoords: []Coord{
 			{Longitude: 136.870738, Latitude: 35.210890},
 			{Longitude: 136.870738, Latitude: 35.136241},
 			{Longitude: 136.957084, Latitude: 35.136241},
 			{Longitude: 136.957084, Latitude: 35.210890},
 		},
-		DevideSquareNum: 5,   // 2*2 = 4 areas
+		DevideSquareNum: 2,   // 2*2 = 4 areas
 		DuplicateRate:   0.1, // 10% of each area
 	}
 

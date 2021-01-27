@@ -261,7 +261,7 @@ func (ap *MasterProvider) StartClock() {
 	} else {
 		// 待機
 		logger.Success("Forward Clock! Time %d, Duration: %d ms, Wait: %d ms", ap.GlobalTime, duration, interval-duration)
-		//time.Sleep(time.Duration(interval-duration) * time.Millisecond)
+		time.Sleep(time.Duration(interval-duration) * time.Millisecond)
 	}
 
 	if ap.Status == "START" {

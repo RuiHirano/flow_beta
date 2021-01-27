@@ -124,9 +124,9 @@ func NewVisualizationProvider(masterapi *api.ProviderAPI, workerapi *api.Provide
 }
 
 func (ap *VisualizationProvider) Connect() error {
-	ap.WorkerAPI.ConnectServer()
+	ap.WorkerAPI.ConnectServer(false)
 	//ap.WorkerAPI.RegisterProvider()
-	ap.MasterAPI.ConnectServer()
+	ap.MasterAPI.ConnectServer(true)
 	ap.MasterAPI.RegisterProvider()
 	return nil
 }
